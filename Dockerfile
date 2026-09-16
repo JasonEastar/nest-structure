@@ -9,6 +9,8 @@ ENV NODE_ENV=production
 # ---------- deps: cài đủ dev deps một lần, cache theo lockfile ----------
 FROM base AS deps
 ENV NODE_ENV=development
+# lockfile do npm 11 trên máy dev ghi; npm 10 của image đọc khác → dùng đúng npm (chỉ stage deps/dev/build, runtime không có)
+RUN npm install -g npm@11.9.0 --silent
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 

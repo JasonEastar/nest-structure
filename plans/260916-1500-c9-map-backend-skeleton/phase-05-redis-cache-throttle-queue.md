@@ -5,10 +5,14 @@
 - NestJS docs [02 techniques](../reports/nestjs-docs-02-techniques.md) (queues, caching, task-scheduling), [03 rate limiting](../reports/nestjs-docs-03-security-openapi.md)
 
 ## Overview
-**Ngày:** 2026-09-16 · **Ưu tiên:** P0 · **Trạng thái:** ☐ Chưa bắt đầu
+**Ngày:** 2026-09-16 · **Ưu tiên:** P0 · **Trạng thái:** ✅ Hoàn thành 2026-09-16 (18 e2e: cache chung 2 instance, 429 đếm chung + Retry-After, 1 scheduler, job xử lý; Docker 2 container: 2 tick / 2 phút mỗi instance 1, ready có redis, Bull Board 200)
 Mọi state chia sẻ ra Redis: cache, rate limit, queue. Processor và scheduler BullMQ sống trong module nghiệp vụ (`pin.jobs.ts`) và chạy trên **mọi instance** (all-in-one).
 
 ## Key insights
+- **Thực tế:** `@nest-lab/throttler-storage-redis@1.2.0` và cả `@nestjs/throttler@6.5.0` chưa khai peer Nest 12 → `npm ci` trong Docker fail (host npm 11 bỏ qua). Giải: bỏ package storage, viết `RedisThrottlerStorage` (Lua atomic, ~40 dòng) trong `throttler.guard.ts`; `package.json` `overrides` ép peer của `@nestjs/throttler` theo bản Nest đã cài (code chạy đúng, e2e xanh). Lockfile npm 11 ≠ npm 10 trong image → Dockerfile `npm i -g npm@11`, `engines.npm >= 11`.
+- Route 404 không đi qua guard → test rate limit phải dùng route thật (`ProbeController` trong e2e). Bull Board là Express middleware, **không** qua guard Nest → phase 06 bảo vệ bằng middleware kiểm JWT + permission, không phải `@RequirePermissions`.
+- BullMQ 6 `getJobSchedulers()` trả `key` (không `id`). Readiness 503 khi shutdown: **Terminus 12 có sẵn** (`HealthCheckExecutor.beforeApplicationShutdown` → `status: shutting_down`, `gracefulShutdownTimeoutMs: 5000` giữ app 5 s cho LB rút) → bỏ `ShutdownState` tự viết sau review. `AllExceptionsFilter` giữ nguyên body Terminus cho `/health/*`. Bỏ provider `REDIS_QUEUE` (BullMQ tự mở kết nối); Bull Board bật bằng `ConditionalModule.registerWhen` (không đọc `process.env` trong module).
+- Bài học vận hành: process `dist/main` cũ trên host giữ port 3000 làm nginx không bind và kết quả curl giả (đọc từ host thay vì nginx) → smoke phase 07 phải kiểm `X-Instance-Id` khớp container.
 - ioredis 2 connection: `REDIS_CACHE` (db0) và `REDIS_QUEUE` (db1, `maxRetriesPerRequest: null`). Prod tách 2 Redis instance vì eviction không đặt theo DB — ghi chú compose.
 - `CacheService` mỏng trên ioredis (`get/set/del/incr/sadd/zadd`, key `c9:v1:*`), không `@nestjs/cache-manager`, NEVER read-modify-write JSON.
 - Throttler: `AppThrottlerGuard extends ThrottlerGuard` override `getTracker` → `u:{userId}` (phase 06) → `d:{x-device-id}` → `ip:` (từ `X-Forwarded-For`, `trust proxy` đã bật). 2 tầng `short` 10/s, `long` 100/phút; `skipIf` health/docs; `Retry-After`.
@@ -58,13 +62,13 @@ Env: `REDIS_URL`, `REDIS_CACHE_DB=0`, `REDIS_QUEUE_DB=1`, `THROTTLE_SHORT_LIMIT=
 8. Chạy `dev:infra:full`; kiểm rate limit chung, cron 1 dòng/phút (`docker compose logs api-1 api-2 | grep 'expire tick'`).
 
 ## Todo
-- [ ] redis.ts (2 connection + CacheService + keys)
-- [ ] queue.ts BullModule root + QUEUES
-- [ ] throttler.guard.ts + APP_GUARD đầu tiên
-- [ ] pin.module / pin.constants / pin.schema placeholder / pin.jobs (processor + scheduler)
-- [ ] bull-board.ts (dev only)
-- [ ] Redis health indicator
-- [ ] Smoke: 429 chung, cron 1 lần/phút
+- [x] redis.ts (2 connection + CacheService + keys)
+- [x] queue.ts BullModule root + QUEUES
+- [x] throttler.guard.ts + APP_GUARD đầu tiên
+- [x] pin.module / pin.constants / pin.schema placeholder / pin.jobs (processor + scheduler)
+- [x] bull-board.ts (dev only)
+- [x] Redis health indicator
+- [x] Smoke: 429 chung, cron 1 lần/phút
 
 ## Success criteria
 ```

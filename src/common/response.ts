@@ -33,7 +33,7 @@ type PartialEnvelope<T> = { data: T; meta: PageMeta; [ENVELOPE]: true };
 /** Handler trả kèm meta phân trang (nextCursor, total); requestId do interceptor gắn, handler không đặt được. */
 export const withMeta = <T>(data: T, meta: PageMeta): PartialEnvelope<T> => ({ data, meta, [ENVELOPE]: true });
 
-const SKIP_PREFIXES = ['/health', '/docs']; // thêm /admin/queues (Bull Board) ở phase 05
+const SKIP_PREFIXES = ['/health', '/docs', '/admin/queues'];
 
 @Injectable()
 export class ResponseInterceptor implements NestInterceptor {

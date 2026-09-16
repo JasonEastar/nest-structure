@@ -1,6 +1,6 @@
 # c9_map — backend
 
-**Cập nhật:** 2026-09-16 · **Trạng thái:** Bước 4/11 — skeleton, Docker đa instance, Drizzle + PostGIS, cross-cutting (lỗi/validate/envelope/log/i18n/Swagger)
+**Cập nhật:** 2026-09-16 · **Trạng thái:** Bước 5/11 — skeleton, Docker đa instance, Drizzle + PostGIS, cross-cutting, Redis + rate limit + BullMQ
 
 C9 Map là bản đồ đời sống thời gian thực cho TP.HCM: kẹt xe, ngập, chợ đêm, sự kiện, danh lam… hiện thành pin có tuổi thọ, do người xung quanh xác nhận, tự hết hạn. Repo này là **API backend**; app mobile (Flutter hoặc React Native) là repo riêng, chỉ tiêu thụ OpenAPI.
 

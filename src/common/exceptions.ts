@@ -92,6 +92,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     if (res.headersSent) return; // response đã bắt đầu gửi (stream): không ghi thêm, tránh ERR_HTTP_HEADERS_SENT
+    // /health/*: giữ nguyên body của Terminus ({ status, info, error, details }) cho probe/người vận hành đọc
+    if (req.path.startsWith('/health') && exception instanceof HttpException) {
+      res.status(status).json(exception.getResponse());
+      return;
+    }
     const body: ErrorEnvelope = { error: { code, params, requestId } };
     res.status(status).json(body);
   }

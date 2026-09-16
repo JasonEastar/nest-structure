@@ -17,6 +17,15 @@ export const envSchema = z.object({
   // Postgres 16 + PostGIS (tự host). Migration dùng cùng URL (prod: role c9_migrate qua env riêng khi deploy).
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   DB_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
+
+  // Redis 7: db0 cache (allkeys-lru), db1 BullMQ (noeviction). Prod: 2 instance riêng vì eviction không đặt theo db.
+  REDIS_URL: z.url({ protocol: /^rediss?$/ }),
+  REDIS_CACHE_DB: z.coerce.number().int().min(0).max(15).default(0),
+  REDIS_QUEUE_DB: z.coerce.number().int().min(0).max(15).default(1),
+
+  // Rate limit mặc định (đếm chung mọi instance qua Redis). Override từng route bằng @Throttle.
+  THROTTLE_SHORT_LIMIT: z.coerce.number().int().min(1).default(10), // / 1 giây
+  THROTTLE_LONG_LIMIT: z.coerce.number().int().min(1).default(100), // / 1 phút
 });
 
 export type Env = z.infer<typeof envSchema>;

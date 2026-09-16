@@ -30,6 +30,8 @@ process.on('uncaughtException', (error) => {
 export const GLOBAL_PREFIX_EXCLUDE = [
   { path: 'health/{*splat}', method: RequestMethod.GET },
   { path: 'docs/{*splat}', method: RequestMethod.GET },
+  { path: 'admin/queues', method: RequestMethod.ALL },
+  { path: 'admin/queues/{*splat}', method: RequestMethod.ALL },
 ];
 
 export async function createApp(): Promise<NestExpressApplication> {

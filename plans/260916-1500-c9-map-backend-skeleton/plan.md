@@ -1,6 +1,6 @@
 # Plan — c9_map backend skeleton (cross-cutting trước business module)
 
-**Ngày:** 2026-09-16 · **Trạng thái:** ◐ Đang làm — phase 01–04 xong 2026-09-16 · **Chủ sở hữu:** Tech Lead
+**Ngày:** 2026-09-16 · **Trạng thái:** ◐ Đang làm — phase 01–05 xong 2026-09-16 · **Chủ sở hữu:** Tech Lead
 Mục tiêu: một project NestJS 12 **all-in-one** (HTTP + BullMQ processor trong cùng process) chạy được trên ≥ 2 instance sau nginx, có Postgres 16 + PostGIS riêng, Redis, Supabase Auth (chỉ Auth, Google), Swagger/OpenAPI, i18n, rate limit, test + CI. **Chưa có business module** (pin thật, reputation, alert…).
 
 ---
@@ -34,7 +34,7 @@ Mục tiêu: một project NestJS 12 **all-in-one** (HTTP + BullMQ processor tro
 | 02 | Docker: `api` ×2 + nginx + Postgres/PostGIS + Redis | ✅ | 100% | [phase-02](./phase-02-docker-multi-instance.md) |
 | 03 | Drizzle + PostGIS, `identity.schema.ts` + seed RBAC, `/health/ready` | ✅ | 100% | [phase-03](./phase-03-database-drizzle-postgis.md) |
 | 04 | `common/`: exceptions, validation, response, request-context, logger, i18n, openapi ×2 | ✅ | 100% | [phase-04](./phase-04-cross-cutting.md) |
-| 05 | Redis, cache, throttler, BullMQ + `pin.jobs.ts` scheduler, Bull Board | ☐ | 0% | [phase-05](./phase-05-redis-cache-throttle-queue.md) |
+| 05 | Redis, cache, throttler, BullMQ + `pin.jobs.ts` scheduler, Bull Board | ✅ | 100% | [phase-05](./phase-05-redis-cache-throttle-queue.md) |
 | 06 | Supabase Auth (Google) + RBAC: JWKS guard, profile upsert, permissions, admin roles API, `/me` | ☐ | 0% | [phase-06](./phase-06-supabase-auth.md) |
 | 07 | Vitest + testcontainers + supertest, smoke script, GitHub Actions | ☐ | 0% | [phase-07](./phase-07-testing-ci.md) |
 
@@ -48,7 +48,7 @@ Mỗi phase = 1 checkpoint: làm xong → chạy lệnh "done" → dán kết qu
 | 02 | (không npm) Docker 28 + Compose. Không cần Supabase CLI |
 | 03 | `drizzle-orm@0.45.2` `postgres@3.4.9` `uuidv7@1.2.1` `@nestjs/terminus@12.0.0` · dev `drizzle-kit@0.31.10` |
 | 04 | `@nestjs/swagger@12.0.1` `nestjs-i18n@10.8.5` `nestjs-pino@5.2.0` `pino-http@11.0.0` `helmet` · dev `pino-pretty` (`zod-openapi` chỉ nếu Swagger không render zod — hỏi trước) |
-| 05 | `ioredis@6.0.0` `@nestjs/throttler@6.5.0` `@nest-lab/throttler-storage-redis@1.2.0` `@nestjs/bullmq@12.0.0` `bullmq@6.3.6` `@bull-board/nestjs@9.10.1` `@bull-board/api@9.10.1` `@bull-board/express@9.10.1` |
+| 05 | `ioredis@6.0.0` `@nestjs/throttler@6.5.0` (storage Redis tự viết, không `@nest-lab/throttler-storage-redis`) `@nestjs/bullmq@12.0.0` `bullmq@6.3.6` `@bull-board/nestjs@9.10.1` `@bull-board/api@9.10.1` `@bull-board/express@9.10.1` |
 | 06 | `jose@6.2.12` `@supabase/supabase-js@2.116.0` |
 | 07 | dev `vitest@5.0.1` `unplugin-swc@1.6.0` `@swc/core` `@testcontainers/postgresql@12.1.0` `@testcontainers/redis@12.1.0` `supertest@7.2.2` `@types/supertest`; **gỡ** `jest` `ts-jest` `@types/jest` |
 

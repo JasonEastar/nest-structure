@@ -9,8 +9,8 @@
 
 | Mục | Giá trị |
 |---|---|
-| Bước roadmap | 4 — cross-cutting xong (lỗi, validate, envelope, pino, i18n, Swagger); tiếp theo bước 5 Redis/BullMQ |
-| Git | Nhánh `main`; e7f5f1a docs · f1476f4 phase 01 · 55d3858 phase 02 · fb5db5f phase 03 · phase 04 commit kế tiếp |
+| Bước roadmap | 5 — Redis/cache/throttler/BullMQ/Bull Board xong; tiếp theo bước 6 Supabase Auth + RBAC |
+| Git | Nhánh `main`; e7f5f1a docs · f1476f4 phase 01 · 55d3858 phase 02 · fb5db5f phase 03 · 2f6ffc1 phase 04 · phase 05 commit kế tiếp |
 | Kế hoạch đang chờ duyệt | `plans/260916-1500-c9-map-backend-skeleton/` |
 
 ## 2. Cây thư mục hiện tại
@@ -34,7 +34,7 @@ c9_backend/
 └── .claude/                  # agents, commands, skills, workflows của ClaudeKit
 ```
 
-## 3. Code hiện có (phase 01–04)
+## 3. Code hiện có (phase 01–05)
 
 ```
 src/
@@ -51,10 +51,17 @@ src/
 ├── common/logger.ts               # nestjs-pino (redact, requestId, instance, bỏ /health)
 ├── common/i18n.ts                 # nestjs-i18n vi/en, Accept-Language
 ├── common/openapi.ts              # 2 document /docs/app · /docs/admin · exportOpenApi · zodResponse
+├── common/redis.ts                # REDIS_CACHE db0 · redisOptions() (db1 cho BullMQ) · CacheService · cacheKeys · TTL
+├── common/queue.ts                # BullModule root (prefix c9, defaultJobOptions) · QUEUES
+├── common/throttler.guard.ts      # RedisThrottlerStorage (Lua) · AppThrottlerModule · AppThrottlerGuard (APP_GUARD đầu)
+├── common/bull-board.ts           # /admin/queues (dev; phase 06 bảo vệ)
+├── modules/pin/pin.constants.ts   # TTL pin, rate limit, tier rep, MARKER_EXPIRE_JOB
+├── modules/pin/pin.jobs.ts        # PinScheduler (upsertJobScheduler) · PinJobs (@Processor concurrency 2)
+├── modules/pin/pin.module.ts
 ├── openapi-export.ts              # entry `npm run openapi:export`
 ├── modules/identity/identity.schema.ts    # profiles · roles · permissions · role_permissions · user_roles · devices
 ├── health/health.controller.ts    # /health/live · /health/ready (Terminus)
-└── health/health.indicators.ts    # DrizzleHealthIndicator
+└── health/health.indicators.ts    # Drizzle + Redis indicators (Terminus tự 503 khi SIGTERM, grace 5 s)
 drizzle.config.ts · drizzle/{0000_extensions,0001_identity,0002_seed_rbac}.sql
 Dockerfile (targets dev · runtime) · .dockerignore · docker-compose.yml (postgres postgis · redis · api-1 · api-2 · nginx, profile full) · nginx.conf (least_conn)
 test/app.e2e-spec.ts        # supertest /health/live

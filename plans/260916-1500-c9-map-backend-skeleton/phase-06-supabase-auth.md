@@ -9,6 +9,7 @@
 NestJS **chỉ verify** JWT Supabase (Google) qua JWKS; profile upsert phía app ở request đầu; RBAC bằng bảng + cache Redis; admin API gán role; `GET/DELETE /me`.
 
 ## Key insights
+- **Từ phase 05:** Bull Board mount như Express middleware → guard Nest không chạy; bảo vệ `/admin/queues` bằng một middleware nhỏ trong `bull-board.ts`: verify JWT (SupabaseJwtService) + permission `queue:read` (IdentityService.getPermissions), 401/403 theo shape lỗi. Thay `if NODE_ENV !== production`.
 - JWKS `${SUPABASE_URL}/auth/v1/.well-known/jwks.json` (`jose.createRemoteJWKSet`, cache `kid`); kiểm `iss = ${SUPABASE_URL}/auth/v1`, `aud = authenticated`, `clockTolerance 5`. Hosted project phát ES256.
 - Token 3600 s. Thu hồi quyền: cache `c9:perms:{userId}` 300 s, admin đổi → `DEL`. Ban (gđ moderation) → `c9:banned:{id}` kiểm trong guard.
 - Claims: `sub`, `email`, `session_id`, `is_anonymous`, `user_metadata.full_name`, `user_metadata.avatar_url`. NEVER role trong JWT.
