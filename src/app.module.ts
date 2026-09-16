@@ -1,5 +1,6 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { CommonModule } from './common/common.module.js';
 import { RequestContextMiddleware } from './common/request-context.middleware.js';
 import { envSchema } from './config/env.js';
 import { HealthModule } from './health/health.controller.js';
@@ -11,6 +12,7 @@ import { HealthModule } from './health/health.controller.js';
       cache: true,
       validationSchema: envSchema,
     }),
+    CommonModule,
     HealthModule,
   ],
 })

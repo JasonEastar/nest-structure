@@ -1,6 +1,6 @@
 # Plan — c9_map backend skeleton (cross-cutting trước business module)
 
-**Ngày:** 2026-09-16 · **Trạng thái:** ◐ Đang làm — phase 01, 02 xong 2026-09-16 · **Chủ sở hữu:** Tech Lead
+**Ngày:** 2026-09-16 · **Trạng thái:** ◐ Đang làm — phase 01–03 xong 2026-09-16 · **Chủ sở hữu:** Tech Lead
 Mục tiêu: một project NestJS 12 **all-in-one** (HTTP + BullMQ processor trong cùng process) chạy được trên ≥ 2 instance sau nginx, có Postgres 16 + PostGIS riêng, Redis, Supabase Auth (chỉ Auth, Google), Swagger/OpenAPI, i18n, rate limit, test + CI. **Chưa có business module** (pin thật, reputation, alert…).
 
 ---
@@ -32,7 +32,7 @@ Mục tiêu: một project NestJS 12 **all-in-one** (HTTP + BullMQ processor tro
 |---|---|---|---|---|
 | 01 | `nest new` skeleton, `config/env.ts`, `/health/live` | ✅ | 100% | [phase-01](./phase-01-nest-new-skeleton.md) |
 | 02 | Docker: `api` ×2 + nginx + Postgres/PostGIS + Redis | ✅ | 100% | [phase-02](./phase-02-docker-multi-instance.md) |
-| 03 | Drizzle + PostGIS, `identity.schema.ts` + seed RBAC, `/health/ready` | ☐ | 0% | [phase-03](./phase-03-database-drizzle-postgis.md) |
+| 03 | Drizzle + PostGIS, `identity.schema.ts` + seed RBAC, `/health/ready` | ✅ | 100% | [phase-03](./phase-03-database-drizzle-postgis.md) |
 | 04 | `common/`: exceptions, validation, response, request-context, logger, i18n, openapi ×2 | ☐ | 0% | [phase-04](./phase-04-cross-cutting.md) |
 | 05 | Redis, cache, throttler, BullMQ + `pin.jobs.ts` scheduler, Bull Board | ☐ | 0% | [phase-05](./phase-05-redis-cache-throttle-queue.md) |
 | 06 | Supabase Auth (Google) + RBAC: JWKS guard, profile upsert, permissions, admin roles API, `/me` | ☐ | 0% | [phase-06](./phase-06-supabase-auth.md) |

@@ -9,8 +9,8 @@
 
 | Mục | Giá trị |
 |---|---|
-| Bước roadmap | 2 — skeleton + Docker 2 instance sau nginx, Postgres/PostGIS + Redis; tiếp theo bước 3 Drizzle |
-| Git | Nhánh `main`; e7f5f1a docs+plan · f1476f4 phase 01 · phase 02 commit kế tiếp |
+| Bước roadmap | 3 — Drizzle + PostGIS + schema identity/RBAC + `/health/ready`; tiếp theo bước 4 cross-cutting |
+| Git | Nhánh `main`; e7f5f1a docs · f1476f4 phase 01 · 55d3858 phase 02 · phase 03 commit kế tiếp |
 | Kế hoạch đang chờ duyệt | `plans/260916-1500-c9-map-backend-skeleton/` |
 
 ## 2. Cây thư mục hiện tại
@@ -34,20 +34,26 @@ c9_backend/
 └── .claude/                  # agents, commands, skills, workflows của ClaudeKit
 ```
 
-## 3. Code hiện có (phase 01–02)
+## 3. Code hiện có (phase 01–03)
 
 ```
 src/
 ├── main.ts                 # loadEnv → NestFactory.create(rawBody) → shutdown hooks → listen → keepAlive 65s
 ├── app.module.ts           # ConfigModule.forRoot({ validationSchema: envSchema }) + HealthModule
 ├── config/env.ts           # envSchema (zod) · Env · loadEnv()
-├── common/request-context.middleware.ts   # X-Instance-Id · echo X-Request-Id (nginx sinh)
-└── health/health.controller.ts   # GET /health/live · HealthModule
+├── common/common.module.ts        # @Global: DRIZZLE
+├── common/database.ts             # postgres.js + drizzle · geographyPoint customType · uuidv7 · DatabaseLifecycle
+├── common/schema.ts               # barrel *.schema.ts
+├── common/request-context.middleware.ts   # X-Instance-Id · echo X-Request-Id
+├── modules/identity/identity.schema.ts    # profiles · roles · permissions · role_permissions · user_roles · devices
+├── health/health.controller.ts    # /health/live · /health/ready (Terminus)
+└── health/health.indicators.ts    # DrizzleHealthIndicator
+drizzle.config.ts · drizzle/{0000_extensions,0001_identity,0002_seed_rbac}.sql
 Dockerfile (targets dev · runtime) · .dockerignore · docker-compose.yml (postgres postgis · redis · api-1 · api-2 · nginx, profile full) · nginx.conf (least_conn)
 test/app.e2e-spec.ts        # supertest /health/live
 package.json · nest-cli.json · tsconfig*.json · vitest.config*.ts · oxlint.json · .prettierrc · .env.example · .editorconfig
 ```
-Scaffold `nest new` 12: ESM (`type: module`, nodenext), oxlint, Vitest 4, TypeScript 6. Lệnh: `npm run dev:infra` (postgres+redis) · `npm run dev:infra:full` (+api×2+nginx) · `npm run dev` · `npm run typecheck` · `npm run lint` · `npm run test:e2e` · `npm run build` → `dist/main.js`.
+Scaffold `nest new` 12: ESM (`type: module`, nodenext), oxlint, Vitest 4, TypeScript 6. Lệnh: `npm run db:generate` · `npm run db:migrate` · `npm run dev:infra` (postgres+redis) · `npm run dev:infra:full` (+api×2+nginx) · `npm run dev` · `npm run typecheck` · `npm run lint` · `npm run test:e2e` · `npm run build` → `dist/main.js`.
 
 ## 4. Sẽ có sau bước 2–7 (xem plan)
 

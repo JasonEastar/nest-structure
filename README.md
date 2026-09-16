@@ -1,6 +1,6 @@
 # c9_map — backend
 
-**Cập nhật:** 2026-09-16 · **Trạng thái:** Bước 2/11 — skeleton + Docker đa instance chạy được
+**Cập nhật:** 2026-09-16 · **Trạng thái:** Bước 3/11 — skeleton, Docker đa instance, Drizzle + PostGIS + RBAC seed
 
 C9 Map là bản đồ đời sống thời gian thực cho TP.HCM: kẹt xe, ngập, chợ đêm, sự kiện, danh lam… hiện thành pin có tuổi thọ, do người xung quanh xác nhận, tự hết hạn. Repo này là **API backend**; app mobile (Flutter hoặc React Native) là repo riêng, chỉ tiêu thụ OpenAPI.
 
@@ -38,6 +38,7 @@ Quy chuẩn viết tài liệu: [code-standards.md §6](./docs/code-standards.md
 cp .env.example .env
 npm install
 npm run dev:infra        # postgres (postgis) + redis; trùng port? đặt PG_HOST_PORT/REDIS_HOST_PORT trong .env
+npm run db:migrate       # migration + seed RBAC (bước riêng, không chạy lúc boot)
 npm run dev:infra:full   # + api-1, api-2, nginx :3000 — test đa instance
 npx nest start --watch       # chạy 1 instance ngoài docker khi debug
 curl -i localhost:3000/health/live   # gọi 10 lần → thấy 2 X-Instance-Id

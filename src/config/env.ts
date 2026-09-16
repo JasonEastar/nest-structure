@@ -12,6 +12,10 @@ export const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   INSTANCE_ID: z.string().min(1).default(hostname()),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+
+  // Postgres 16 + PostGIS (tự host). Migration dùng cùng URL (prod: role c9_migrate qua env riêng khi deploy).
+  DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+  DB_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
 });
 
 export type Env = z.infer<typeof envSchema>;

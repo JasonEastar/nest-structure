@@ -9,6 +9,7 @@
 Chốt shape lỗi/response và tài liệu API trước endpoint nghiệp vụ đầu tiên. Mọi thứ nằm phẳng trong `src/common/`, mỗi file một việc; enhancer toàn cục đăng ký bằng token `APP_*` trong `app.module.ts`.
 
 ## Key insights
+- **Từ review phase 03:** `ResponseInterceptor` phải bỏ qua `/health/*` (Terminus trả shape riêng `{status,info,error,details}`) và `/docs/*`; `Dockerfile` HEALTHCHECK dùng `/health/live` → route health phải nằm trong `exclude` của `setGlobalPrefix`.
 - Validation: `StandardSchemaValidationPipe` (`@nestjs/common` 12) qua `APP_PIPE` với `exceptionFactory` → `AppException(VALIDATION_FAILED, { issues })`. Controller: `@Body({ schema })`, `@Query({ schema })`, `@Param('id', { schema: z.uuid() })`. DTO zod nằm ở `modules/<x>/<x>.dto.ts`.
 - Swagger 12 tự đọc Standard Schema từ decorator (zod 4.6.5 có `~standard.jsonSchema`, đã verify). Response: helper `zodResponse(schema)` trong `common/openapi.ts` → `@ApiOkResponse({ schema })`. Fallback `zod-openapi` chỉ khi output sai (hỏi trước).
 - 2 document qua `include: [modules]`: `/docs/app` (IdentityModule, PinModule…) và `/docs/admin` (controller admin gom qua module riêng hoặc `include` theo controller class — chọn: tách `identity-admin.controller.ts` vào `IdentityAdminModule` nhỏ trong cùng thư mục nếu `include` không lọc theo controller). `jsonDocumentUrl: 'docs/app-json'`, `useGlobalPrefix: false`, `addBearerAuth()`, `addGlobalResponse` 401/403/429/500, `operationIdFactory: (_c, m) => m`.

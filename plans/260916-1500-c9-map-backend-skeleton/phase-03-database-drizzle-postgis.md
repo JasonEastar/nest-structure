@@ -5,10 +5,13 @@
 - Stack report §7 (Drizzle/PostGIS), NestJS docs [04 §Terminus](../reports/nestjs-docs-04-cli-recipes-faq.md)
 
 ## Overview
-**Ngày:** 2026-09-16 · **Ưu tiên:** P0 · **Trạng thái:** ☐ Chưa bắt đầu
+**Ngày:** 2026-09-16 · **Ưu tiên:** P0 · **Trạng thái:** ✅ Hoàn thành 2026-09-16 (migrate sạch trên DB mới, 3 extension, 6 bảng + seed 4/8/16, /health/ready 200↔503 theo Postgres)
 `common/database.ts` cung cấp Drizzle client; migration đầu bật extensions; schema identity nằm trong `modules/identity/identity.schema.ts`; seed RBAC; `/health/ready` kiểm DB.
 
 ## Key insights
+- **Thực tế:** drizzle-kit tự đọc `.env` (không cần `--env-file`). Thứ tự migration đảm bảo bằng `generate --custom --name=extensions` **trước** `generate --name=identity`, rồi `--custom --name=seed_rbac` → journal idx 0/1/2. Image postgis đã tạo sẵn extension `postgis` → `CREATE EXTENSION IF NOT EXISTS` chỉ in NOTICE.
+- Seed dùng `gen_random_uuid()` (v4) cho id roles/permissions vì SQL thuần không gọi được `uuidv7` app-side; bảng nghiệp vụ vẫn v7 qua `$defaultFn`.
+- postgres.js: `onnotice: () => {}` để không spam log; `sql.end({ timeout: 5 })` trong `onModuleDestroy`.
 - Schema Drizzle nằm **cạnh module** (`src/modules/<x>/<x>.schema.ts`); `drizzle.config.ts` gom bằng glob `schema: './src/**/*.schema.ts'`. `common/database.ts` `import * as schema` từ một barrel `src/common/schema.ts` (re-export các `*.schema.ts`) để `drizzle(client, { schema })` có type đầy đủ.
 - Pool đơn: `DB_POOL_MAX` (default 10). Direct → `prepare: true`.
 - Drizzle 0.45 có `geometry` built-in, không có `geography` → `customType` trong `common/database.ts`; index GIST viết SQL trong migration.
@@ -66,11 +69,11 @@ Bảng (snake_case, `created_at/updated_at timestamptz`):
 7. `health.indicators.ts` + `/health/ready`; `TerminusModule` trong `AppModule`.
 
 ## Todo
-- [ ] drizzle.config.ts + scripts
-- [ ] identity.schema.ts (6 bảng) + barrel `common/schema.ts`
-- [ ] common/database.ts (client, geography, uuid) + CommonModule
-- [ ] 0000 extensions, 0001 generate, 0002 seed
-- [ ] /health/ready + DrizzleHealthIndicator
+- [x] drizzle.config.ts + scripts
+- [x] identity.schema.ts (6 bảng) + barrel `common/schema.ts`
+- [x] common/database.ts (client, geography, uuid) + CommonModule
+- [x] 0000 extensions, 0001 generate, 0002 seed
+- [x] /health/ready + DrizzleHealthIndicator
 
 ## Success criteria
 ```

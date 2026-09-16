@@ -50,7 +50,7 @@ NEVER  import trực tiếp file bên trong module khác (chỉ qua service đã
 ### 2.3 Dữ liệu
 
 ```
-MUST   khoá chính UUID v7 (time-ordered) cho mọi bảng public.*
+MUST   khoá chính UUID v7 (time-ordered) cho mọi bảng nghiệp vụ — ngoại lệ: seed tĩnh trong SQL (roles, permissions) dùng gen_random_uuid() public.*
 MUST   TIMESTAMPTZ, luôn UTC — NEVER dùng TIMESTAMP không TZ
 MUST   cột toạ độ: geography(Point, 4326) + index GIST
 MUST   ST_DWithin cho tìm bán kính — NEVER ST_Distance(...) < x (không dùng index)
@@ -59,7 +59,7 @@ MUST   phân trang bằng cursor (created_at, id) — NEVER OFFSET
 MUST   bảng user_locations: một dòng mỗi user, UPSERT — NEVER bảng lịch sử có GIST
 MUST   notifications partition theo tháng
 MUST   migration là bước riêng trong deploy — NEVER chạy lúc boot (drizzle migrate() không có lock, N instance sẽ đua)
-MUST   *.schema.ts chỉ import drizzle-orm và *.schema.ts khác — NEVER import common/database.ts
+MUST   *.schema.ts chỉ import drizzle-orm, util npm thuần (uuidv7) và *.schema.ts khác — NEVER import common/database.ts hay service
 MUST   FK liên module một chiều (pin → identity); MVP dùng db.select() + join — NEVER relations()/db.query
 MUST   options upsertJobScheduler là hằng số trong <x>.constants.ts — NEVER tính từ env/runtime
 NEVER  ghi vào schema auth.* — chỉ đọc qua Supabase Admin API
