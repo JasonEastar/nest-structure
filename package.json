@@ -17,7 +17,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
-    "test:e2e": "vitest run --config ./vitest.config.e2e.ts"
+    "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
+    "dev:infra": "docker compose up -d postgres redis",
+    "dev:infra:full": "docker compose --profile full up -d --build",
+    "dev:infra:down": "docker compose --profile full down"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

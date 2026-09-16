@@ -1,5 +1,6 @@
-import { Module } from '@nestjs/common';
+import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { RequestContextMiddleware } from './common/request-context.middleware.js';
 import { envSchema } from './config/env.js';
 import { HealthModule } from './health/health.controller.js';
 
@@ -13,4 +14,8 @@ import { HealthModule } from './health/health.controller.js';
     HealthModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(RequestContextMiddleware).forRoutes('{*splat}');
+  }
+}

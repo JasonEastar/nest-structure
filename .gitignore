@@ -5,10 +5,12 @@
 /dist
 *.tsbuildinfo
 
-# env
+# env — chỉ commit .env.example
 .env
 .env.*
 !.env.example
+.claude/.env
+.claude/settings.local.json
 
 # tests
 /coverage
@@ -16,14 +18,3 @@
 # misc
 *.log
 .DS_Store
-
-
-.claude/*
-/demo-html/*
-/docs/*
-/docs-vi/*
-/guide/*
-/plans/*
-CLAUDE.md
-GEMINI.md
-skills-lock.json

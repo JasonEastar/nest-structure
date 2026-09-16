@@ -4,10 +4,13 @@
 - [plan.md](./plan.md) · [code-standards §2.1 đa instance](../../docs/code-standards.md) · [system-architecture §14](../../docs/system-architecture.md) · [ADR-0005](../../docs/adr/0005-postgres-rieng-supabase-chi-auth.md) · [ADR-0006](../../docs/adr/0006-all-in-one-cau-truc-don-gian.md)
 
 ## Overview
-**Ngày:** 2026-09-16 · **Ưu tiên:** P0 · **Trạng thái:** ☐ Chưa bắt đầu
+**Ngày:** 2026-09-16 · **Ưu tiên:** P0 · **Trạng thái:** ✅ Hoàn thành 2026-09-16 (postgres/redis healthy, PostGIS 3.4, 2 instance chia tải 9/11 và 21/19, kill api-1 vẫn 200, X-Request-Id echo)
 Chạy dev với **2 instance cùng một image** sau nginx từ ngày đầu; Postgres 16 + PostGIS và Redis trong compose; Auth dùng Supabase hosted dev project qua `.env`.
 
 ## Key insights
+- **Thực tế khi chạy:** máy dev đã có container khác (`postgres-main-c9`, `redis-container-c9`) chiếm 5432/6379 → host port trong compose lấy từ env `PG_HOST_PORT` / `REDIS_HOST_PORT` / `NGINX_HOST_PORT` (mặc định 5432/6379/3000); `.env` local dùng 5433/6380. `api-1/api-2/nginx` nằm trong compose **profile `full`** để `dev:infra` chỉ lên postgres+redis.
+- Middleware dùng `forRoutes('{*splat}')` (cú pháp Express 5 / Nest 12; `'*'` trần không còn hợp lệ).
+- Redis image `redis:7-alpine` (7.4.x) và `nginx:1.27-alpine` đã pull.
 - DB riêng: image `postgis/postgis:16-3.4` (đã có local). Không `supabase start`, không thư mục `supabase/` — Google OAuth cần project thật; CLI local kéo ~12 container chỉ để có GoTrue.
 - Cùng một service `api` chạy 2 bản: dùng `deploy.replicas: 2` **hoặc** hai service `api-1`/`api-2` (để bind port test thẳng 3001/3002). Chọn hai service tường minh ở dev; prod dùng `--scale api=N`.
 - Kết nối DB direct `prepare: true`: container `postgres://c9:c9@postgres:5432/c9_map`, host `127.0.0.1:5432`. Một `DATABASE_URL` cho app và migrate.
@@ -50,11 +53,11 @@ Extensions `postgis`, `unaccent`, `pg_trgm` do migration 0000 tạo (phase 03); 
 7. Chạy `dev:infra:full`, curl 10 lần, kill api-1, kiểm 200.
 
 ## Todo
-- [ ] Dockerfile (dev + runtime) + .dockerignore
-- [ ] nginx.conf least_conn + keepalive + headers
-- [ ] docker-compose.yml 5 service + healthcheck + volume
-- [ ] middleware X-Instance-Id
-- [ ] scripts + .env.example
+- [x] Dockerfile (dev + runtime) + .dockerignore
+- [x] nginx.conf least_conn + keepalive + headers
+- [x] docker-compose.yml 5 service + healthcheck + volume
+- [x] middleware X-Instance-Id
+- [x] scripts + .env.example
 
 ## Success criteria
 ```
