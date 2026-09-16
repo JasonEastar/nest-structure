@@ -11,7 +11,7 @@ Bản chắt lọc từ toàn bộ docs.nestjs.com (Overview, Fundamentals, Tech
 |---|---|---|
 | Phiên bản | `@nestjs/core` 12.0.3, `@nestjs/cli` 12.0.1, `@nestjs/swagger` 12.0.1 | `npm view` |
 | Node | Runtime ≥ 20.19 / ≥ 22.12; CLI (`nest new`, `nest g`) ≥ 22.22.3 / 24.15. Local: 24.14 ✓ | migration.md |
-| ESM | Package Nest ship ESM; **app giữ CommonJS như `nest new` sinh ra** — migrate ESM là tuỳ chọn, không làm | migration.md, `package.json` `type: module` |
+| ESM | Package Nest ship ESM; **`nest new` 12.0.1 scaffold app cũng ESM** (`"type": "module"`, `nodenext`, import hậu tố `.js`, top-level await). Theo scaffold; `import.meta.dirname` thay `__dirname` | migration.md, `package.json` `type: module` |
 | Validation zod | `StandardSchemaValidationPipe` có sẵn trong `@nestjs/common`; `@Body({ schema })`, `@Query({ schema })`, `@Param('id', { schema })`, `@RawBody({ schema })` | `pipes/standard-schema-validation.pipe.d.ts` |
 | Swagger + zod | Swagger đọc `schema` trên decorator và tự chuyển nếu lib có `~standard.jsonSchema`. zod 4.6.5 **có** → không cần converter | openapi/introduction.md + kiểm tra runtime |
 | Config + zod | `ConfigModule.forRoot({ validationSchema })` nhận Standard Schema (zod) trực tiếp | migration.md |

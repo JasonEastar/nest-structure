@@ -9,7 +9,7 @@
 Thay Jest scaffold bằng Vitest; integration trên PostGIS + Redis thật (testcontainers); E2E supertest; smoke 6 test đa instance; CI xanh trước business module.
 
 ## Key insights
-- `nest new` scaffold Jest → gỡ `jest`, `ts-jest`, `@types/jest`, khối `"jest"` trong `package.json`, `test/jest-e2e.json`, `test/app.e2e-spec.ts`. `vitest.config.ts` gốc: `unplugin-swc` (decorator metadata), `projects` `unit` (`src/**/*.spec.ts`), `integration` (`test/integration/**`), `e2e` (`test/e2e/**`); không cần alias (không có `libs/`).
+- (Đã lỗi thời) `nest new` 12 scaffold **Vitest 4** sẵn (`vitest.config.ts`, `vitest.config.e2e.ts`, `vite-tsconfig-paths`), không Jest → chỉ mở rộng config (projects unit/integration/e2e), không gỡ gì. Ghi chú cũ: `test/jest-e2e.json`, `test/app.e2e-spec.ts`. `vitest.config.ts` gốc: `unplugin-swc` (decorator metadata), `projects` `unit` (`src/**/*.spec.ts`), `integration` (`test/integration/**`), `e2e` (`test/e2e/**`); không cần alias (không có `libs/`).
 - Enhancer đăng ký bằng token `APP_*` → `Test.createTestingModule({ imports:[AppModule] }).overrideProvider(...)` hoạt động; E2E `app.e2e` override `AuthGuard` bằng guard giả gắn `req.user` — không cần Supabase.
 - Integration: `@testcontainers/postgresql` image `postgis/postgis:16-3.4` + `@testcontainers/redis`; chạy `drizzle-orm/postgres-js/migrator` (không fixture `auth`). Bật `logger: true` cho Drizzle để soi N+1.
 - E2E `auth-me` cần hosted dev project → `describe.skipIf(!process.env.SUPABASE_URL)`; CI job riêng chỉ khi có secrets. Không `supabase/setup-cli`.
@@ -64,7 +64,7 @@ scripts/smoke-multi-instance.sh
 9. Cập nhật `docs/codebase-summary.md`, `docs/project-roadmap.md` (bước 1–6 ✅) sau khi xong.
 
 ## Todo
-- [ ] Gỡ Jest, vitest.config.ts, scripts
+- [ ] Mở rộng vitest.config.ts (integration project + testcontainers globalSetup), scripts
 - [ ] testcontainers setup + migrate + Drizzle query log
 - [ ] unit specs mẫu
 - [ ] 5 integration specs

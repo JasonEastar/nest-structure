@@ -5,13 +5,14 @@
 - NestJS docs: [01 overview/fundamentals](../reports/nestjs-docs-01-overview-fundamentals.md), [04 CLI/FAQ](../reports/nestjs-docs-04-cli-recipes-faq.md)
 
 ## Overview
-**Ngày:** 2026-09-16 · **Ưu tiên:** P0 · **Trạng thái:** ☐ Chưa bắt đầu
+**Ngày:** 2026-09-16 · **Ưu tiên:** P0 · **Trạng thái:** ✅ Hoàn thành 2026-09-16 (typecheck, lint, e2e, build, chạy từ dist, env-fail đều pass)
 Một project NestJS 12 tiêu chuẩn do `nest new --strict` sinh, không monorepo, không `APP_ROLE`. Env validate bằng zod lúc boot. Endpoint `/health/live` trả instance id.
 
 ## Key insights
+- **Thực tế `nest new` 12.0.1 khác giả định**: scaffold là **ESM** (`"type": "module"`, `module: nodenext`, import có hậu tố `.js`, top-level `await bootstrap()`), lint bằng **oxlint** (không eslint), test bằng **Vitest 4** sẵn (không Jest), TypeScript 6. Quyết định: **theo scaffold** (đúng docs chính thức) — các phase sau dùng ESM, `import.meta.dirname` thay `__dirname`, phase 07 không cần gỡ Jest.
+- Đã gỡ `@nestjs/mau` + script `deploy` (nền tảng deploy của Nest, không dùng).
 - **Single project**: `nest-cli.json` giữ mặc định (`sourceRoot: src`, builder `tsc`). `nest build` → `dist/main.js` + cây file. Không Rspack, không `libs/`, không path alias. `--builder swc` là tuỳ chọn sau nếu build chậm.
 - **All-in-one**: `main.ts` chỉ có một nhánh: `NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true })`. Processor BullMQ (phase 05) là provider trong module nghiệp vụ, chạy cùng process. Scale = số container.
-- CommonJS theo scaffold; Nest 12 là ESM package nhưng app CJS hợp lệ (migration guide). Không `"type": "module"`.
 - Node runtime ≥ 22.12 (`node:22-alpine`), CLI cần ≥ 22.22.3 — local 24.14 ✓. `engines.node >= 22.12`.
 - Env: `src/config/env.ts` export `envSchema` (zod) + `type Env` + hàm `loadEnv()` parse `process.env` một lần (dùng cho `main.ts` trước khi Nest boot); `ConfigModule.forRoot({ isGlobal: true, cache: true, validationSchema: envSchema })` để Nest cũng validate và cung cấp `ConfigService<Env, true>`. Không `registerAs`.
 - Express; `keepAliveTimeout 65000` > nginx 60 s; `forceCloseConnections` chỉ khi `NODE_ENV=development`.
@@ -25,7 +26,7 @@ Một project NestJS 12 tiêu chuẩn do `nest new --strict` sinh, không monore
 ```
 c9_map/
 ├── package.json · nest-cli.json (mặc định) · tsconfig.json (strict) · tsconfig.build.json
-├── eslint.config.mjs · .prettierrc · .editorconfig · .gitignore · .env.example
+├── oxlint.json · .prettierrc · .editorconfig · .gitignore · .env.example · vitest.config.ts · vitest.config.e2e.ts
 └── src/
     ├── main.ts               # create(AppModule, {rawBody}) · enableShutdownHooks · listen 3000 · keepAlive
     ├── app.module.ts         # imports: ConfigModule.forRoot(validationSchema), HealthModule (providers APP_* thêm ở phase 04–06)
@@ -35,9 +36,9 @@ c9_map/
 Env tối thiểu: `NODE_ENV` (development|test|production), `PORT` (3000), `INSTANCE_ID` (default `os.hostname()`), `LOG_LEVEL` (info).
 
 ## Related code files (CREATE)
-- Sinh bởi CLI: `package.json`, `nest-cli.json`, `tsconfig.json`, `tsconfig.build.json`, `eslint.config.mjs`, `.prettierrc`, `.gitignore`
+- Sinh bởi CLI: `package.json`, `nest-cli.json`, `tsconfig.json`, `tsconfig.build.json`, `oxlint.json`, `.prettierrc`, `vitest.config.ts`, `vitest.config.e2e.ts` (`.gitignore` viết tay)
 - Viết tay: `.env.example`, `.editorconfig`, `src/main.ts` (sửa), `src/app.module.ts` (sửa), `src/config/env.ts`, `src/health/health.controller.ts`
-- **Xoá** scaffold: `src/app.controller.ts`, `src/app.service.ts`, `src/app.controller.spec.ts`; `test/` Jest mẫu giữ tới phase 07 rồi thay
+- **Xoá** scaffold: `src/app.controller.ts`, `src/app.service.ts`, `src/app.controller.spec.ts`; `test/app.e2e-spec.ts` viết lại thành test `/health/live` (Vitest + supertest)
 
 ## Implementation steps
 1. `nest new c9_map --strict --package-manager npm --skip-git` trong thư mục tạm, copy kết quả vào repo (repo đã có `docs/`, `plans/`, `.claude/`). `nest -v` = 12.0.1.
@@ -49,11 +50,11 @@ Env tối thiểu: `NODE_ENV` (development|test|production), `PORT` (3000), `INS
 7. `.env.example` mọi biến + comment; `.env` trong `.gitignore`. `npm run lint && npm run typecheck`.
 
 ## Todo
-- [ ] `nest new --strict`, copy vào repo, xoá scaffold thừa
-- [ ] `config/env.ts` + `ConfigModule.forRoot({ validationSchema })`
-- [ ] `main.ts`: rawBody, shutdown hooks, keepAlive
-- [ ] `/health/live`
-- [ ] scripts, lint, typecheck, `.env.example`, `.editorconfig`
+- [x] `nest new --strict`, copy vào repo, xoá scaffold thừa
+- [x] `config/env.ts` + `ConfigModule.forRoot({ validationSchema })`
+- [x] `main.ts`: rawBody, shutdown hooks, keepAlive
+- [x] `/health/live`
+- [x] scripts, lint, typecheck, `.env.example`, `.editorconfig`
 
 ## Success criteria
 ```

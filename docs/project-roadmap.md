@@ -19,7 +19,7 @@ NEVER  nhảy bước, gộp bước, hoặc làm trước tính năng của gia
 | Bước | Phạm vi | Done khi | Giai đoạn | Trạng thái |
 |---|---|---|---|---|
 | 0. Phân tích | Đọc docs/, chuẩn hoá tài liệu, lập plan skeleton `plans/260916-1500-c9-map-backend-skeleton/` | Docs chuẩn hoá ✅; plan được user duyệt | — | ◐ |
-| 1. Skeleton | `nest new` (project đơn, ADR-0006), `config/env.ts` (zod qua `ConfigModule.validationSchema`), `.env.example`, `/health/live` | `nest start --watch` lên, `GET /health/live` → 200 | MVP | ☐ |
+| 1. Skeleton | `nest new` (project đơn, ADR-0006), `config/env.ts` (zod qua `ConfigModule.validationSchema`), `.env.example`, `/health/live` | `nest start --watch` lên, `GET /health/live` → 200 | MVP | ✅ 2026-09-16 |
 | 2. Docker & đa instance | compose `postgres` (postgis) + `redis` + `api-1/2` + nginx `least_conn`; Supabase dev project cho auth; `X-Instance-Id` | `curl :3000/health` 10 lần thấy 2 instance id | MVP | ☐ |
 | 3. Nền dữ liệu | Drizzle + Postgres/PostGIS riêng, migration đầu (postgis, unaccent, pg_trgm), `common/database.ts`, `identity.schema.ts` | `drizzle-kit migrate` chạy, `/health/ready` → 200 | MVP | ☐ |
 | 4. Cross-cutting | `AllExceptionsFilter`, `AppException`, `ErrorCodes`, zod pipe, pino + `requestId`, i18n, Swagger 2 document | Lỗi trả đúng shape `{error:{code,params,requestId}}`, `/docs/app` mở được, `openapi.json` export | MVP | ☐ |

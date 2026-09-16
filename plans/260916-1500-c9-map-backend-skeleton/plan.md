@@ -1,6 +1,6 @@
 # Plan — c9_map backend skeleton (cross-cutting trước business module)
 
-**Ngày:** 2026-09-16 · **Trạng thái:** ☐ Chờ duyệt · **Chủ sở hữu:** Tech Lead
+**Ngày:** 2026-09-16 · **Trạng thái:** ◐ Đang làm — phase 01 xong 2026-09-16 · **Chủ sở hữu:** Tech Lead
 Mục tiêu: một project NestJS 12 **all-in-one** (HTTP + BullMQ processor trong cùng process) chạy được trên ≥ 2 instance sau nginx, có Postgres 16 + PostGIS riêng, Redis, Supabase Auth (chỉ Auth, Google), Swagger/OpenAPI, i18n, rate limit, test + CI. **Chưa có business module** (pin thật, reputation, alert…).
 
 ---
@@ -22,7 +22,7 @@ Mục tiêu: một project NestJS 12 **all-in-one** (HTTP + BullMQ processor tro
 - **All-in-one, không `APP_ROLE`; một project `nest new` tiêu chuẩn; cấu trúc phẳng `src/{config,common,health,modules}`** — [ADR-0006](../../docs/adr/0006-all-in-one-cau-truc-don-gian.md) (nguồn sự thật cho cây file)
 - Access token 3600 s; thu hồi quyền qua cache perms 5 phút + `DEL` tức thì
 - Không Social — [ADR-0003](../../docs/adr/0003-bo-social-module-khoi-mvp.md); polling + push — [ADR-0004](../../docs/adr/0004-polling-thay-realtime.md)
-- Validation: `StandardSchemaValidationPipe` built-in + zod 4; Swagger đọc schema zod từ decorator; Express; CommonJS
+- Validation: `StandardSchemaValidationPipe` built-in + zod 4; Swagger đọc schema zod từ decorator; Express; ESM theo scaffold `nest new` 12
 - Quy tắc bất biến: [code-standards.md §2](../../docs/code-standards.md) · cách dùng NestJS: [nestjs-guide.md](../../docs/nestjs-guide.md)
 - Nguồn kỹ thuật: [Supabase](../reports/researcher-260916-supabase-auth-nestjs.md), [stack](../reports/researcher-260916-nestjs-multi-instance-stack.md), NestJS docs [01](../reports/nestjs-docs-01-overview-fundamentals.md) [02](../reports/nestjs-docs-02-techniques.md) [03](../reports/nestjs-docs-03-security-openapi.md) [04](../reports/nestjs-docs-04-cli-recipes-faq.md)
 
@@ -30,7 +30,7 @@ Mục tiêu: một project NestJS 12 **all-in-one** (HTTP + BullMQ processor tro
 
 | # | Phase | Trạng thái | Tiến độ | Link |
 |---|---|---|---|---|
-| 01 | `nest new` skeleton, `config/env.ts`, `/health/live` | ☐ | 0% | [phase-01](./phase-01-nest-new-skeleton.md) |
+| 01 | `nest new` skeleton, `config/env.ts`, `/health/live` | ✅ | 100% | [phase-01](./phase-01-nest-new-skeleton.md) |
 | 02 | Docker: `api` ×2 + nginx + Postgres/PostGIS + Redis | ☐ | 0% | [phase-02](./phase-02-docker-multi-instance.md) |
 | 03 | Drizzle + PostGIS, `identity.schema.ts` + seed RBAC, `/health/ready` | ☐ | 0% | [phase-03](./phase-03-database-drizzle-postgis.md) |
 | 04 | `common/`: exceptions, validation, response, request-context, logger, i18n, openapi ×2 | ☐ | 0% | [phase-04](./phase-04-cross-cutting.md) |

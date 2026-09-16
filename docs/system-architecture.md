@@ -40,7 +40,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 | Realtime | **Không** — polling + push | App đóng thì socket chết | Socket.IO, SSE |
 | Tìm kiếm | **PG FTS + `unaccent` + `pg_trgm`** | Đủ tới vài trăm nghìn pin | Elasticsearch |
 | Thanh toán | **Cổng VN** (VNPay / MoMo / SePay VietQR) — gđ 3 | Stripe không hỗ trợ merchant VN | Stripe |
-| Layout | **Một project `nest new` tiêu chuẩn**, all-in-one, không APP_ROLE — [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md); app giữ CommonJS | Ít file wiring nhất; `nest g library` khi thật sự cần chia sẻ code | Monorepo mode, npm workspaces, Nx |
+| Layout | **Một project `nest new` tiêu chuẩn**, all-in-one, không APP_ROLE — [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md); app ESM theo scaffold `nest new` 12 (`type: module`, nodenext) | Ít file wiring nhất; `nest g library` khi thật sự cần chia sẻ code | Monorepo mode, npm workspaces, Nx |
 | HTTP platform | **Express** | Hệ sinh thái; nginx đã nén | Fastify (xem lại > 5k rps) |
 | Hạ tầng gđ 1–2 | Supabase (Auth) + RDS Postgres + 1 EC2 docker-compose (api×2 + nginx + redis) | Rẻ nhất mà vẫn có backup/PITR | k8s |
 | Test | **Vitest + testcontainers + Supertest + k6** | PostGIS thật, không mock | Jest |
