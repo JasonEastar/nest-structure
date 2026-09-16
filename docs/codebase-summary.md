@@ -9,8 +9,8 @@
 
 | Mục | Giá trị |
 |---|---|
-| Bước roadmap | 3 — Drizzle + PostGIS + schema identity/RBAC + `/health/ready`; tiếp theo bước 4 cross-cutting |
-| Git | Nhánh `main`; e7f5f1a docs · f1476f4 phase 01 · 55d3858 phase 02 · phase 03 commit kế tiếp |
+| Bước roadmap | 4 — cross-cutting xong (lỗi, validate, envelope, pino, i18n, Swagger); tiếp theo bước 5 Redis/BullMQ |
+| Git | Nhánh `main`; e7f5f1a docs · f1476f4 phase 01 · 55d3858 phase 02 · fb5db5f phase 03 · phase 04 commit kế tiếp |
 | Kế hoạch đang chờ duyệt | `plans/260916-1500-c9-map-backend-skeleton/` |
 
 ## 2. Cây thư mục hiện tại
@@ -34,7 +34,7 @@ c9_backend/
 └── .claude/                  # agents, commands, skills, workflows của ClaudeKit
 ```
 
-## 3. Code hiện có (phase 01–03)
+## 3. Code hiện có (phase 01–04)
 
 ```
 src/
@@ -44,7 +44,14 @@ src/
 ├── common/common.module.ts        # @Global: DRIZZLE
 ├── common/database.ts             # postgres.js + drizzle · geographyPoint customType · uuidv7 · DatabaseLifecycle
 ├── common/schema.ts               # barrel *.schema.ts
-├── common/request-context.middleware.ts   # X-Instance-Id · echo X-Request-Id
+├── common/request-context.middleware.ts   # X-Instance-Id · X-Request-Id (echo nginx / sinh uuidv7) · resolveRequestId
+├── common/exceptions.ts           # ErrorCodes · AppException · AllExceptionsFilter (APP_FILTER)
+├── common/validation.ts           # APP_PIPE StandardSchemaValidationPipe · zText · zLatLng
+├── common/response.ts             # ResponseInterceptor {data,meta} · withMeta · cursor · PaginationQuerySchema
+├── common/logger.ts               # nestjs-pino (redact, requestId, instance, bỏ /health)
+├── common/i18n.ts                 # nestjs-i18n vi/en, Accept-Language
+├── common/openapi.ts              # 2 document /docs/app · /docs/admin · exportOpenApi · zodResponse
+├── openapi-export.ts              # entry `npm run openapi:export`
 ├── modules/identity/identity.schema.ts    # profiles · roles · permissions · role_permissions · user_roles · devices
 ├── health/health.controller.ts    # /health/live · /health/ready (Terminus)
 └── health/health.indicators.ts    # DrizzleHealthIndicator
@@ -53,7 +60,7 @@ Dockerfile (targets dev · runtime) · .dockerignore · docker-compose.yml (post
 test/app.e2e-spec.ts        # supertest /health/live
 package.json · nest-cli.json · tsconfig*.json · vitest.config*.ts · oxlint.json · .prettierrc · .env.example · .editorconfig
 ```
-Scaffold `nest new` 12: ESM (`type: module`, nodenext), oxlint, Vitest 4, TypeScript 6. Lệnh: `npm run db:generate` · `npm run db:migrate` · `npm run dev:infra` (postgres+redis) · `npm run dev:infra:full` (+api×2+nginx) · `npm run dev` · `npm run typecheck` · `npm run lint` · `npm run test:e2e` · `npm run build` → `dist/main.js`.
+Scaffold `nest new` 12: ESM (`type: module`, nodenext), oxlint, Vitest 4, TypeScript 6. Lệnh: `npm run openapi:export` · `npm run db:generate` · `npm run db:migrate` · `npm run dev:infra` (postgres+redis) · `npm run dev:infra:full` (+api×2+nginx) · `npm run dev` · `npm run typecheck` · `npm run lint` · `npm run test:e2e` · `npm run build` → `dist/main.js`.
 
 ## 4. Sẽ có sau bước 2–7 (xem plan)
 

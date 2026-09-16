@@ -1,0 +1,6 @@
+{
+  "hello": "Xin chào",
+  "push": {
+    "pin_nearby": "Có {type} mới gần {area}"
+  }
+}

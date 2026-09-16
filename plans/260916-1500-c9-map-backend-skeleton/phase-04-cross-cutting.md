@@ -5,10 +5,11 @@
 - NestJS docs [01](../reports/nestjs-docs-01-overview-fundamentals.md) (filters, pipes, interceptors, middleware), [03 OpenAPI](../reports/nestjs-docs-03-security-openapi.md)
 
 ## Overview
-**Ngày:** 2026-09-16 · **Ưu tiên:** P0 · **Trạng thái:** ☐ Chưa bắt đầu
+**Ngày:** 2026-09-16 · **Ưu tiên:** P0 · **Trạng thái:** ✅ Hoàn thành 2026-09-16 (13 e2e xanh: prefix, validation 422, envelope, NOT_FOUND/INTERNAL, i18n vi/en, health ngoài envelope; /docs/app, /docs/admin 200; openapi/*.json xuất)
 Chốt shape lỗi/response và tài liệu API trước endpoint nghiệp vụ đầu tiên. Mọi thứ nằm phẳng trong `src/common/`, mỗi file một việc; enhancer toàn cục đăng ký bằng token `APP_*` trong `app.module.ts`.
 
 ## Key insights
+- **Thực tế:** route ngoài prefix vẫn bị **versioning** áp (`defaultVersion: '1'` → `/v1/health/live`) → HealthController phải `version: VERSION_NEUTRAL`. Thứ tự middleware giữa LoggerModule (pino) và AppModule không đảm bảo → `resolveRequestId(req)` idempotent dùng chung cho `genReqId` và middleware. `include: []` trong Swagger = lấy tất cả → phase 06 truyền module thật vào `OPENAPI_DOCS`. Runtime image phải COPY `i18n/` (đã sửa Dockerfile). **Sau review:** `OPENAPI_DOCS` cấm include rỗng (Swagger rỗng = lấy tất cả); filter kiểm `headersSent`; `withMeta` không cho handler đặt `requestId` (Symbol marker, server luôn thắng); `decodeCursor` hỏng → 400; `req.id` dùng kiểu của pino-http qua `requestIdOf()`; `req.user` khai một chỗ `common/express.d.ts`; `TRUST_PROXY_HOPS` env (nginx 1, ALB+nginx 2); entry guard so sánh đường dẫn vì `nest start` chạy `node dist/main` không đuôi. CSP helmet kiểm với Swagger UI: không inline script, asset same-origin → OK. Route mẫu validation nằm trong test (`test/cross-cutting.e2e-spec.ts` có `ProbeController` riêng), không có route tạm trong `src/`.
 - **Từ review phase 03:** `ResponseInterceptor` phải bỏ qua `/health/*` (Terminus trả shape riêng `{status,info,error,details}`) và `/docs/*`; `Dockerfile` HEALTHCHECK dùng `/health/live` → route health phải nằm trong `exclude` của `setGlobalPrefix`.
 - Validation: `StandardSchemaValidationPipe` (`@nestjs/common` 12) qua `APP_PIPE` với `exceptionFactory` → `AppException(VALIDATION_FAILED, { issues })`. Controller: `@Body({ schema })`, `@Query({ schema })`, `@Param('id', { schema: z.uuid() })`. DTO zod nằm ở `modules/<x>/<x>.dto.ts`.
 - Swagger 12 tự đọc Standard Schema từ decorator (zod 4.6.5 có `~standard.jsonSchema`, đã verify). Response: helper `zodResponse(schema)` trong `common/openapi.ts` → `@ApiOkResponse({ schema })`. Fallback `zod-openapi` chỉ khi output sai (hỏi trước).
@@ -62,15 +63,15 @@ i18n/vi/common.json · i18n/en/common.json
 9. `openapi-export.ts` entry + script; chạy `npm run openapi:export`.
 
 ## Todo
-- [ ] exceptions.ts (ErrorCodes, AppException, filter) + `process.on('unhandledRejection'|'uncaughtException')` trong main.ts
-- [ ] validation.ts APP_PIPE + exceptionFactory
-- [ ] response.ts interceptor + envelope + cursor
-- [ ] request-context middleware + logger.ts pino
-- [ ] i18n.ts + JSON vi/en
-- [ ] openapi.ts 2 docs + zodResponse + export entry
-- [ ] main.ts / app.module.ts wiring; prefix exclude kiểm thực tế
-- [ ] Helper `zText(max)` (trim + strip HTML) trong `common/validation.ts` cho text người dùng
-- [ ] Readiness 503 khi đang shutdown (`ShutdownState` set trong `beforeApplicationShutdown`)
+- [x] exceptions.ts (ErrorCodes, AppException, filter) + `process.on('unhandledRejection'|'uncaughtException')` trong main.ts
+- [x] validation.ts APP_PIPE + exceptionFactory
+- [x] response.ts interceptor + envelope + cursor
+- [x] request-context middleware + logger.ts pino
+- [x] i18n.ts + JSON vi/en
+- [x] openapi.ts 2 docs + zodResponse + export entry
+- [x] main.ts / app.module.ts wiring; prefix exclude kiểm thực tế
+- [x] Helper `zText(max)` (trim + strip HTML) trong `common/validation.ts` cho text người dùng
+- [ ] Readiness 503 khi đang shutdown — hoãn sang phase 05 (cùng lúc thêm Redis indicator)
 
 ## Success criteria
 ```

@@ -200,7 +200,7 @@ Health cho compose: `/health/live` + `/health/ready`; không có service worker 
 
 | Tên | Ghi chú |
 |---|---|
-| `NODE_ENV`, `PORT` (3000), `INSTANCE_ID` (mặc định hostname container) | Chuẩn |
+| `NODE_ENV`, `PORT` (3000), `INSTANCE_ID` (mặc định hostname container), `TRUST_PROXY_HOPS` (nginx 1, ALB+nginx 2), `LOG_LEVEL` | Chuẩn |
 | `DATABASE_URL` | `postgres://c9:…@postgres:5432/c9_map` (container) / `127.0.0.1:5432` (host) |
 | `DATABASE_MIGRATE_URL` | Prod: role `c9_migrate`; local = `DATABASE_URL` |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` | JWKS + Admin API; anon key chỉ cho E2E lấy token |

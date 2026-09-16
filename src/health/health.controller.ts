@@ -1,15 +1,15 @@
-import { Controller, Get, Module } from '@nestjs/common';
+import { Controller, Get, Module, VERSION_NEUTRAL } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HealthCheck, HealthCheckService, TerminusModule } from '@nestjs/terminus';
 import type { Env } from '../config/env.js';
 import { DrizzleHealthIndicator } from './health.indicators.js';
 
 /**
- * Health endpoints nằm ngoài prefix /api (phase 04 thêm `exclude`).
+ * Health endpoints nằm ngoài prefix /api (main.ts `exclude`) và ngoài versioning (VERSION_NEUTRAL) → /health/live.
  * - /health/live : process còn sống, không check dependency (liveness).
  * - /health/ready: DB (+ Redis ở phase 05); 503 khi một dependency down (readiness).
  */
-@Controller('health')
+@Controller({ path: 'health', version: VERSION_NEUTRAL })
 export class HealthController {
   constructor(
     private readonly config: ConfigService<Env, true>,

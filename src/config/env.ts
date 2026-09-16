@@ -12,6 +12,7 @@ export const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   INSTANCE_ID: z.string().min(1).default(hostname()),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1), // nginx = 1; thêm ALB phía trước = 2
 
   // Postgres 16 + PostGIS (tự host). Migration dùng cùng URL (prod: role c9_migrate qua env riêng khi deploy).
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
