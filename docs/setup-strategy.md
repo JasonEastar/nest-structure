@@ -80,8 +80,8 @@ Nguyên tắc: **hạ tầng → cross-cutting → auth → test → nghiệp v�
 | | local | staging | prod |
 |---|---|---|---|
 | Auth | Supabase dev project (free) | Supabase project staging | Supabase project prod |
-| DB | container `postgis/postgis:16-3.4` | RDS nhỏ (hoặc container trên EC2 lúc đầu) | RDS Postgres 16 + PostGIS, PITR |
-| Redis | container | container trên EC2 | ElastiCache |
+| DB | container `postgis/postgis:16-3.4` | cùng container trên EC2 (volume EBS, pg_dump → S3) | cùng container, tự host (WAL archiving cho PITR) |
+| Redis | container | container trên EC2 | container trên EC2 (ElastiCache tuỳ chọn sau) |
 | App | compose api×2 + nginx | compose 2 replica | compose 2 replica, scale bằng `--scale api=N` |
 | Secrets | `.env` (không commit) | Docker secrets / SSM | AWS Secrets Manager |
 

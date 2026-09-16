@@ -52,4 +52,6 @@ Mỗi dòng: câu hỏi · ảnh hưởng · khuyến nghị tạm · trạng th
 | 33 | Validation: `nestjs-zod` hay pipe có sẵn? | Dependency | — | ✅ `StandardSchemaValidationPipe` có sẵn Nest 12 + `@Body({schema})`; Swagger tự đọc zod |
 | 34 | Express hay Fastify? | Platform | — | ✅ Express (nginx nén; xem lại > 5k rps) |
 | 35 | `APP_ROLE=admin` tách container ngay? | Compose, main.ts | — | ✅ Không có `APP_ROLE` nữa, all-in-one scale bằng instance — [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md) (user chốt 2026-09-16) |
+| 36 | Backup Postgres tự host: pg_dump → S3 từ staging; WAL-G hay pgBackRest cho PITR? | Vận hành | pg_dump ngay; WAL-G khi có user thật | ☐ |
+| 37 | Deploy prod: EC2 + compose (A) hay Swarm (B)? ECS Fargate không hợp vì Postgres tự host cần máy có volume | Hạ tầng, CI/CD | A trước; Swarm khi cần > 1 node | ☐ |
 | 31 | Codegen client cho mobile: `openapi-generator` (Dart) và/hoặc `orval`/`openapi-ts` (TS)? | CI | Xuất `openapi.json` trong CI; mobile repo tự chọn tool | ☐ |

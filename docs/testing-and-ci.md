@@ -48,8 +48,8 @@ MUST   mọi job BullMQ có test "chạy 1 lần dù 2 worker"
 | Môi trường | Auth + DB | API | Redis | Dữ liệu |
 |---|---|---|---|---|
 | `local` | Auth: Supabase dev project (hosted). DB: `postgis/postgis:16-3.4` container | docker-compose `api-1`, `api-2`, `nginx` | docker `redis:7-alpine` | Seed script |
-| `staging` | Hosted Supabase project riêng | EC2 docker-compose 2 replica | ElastiCache hoặc Redis container | Seed hoặc ẩn danh từ prod |
-| `prod` | Auth: Supabase project prod. DB: RDS Postgres 16 + PostGIS (PITR) | EC2 docker-compose 2 replica + nginx | ElastiCache | Thật |
+| `staging` | Auth: Supabase project staging. DB: Postgres container tự host | EC2 docker-compose 2 replica | Redis container | Seed hoặc ẩn danh từ prod |
+| `prod` | Auth: Supabase project prod. DB: Postgres container tự host (backup S3, PITR) | EC2 docker-compose 2 replica + nginx | Redis container | Thật |
 
 Lệnh dev: `npm run dev:infra` (= `docker compose up -d postgres redis`) rồi `nest start --watch`.
 

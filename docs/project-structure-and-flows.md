@@ -226,7 +226,7 @@ flowchart LR
   NG --> A1["api-1"]
   NG --> A2["api-2"]
   NG -.-> AN["api-N (--scale api=N)"]
-  A1 & A2 --> PG[("Postgres 16 + PostGIS<br/>local container · prod RDS + PITR")]
+  A1 & A2 --> PG[("Postgres 16 + PostGIS<br/>tự host mọi môi trường · prod: volume EBS + backup S3")]
   A1 & A2 --> R0[("Redis db0 cache")]
   A1 & A2 --> R1[("Redis db1 BullMQ")]
   A1 & A2 -- "JWKS · Admin API" --> SB["Supabase Auth"]

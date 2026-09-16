@@ -12,7 +12,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
         │                                                                 │            │
         └── Supabase Auth (OTP / Google / Apple) ◀── JWT verify (JWKS) ───┘            │
                                                                                          ▼
-                                    PostgreSQL 16 + PostGIS (riêng, RDS) ◀── Drizzle ─┐   Redis 7 (cache · rate limit · BullMQ)
+                                    PostgreSQL 16 + PostGIS (tự host) ◀── Drizzle ─┐   Redis 7 (cache · rate limit · BullMQ)
                                     Cloudflare R2 (ảnh, presigned)               │   FCM / APNs (push)
 ```
 
@@ -27,7 +27,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 | Backend | **NestJS 12 + TypeScript**, Node 22 LTS | Đội mạnh TS | Java, Go, Django |
 | Kiến trúc | **Modular monolith all-in-one**, scale bằng instance | Đội nhỏ; ít file wiring | Microservices, tách worker sớm |
 | Auth | **Supabase Auth, chỉ auth** ([ADR-0002](./adr/0002-supabase-auth-va-postgres.md), [ADR-0005](./adr/0005-postgres-rieng-supabase-chi-auth.md)) | Bỏ 1 tuần làm auth; Google/OAuth/refresh sẵn | Tự viết JWT/OTP, Better Auth |
-| DB | **PostgreSQL 16 + PostGIS riêng** (local container, prod RDS) — [ADR-0005](./adr/0005-postgres-rieng-supabase-chi-auth.md) | Toàn quyền, không phụ thuộc pooler/backup của Supabase | Supabase Postgres, Mongo |
+| DB | **PostgreSQL 16 + PostGIS tự host** (container `postgis/postgis:16-3.4` ở mọi môi trường) — [ADR-0005](./adr/0005-postgres-rieng-supabase-chi-auth.md) | Toàn quyền, không phụ thuộc pooler/backup của Supabase | Supabase Postgres, Mongo |
 | ORM | **Drizzle** + `postgres` (postgres.js) | `geometry` chính thức, type từ schema | Prisma, TypeORM |
 | Cache / rate limit / queue | **Redis 7** + ioredis | Một hạ tầng, ba việc | Memcached, in-memory |
 | Queue + cron | **BullMQ** (`@nestjs/bullmq`) | Trên Redis sẵn có, `upsertJobScheduler` | `@nestjs/schedule`, RabbitMQ |
@@ -42,7 +42,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 | Thanh toán | **Cổng VN** (VNPay / MoMo / SePay VietQR) — gđ 3 | Stripe không hỗ trợ merchant VN | Stripe |
 | Layout | **Một project `nest new` tiêu chuẩn**, all-in-one, không APP_ROLE — [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md); app ESM theo scaffold `nest new` 12 (`type: module`, nodenext) | Ít file wiring nhất; `nest g library` khi thật sự cần chia sẻ code | Monorepo mode, npm workspaces, Nx |
 | HTTP platform | **Express** | Hệ sinh thái; nginx đã nén | Fastify (xem lại > 5k rps) |
-| Hạ tầng gđ 1–2 | Supabase (Auth) + RDS Postgres + 1 EC2 docker-compose (api×2 + nginx + redis) | Rẻ nhất mà vẫn có backup/PITR | k8s |
+| Hạ tầng gđ 1–2 | Supabase (Auth) + 1 EC2 docker-compose (postgres + redis + api×N + nginx/Caddy) | Rẻ nhất; tự lo backup Postgres (ADR-0005) | k8s |
 | Test | **Vitest + testcontainers + Supertest + k6** | PostGIS thật, không mock | Jest |
 
 ## 3. Ba lớp dữ liệu
@@ -113,7 +113,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 | Uy tín | `reputation_events` (nguồn) → `profiles.rep` (cache) |
 | Thông báo | `notifications` partition tháng + partial index `read_at IS NULL` |
 | Outbox | `outbox_events` — thêm ở gđ 3 |
-| Backup | RDS automated backup 7 ngày + PITR; local không backup |
+| Backup | Tự lo: `pg_dump` hàng ngày → S3 (14 ngày) từ staging; WAL archiving (WAL-G/pgBackRest) cho PITR khi có user thật; diễn tập restore trước prod. Local không backup |
 
 ### 5.3 Local dev
 - **Auth:** hosted Supabase **dev project** (free tier), bật provider Google, lấy `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` vào `.env`. Không `supabase start` (tuỳ chọn khi offline).
@@ -191,8 +191,8 @@ Presigned PUT R2, 5 phút, ≤ 10 MB, `image/jpeg|png|webp|heic`. Backend xác n
 | Môi trường | DB + Auth | App |
 |---|---|---|
 | local | Auth: Supabase dev project (hosted). DB: `postgis/postgis:16-3.4` trong compose | docker-compose: `postgres`, `redis:7-alpine --appendonly yes`, `api-1`, `api-2` (3001/3002 để test thẳng), `nginx` 3000 `least_conn` |
-| staging | Auth: Supabase project staging. DB: RDS nhỏ (hoặc Postgres container trên EC2 gđ đầu) | 1 EC2, cùng compose (bỏ `postgres`) |
-| prod | Auth: Supabase project prod. DB: RDS Postgres 16 + PostGIS, PITR | EC2 + ElastiCache (hoặc redis trên EC2 gđ 1) |
+| staging | Auth: Supabase project staging. DB: Postgres container (cùng compose, volume EBS) | 1 EC2, cùng compose |
+| prod | Auth: Supabase project prod. DB: Postgres container tự host (volume EBS, backup S3, PITR) | EC2 + compose/Swarm; Redis container (ElastiCache tuỳ chọn sau) |
 
 Health cho compose: `/health/live` + `/health/ready`; không có service worker riêng — mọi `api` chạy cả processor nên `stop_grace_period` 60 s cho `api` để job đang chạy kịp xong. Secrets: `.env.example` commit; prod dùng AWS Secrets Manager / Docker secrets; NEVER trong image.
 
