@@ -1,12 +1,12 @@
-import { createServer, type Server } from 'node:http';
 import { Controller, Get, type INestApplication, Module, VersioningType } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { type JWTPayload, SignJWT, exportJWK, generateKeyPair } from 'jose';
+import { SignJWT, generateKeyPair } from 'jose';
 import request from 'supertest';
 import { Public, RequirePermissions } from '../../src/common/auth/decorators.js';
 import { CacheService, cacheKeys } from '../../src/common/redis/cache.js';
 import { SUPABASE_ADMIN, type SupabaseAdminPort } from '../../src/common/auth/supabase.js';
 import { IdentityService } from '../../src/modules/identity/identity.service.js';
+import { type FakeSupabase, startFakeSupabase } from '../setup/jwks.js';
 
 /**
  * Auth + RBAC trên hạ tầng thật (PostGIS + Redis từ testcontainers).
@@ -55,43 +55,19 @@ class ProbeModule {}
 
 describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
   let app: INestApplication;
-  let jwksServer: Server;
-  let signToken: (payload: JWTPayload & { sub: string }, overrides?: { kid?: string }) => Promise<string>;
+  let supabase: FakeSupabase;
+  let signToken: FakeSupabase['signToken'];
   let admin: InMemorySupabaseAdmin;
   let identity: IdentityService;
   let cache: CacheService;
   let issuer: string;
 
   beforeAll(async () => {
-    const { publicKey, privateKey } = await generateKeyPair('ES256', { extractable: true });
-    const jwk = { ...(await exportJWK(publicKey)), kid: 'test-key', alg: 'ES256', use: 'sig' };
-
-    jwksServer = createServer((req, res) => {
-      if (req.url?.startsWith('/auth/v1/.well-known/jwks.json')) {
-        res.setHeader('content-type', 'application/json');
-        res.end(JSON.stringify({ keys: [jwk] }));
-        return;
-      }
-      res.statusCode = 404;
-      res.end();
-    });
-    await new Promise<void>((resolve) => jwksServer.listen(0, '127.0.0.1', resolve));
-    const port = (jwksServer.address() as { port: number }).port;
-    const baseUrl = `http://127.0.0.1:${port}`;
-    issuer = `${baseUrl}/auth/v1`;
-
-    signToken = (payload, overrides) =>
-      new SignJWT(payload)
-        .setProtectedHeader({ alg: 'ES256', kid: overrides?.kid ?? 'test-key' })
-        .setIssuer(issuer)
-        .setAudience('authenticated')
-        .setIssuedAt()
-        .setExpirationTime('1h')
-        .sign(privateKey);
-
+    supabase = await startFakeSupabase();
+    signToken = supabase.signToken;
+    issuer = supabase.issuer;
     // Ghi đè env TRƯỚC khi import AppModule (ConfigModule chụp process.env lúc module được evaluate)
-    process.env.SUPABASE_URL = baseUrl;
-    process.env.SUPABASE_JWKS_URL = `${issuer}/.well-known/jwks.json`;
+    supabase.applyEnv();
     process.env.NODE_ENV = 'development'; // để Bull Board được mount (tắt khi NODE_ENV=test)
     const { AppModule, GLOBAL_PREFIX_EXCLUDE } = await import('../../src/app.module.js');
     admin = new InMemorySupabaseAdmin();
@@ -111,7 +87,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
-    await new Promise<void>((resolve) => jwksServer.close(() => resolve()));
+    await supabase.close();
   });
 
   const newUser = () => `0199${Math.random().toString(16).slice(2, 6)}-0000-7000-8000-${Date.now().toString(16).padStart(12, '0').slice(-12)}`;

@@ -1,4 +1,4 @@
-import { ewkbToLatLng, latLngToEwkt } from '../../src/common/database/drizzle.js';
+import { ewkbToLatLng, latLngToEwkt } from '../../src/common/database/columns.js';
 
 describe('geography helpers', () => {
   it('latLngToEwkt: lng trước lat, SRID 4326', () => {

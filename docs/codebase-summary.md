@@ -10,7 +10,7 @@
 | Mục | Giá trị |
 |---|---|
 | Bước roadmap | Skeleton 7/7 phase xong (roadmap bước 0–6 ✅): test unit/integration testcontainers, smoke đa instance, CI GitHub Actions; tiếp theo roadmap bước 7 Pin core |
-| Git | Nhánh `main`; e7f5f1a docs · f1476f4 phase 01 · 55d3858 phase 02 · fb5db5f phase 03 · 2f6ffc1 phase 04 · 6d3a5b6 phase 05 · 654527c phase 06 · 343b23f verify auth thật · 7469607 phase 07 test/CI · 9e00612 sắp xếp lại cấu trúc · tinh giản YAGNI + docs/code-walkthrough.md (2026-09-17) |
+| Git | Nhánh `main`; e7f5f1a docs · f1476f4 phase 01 · 55d3858 phase 02 · fb5db5f phase 03 · 2f6ffc1 phase 04 · 6d3a5b6 phase 05 · 654527c phase 06 · 343b23f verify auth thật · 7469607 phase 07 test/CI · 9e00612 sắp xếp lại cấu trúc · 8b1b2c6 tinh giản YAGNI + code-walkthrough · module mẫu location (2026-09-17) |
 | Kế hoạch | `plans/260916-1500-c9-map-backend-skeleton/` ✅ hoàn thành; plan bước 7 (pin core) chưa lập |
 
 ## 2. Cây thư mục hiện tại
@@ -57,7 +57,8 @@ c9_map/
 │   │   │   ├── supabase.ts           # SupabaseJwtService (jose + JWKS, ES256/RS256) · SUPABASE_ADMIN port + adapter
 │   │   │   └── decorators.ts         # Public · RequirePermissions · CurrentUser
 │   │   ├── database/
-│   │   │   ├── drizzle.ts            # postgres.js + drizzle · geographyPoint customType · latLngToEwkt/ewkbToLatLng · DatabaseLifecycle
+│   │   │   ├── drizzle.ts            # postgres.js + drizzle client · DatabaseLifecycle
+│   │   │   ├── columns.ts            # cột dùng chung cho *.schema.ts: timestamps · uuidV7Pk · geographyPoint (lat/lng ↔ EWKT/EWKB)
 │   │   │   └── schema.ts             # barrel gom *.schema.ts của mọi module
 │   │   ├── redis/
 │   │   │   ├── cache.ts              # REDIS_CACHE db0 · redisOptions() · cacheKeys/TTL đang dùng · CacheService (5 thao tác)
@@ -65,8 +66,9 @@ c9_map/
 │   │   │   └── throttler.guard.ts    # RedisThrottlerStorage (Lua) · AppThrottlerGuard tracker u:/d:/ip:
 │   │   └── http/
 │   │       ├── exceptions.ts         # ErrorCodes · AppException · AllExceptionsFilter → { error: { code, params, requestId } }
-│   │       ├── response.ts           # ResponseInterceptor { data, meta: { requestId } }
-│   │       ├── validation.ts         # APP_PIPE StandardSchemaValidationPipe (zod) → 422 VALIDATION_FAILED
+│   │       ├── response.ts           # ResponseInterceptor { data, meta: { requestId } } · withMeta
+│   │       ├── pagination.ts         # cursor (created_at, id) · PaginationQuerySchema · pageOf()
+│   │       ├── validation.ts         # APP_PIPE StandardSchemaValidationPipe (zod) → 422 · zText · zLatLng
 │   │       ├── request-context.middleware.ts  # X-Instance-Id · X-Request-Id
 │   │       └── express.d.ts          # req.user
 │   └── modules/                      # nghiệp vụ — mỗi module 1 thư mục; file chính ở gốc, chỉ 2 thư mục con dto/ và schema/
@@ -83,16 +85,20 @@ c9_map/
 │       │   │   └── role.dto.ts               # ROLE_CODES · RoleSchema · SetUserRolesSchema
 │       │   └── schema/
 │       │       └── identity.schema.ts        # profiles · roles · permissions · role_permissions · user_roles · devices
+│       ├── location/                 # MODULE MẪU — copy cấu trúc này cho module mới
+│       │   ├── location.module.ts · location.controller.ts · location.service.ts · location.repository.ts · location.constants.ts
+│       │   ├── dto/create-location.dto.ts · dto/location.dto.ts     # 1 file / use case, chứa cả request + response
+│       │   └── schema/location.schema.ts                          # saved_locations (geography + GIST)
 │       ├── pin/
-│       │   ├── pin.module.ts · pin.constants.ts · pin.jobs.ts   # bước 7 thêm controller/service/repository/dto/schema
+│       │   ├── pin.module.ts · pin.constants.ts · pin.jobs.ts   # bước 7 thêm controller/service/repository/dto/schema theo mẫu location
 │       └── queue-board/
 │           └── queue-board.module.ts # /admin/queues (Bull Board) + middleware JWT + queue:read; tắt khi test
-├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac (SQL)
+├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac · 0003_location (SQL)
 ├── drizzle.config.ts                 # schema: 'src/**/*.schema.ts'
 ├── test/
-│   ├── unit/*.spec.ts                # logic thuần, không hạ tầng (env · exceptions · drizzle · permission.guard)
-│   ├── integration/*.spec.ts         # AppModule thật trên testcontainers (app · cross-cutting · geography · redis-queue · auth-rbac · supabase-real)
-│   └── setup/{containers.ts, env.ts} # globalSetup testcontainers + migrate · setupFiles inject URL
+│   ├── unit/*.spec.ts                # logic thuần, không hạ tầng (env · exceptions · columns · permission.guard · pagination · validation · location.service)
+│   ├── integration/*.spec.ts         # AppModule thật trên testcontainers (app · cross-cutting · geography · redis-queue · auth-rbac · location · supabase-real)
+│   └── setup/{containers,env,jwks}.ts # globalSetup testcontainers + migrate · setupFiles inject URL · Supabase JWKS giả (ES256)
 ├── scripts/                          # smoke-multi-instance.sh · dev-token.mjs · verify-auth.mjs
 ├── i18n/{vi,en}/*.json · openapi/{app,admin}.json
 ├── Dockerfile · docker-compose.yml · nginx.conf · vitest.config.ts · .env.example · .github/workflows/ci.yml

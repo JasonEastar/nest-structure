@@ -59,7 +59,7 @@ MUST   phân trang bằng cursor (created_at, id) — NEVER OFFSET
 MUST   bảng user_locations: một dòng mỗi user, UPSERT — NEVER bảng lịch sử có GIST
 MUST   notifications partition theo tháng
 MUST   migration là bước riêng trong deploy — NEVER chạy lúc boot (drizzle migrate() không có lock, N instance sẽ đua)
-MUST   *.schema.ts chỉ import drizzle-orm, util npm thuần (uuidv7) và *.schema.ts khác — NEVER import common/database/drizzle.ts hay service
+MUST   *.schema.ts chỉ import drizzle-orm, util npm thuần (uuidv7) và *.schema.ts khác — NEVER import common/database/drizzle.ts hay service (cột dùng chung lấy từ common/database/columns.ts)
 MUST   FK liên module một chiều (pin → identity); MVP dùng db.select() + join — NEVER relations()/db.query
 MUST   options upsertJobScheduler là hằng số trong <x>.constants.ts — NEVER tính từ env/runtime
 NEVER  ghi vào schema auth.* — chỉ đọc qua Supabase Admin API
@@ -148,7 +148,8 @@ c9_map/
 │   │   │   ├── supabase.ts           # SupabaseJwtService (jose + JWKS, ES256/RS256) · SUPABASE_ADMIN port + adapter
 │   │   │   └── decorators.ts         # Public · RequirePermissions · CurrentUser
 │   │   ├── database/
-│   │   │   ├── drizzle.ts            # postgres.js + drizzle · geographyPoint customType · latLngToEwkt/ewkbToLatLng · DatabaseLifecycle
+│   │   │   ├── drizzle.ts            # postgres.js + drizzle client · DatabaseLifecycle
+│   │   │   ├── columns.ts            # cột dùng chung cho *.schema.ts: timestamps · uuidV7Pk · geographyPoint (lat/lng ↔ EWKT/EWKB)
 │   │   │   └── schema.ts             # barrel gom *.schema.ts của mọi module
 │   │   ├── redis/
 │   │   │   ├── cache.ts              # REDIS_CACHE db0 · redisOptions() · cacheKeys/TTL đang dùng · CacheService (5 thao tác)
@@ -156,8 +157,9 @@ c9_map/
 │   │   │   └── throttler.guard.ts    # RedisThrottlerStorage (Lua) · AppThrottlerGuard tracker u:/d:/ip:
 │   │   └── http/
 │   │       ├── exceptions.ts         # ErrorCodes · AppException · AllExceptionsFilter → { error: { code, params, requestId } }
-│   │       ├── response.ts           # ResponseInterceptor { data, meta: { requestId } }
-│   │       ├── validation.ts         # APP_PIPE StandardSchemaValidationPipe (zod) → 422 VALIDATION_FAILED
+│   │       ├── response.ts           # ResponseInterceptor { data, meta: { requestId } } · withMeta
+│   │       ├── pagination.ts         # cursor (created_at, id) · PaginationQuerySchema · pageOf()
+│   │       ├── validation.ts         # APP_PIPE StandardSchemaValidationPipe (zod) → 422 · zText · zLatLng
 │   │       ├── request-context.middleware.ts  # X-Instance-Id · X-Request-Id
 │   │       └── express.d.ts          # req.user
 │   └── modules/                      # nghiệp vụ — mỗi module 1 thư mục; file chính ở gốc, chỉ 2 thư mục con dto/ và schema/
@@ -174,16 +176,20 @@ c9_map/
 │       │   │   └── role.dto.ts               # ROLE_CODES · RoleSchema · SetUserRolesSchema
 │       │   └── schema/
 │       │       └── identity.schema.ts        # profiles · roles · permissions · role_permissions · user_roles · devices
+│       ├── location/                 # MODULE MẪU — copy cấu trúc này cho module mới
+│       │   ├── location.module.ts · location.controller.ts · location.service.ts · location.repository.ts · location.constants.ts
+│       │   ├── dto/create-location.dto.ts · dto/location.dto.ts     # 1 file / use case, chứa cả request + response
+│       │   └── schema/location.schema.ts                          # saved_locations (geography + GIST)
 │       ├── pin/
-│       │   ├── pin.module.ts · pin.constants.ts · pin.jobs.ts   # bước 7 thêm controller/service/repository/dto/schema
+│       │   ├── pin.module.ts · pin.constants.ts · pin.jobs.ts   # bước 7 thêm controller/service/repository/dto/schema theo mẫu location
 │       └── queue-board/
 │           └── queue-board.module.ts # /admin/queues (Bull Board) + middleware JWT + queue:read; tắt khi test
-├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac (SQL)
+├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac · 0003_location (SQL)
 ├── drizzle.config.ts                 # schema: 'src/**/*.schema.ts'
 ├── test/
-│   ├── unit/*.spec.ts                # logic thuần, không hạ tầng (env · exceptions · drizzle · permission.guard)
-│   ├── integration/*.spec.ts         # AppModule thật trên testcontainers (app · cross-cutting · geography · redis-queue · auth-rbac · supabase-real)
-│   └── setup/{containers.ts, env.ts} # globalSetup testcontainers + migrate · setupFiles inject URL
+│   ├── unit/*.spec.ts                # logic thuần, không hạ tầng (env · exceptions · columns · permission.guard · pagination · validation · location.service)
+│   ├── integration/*.spec.ts         # AppModule thật trên testcontainers (app · cross-cutting · geography · redis-queue · auth-rbac · location · supabase-real)
+│   └── setup/{containers,env,jwks}.ts # globalSetup testcontainers + migrate · setupFiles inject URL · Supabase JWKS giả (ES256)
 ├── scripts/                          # smoke-multi-instance.sh · dev-token.mjs · verify-auth.mjs
 ├── i18n/{vi,en}/*.json · openapi/{app,admin}.json
 ├── Dockerfile · docker-compose.yml · nginx.conf · vitest.config.ts · .env.example · .github/workflows/ci.yml
@@ -191,7 +197,9 @@ c9_map/
 ```
 
 Nguồn: [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md) (sửa đổi 2026-09-17). Mobile (Flutter / React Native) là **repo riêng**, tiêu thụ `openapi.json`. Quy tắc file (theo quy ước Nest CLI `nest g resource` + rule `arch-feature-modules`):
-- `modules/<x>/`: file chính ở gốc, tên bắt đầu bằng `<x>.` hoặc `<x>-`: `<x>.module|controller|service|repository|constants|jobs.ts`; `<x>-<sub>.controller.ts` cho nhóm route phụ (admin); `<x>-geo.repository.ts` cho SQL PostGIS. Chỉ 2 thư mục con: `dto/<tên>.dto.ts` (zod) và `schema/<x>.schema.ts` (Drizzle). Không tạo `controllers/ services/ repositories/`.
+- `modules/<x>/`: file chính ở gốc, tên bắt đầu bằng `<x>.` hoặc `<x>-`: `<x>.module|controller|service|repository|constants|jobs.ts`; `<x>-<sub>.controller.ts` cho nhóm route phụ (admin); `<x>-geo.repository.ts` cho SQL PostGIS. Chỉ 2 thư mục con: `dto/` và `schema/`. Không tạo `controllers/ services/ repositories/`. **Mẫu chuẩn: `modules/location/`** — module mới copy y hệt.
+- `dto/<use-case>.dto.ts`: một file cho một use case, chứa CẢ schema request lẫn response của use case đó (`create-location.dto.ts` có `CreateLocationSchema`; `location.dto.ts` có `LocationResponseSchema` + query schema). **Không** tách `dto/requests/` và `dto/responses/`: request và response của cùng API phải đọc cạnh nhau; Swagger đọc zod trực tiếp nên không cần class riêng cho mỗi chiều.
+- **Khi dự án lớn:** không thêm cấp thư mục theo loại. Module vượt ~10 file ở gốc → tách theo nghiệp vụ con thành module mới (`pin/` → `pin/`, `vote/`, `report/`), mỗi module chỉ export service module khác cần. Vượt ~15 module → nhóm theo miền trong `modules/` (`modules/map/{pin,location}`, `modules/community/{vote,report}`), đường import đổi nhưng cấu trúc bên trong module giữ nguyên.
 - `common/`: gom theo mối quan tâm `auth/ database/ redis/ http/`; thêm nhóm mới khi có ≥ 2 file cùng mối quan tâm. `config/` chỉ chứa cấu hình (env, logger, i18n, openapi), không logic nghiệp vụ.
 - Test ngoài `src/`: `test/unit/` · `test/integration/` · `test/setup/`. `src/` không có `*.spec.ts`.
 - **Không tạo thư mục rỗng**, không file wiring riêng (`api.module`, `worker.module`, `core.module` đã bỏ).

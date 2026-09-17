@@ -6,12 +6,24 @@ import { requestIdOf } from './request-context.middleware.js';
 /**
  * Bọc mọi response thành công thành `{ data, meta: { requestId } }` (APP_INTERCEPTOR).
  * Controller chỉ return dữ liệu thuần; client luôn đọc `body.data`. Lỗi có shape riêng ở exceptions.ts.
- * Phân trang (cursor, nextCursor trong meta) thêm ở bước pin core khi có endpoint list đầu tiên.
+ * Endpoint list trả `withMeta(rows, { nextCursor })` (qua pagination.ts `pageOf`) → meta có thêm nextCursor.
  */
+export interface PageMeta {
+  nextCursor?: string | null;
+}
 export interface Envelope<T> {
   data: T;
-  meta: { requestId: string };
+  meta: PageMeta & { requestId: string };
 }
+
+const ENVELOPE: unique symbol = Symbol('envelope');
+export type PartialEnvelope<T> = { data: T; meta: PageMeta; [ENVELOPE]: true };
+
+/** Handler trả kèm meta (nextCursor); requestId do interceptor gắn, handler không đặt được. */
+export const withMeta = <T>(data: T, meta: PageMeta): PartialEnvelope<T> => ({ data, meta, [ENVELOPE]: true });
+
+const isPartialEnvelope = (v: unknown): v is PartialEnvelope<unknown> =>
+  typeof v === 'object' && v !== null && (v as Record<symbol, unknown>)[ENVELOPE] === true;
 
 /** Route không bọc: health (Terminus có body riêng), Swagger UI, Bull Board. */
 const SKIP_PREFIXES = ['/health', '/docs', '/admin/queues'];
@@ -26,6 +38,7 @@ export class ResponseInterceptor implements NestInterceptor {
     return next.handle().pipe(
       map((body: unknown): unknown => {
         if (body instanceof StreamableFile) return body; // tải file: không bọc
+        if (isPartialEnvelope(body)) return { data: body.data, meta: { ...body.meta, requestId } } satisfies Envelope<unknown>;
         return { data: body ?? null, meta: { requestId } } satisfies Envelope<unknown>;
       }),
     );

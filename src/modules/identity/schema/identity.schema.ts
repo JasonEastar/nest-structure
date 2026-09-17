@@ -1,31 +1,10 @@
-import {
-  index,
-  pgTable,
-  primaryKey,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-} from 'drizzle-orm/pg-core';
-import { uuidv7 } from 'uuidv7';
+import { index, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { timestamps, uuidV7Pk } from '../../../common/database/columns.js';
 
 /**
- * Bảng của module identity. Quy tắc (ADR-0006 §6): file *.schema.ts chỉ import drizzle-orm
- * và *.schema.ts khác — không import common/database/drizzle.ts.
+ * Bảng của module identity. Quy tắc (ADR-0006 §6): *.schema.ts chỉ import drizzle-orm, common/database/columns.ts
+ * và *.schema.ts khác — không import common/database/drizzle.ts (tránh vòng).
  */
-
-const timestamps = {
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-};
-
-const uuidV7Pk = () =>
-  uuid('id')
-    .primaryKey()
-    .$defaultFn(() => uuidv7());
 
 /** id = `sub` của Supabase Auth (uuid v4). Không FK sang Supabase (khác database, ADR-0005). */
 export const profiles = pgTable(

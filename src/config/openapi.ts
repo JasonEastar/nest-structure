@@ -99,7 +99,7 @@ export function zodResponse(schema: z.ZodType, envelope = false): Record<string,
       meta: {
         type: 'object',
         required: ['requestId'],
-        properties: { requestId: { type: 'string' } },
+        properties: { requestId: { type: 'string' }, nextCursor: { type: 'string', nullable: true } },
       },
     },
   };

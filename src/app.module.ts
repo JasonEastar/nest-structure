@@ -14,6 +14,7 @@ import { ValidationPipeProvider } from './common/http/validation.js';
 import { envSchema } from './config/env.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { IdentityAdminModule, IdentityModule } from './modules/identity/identity.module.js';
+import { LocationModule } from './modules/location/location.module.js';
 import { PinModule } from './modules/pin/pin.module.js';
 import { QueueBoardModule } from './modules/queue-board/queue-board.module.js';
 
@@ -26,7 +27,7 @@ export const GLOBAL_PREFIX_EXCLUDE = [
 ];
 
 /** Tài liệu OpenAPI (include tường minh — rỗng = Swagger lấy tất cả, không được phép). */
-export const OPENAPI_DOCS = { app: [HealthModule, IdentityModule, PinModule], admin: [IdentityAdminModule] };
+export const OPENAPI_DOCS = { app: [HealthModule, IdentityModule, LocationModule, PinModule], admin: [IdentityAdminModule] };
 
 /**
  * Module gốc: nối mọi thứ lại.
@@ -44,6 +45,7 @@ export const OPENAPI_DOCS = { app: [HealthModule, IdentityModule, PinModule], ad
     HealthModule,
     IdentityModule,
     IdentityAdminModule,
+    LocationModule,
     PinModule,
     QueueBoardModule,
   ],

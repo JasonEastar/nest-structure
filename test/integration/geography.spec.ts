@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
-import { ewkbToLatLng, latLngToEwkt, type LatLng } from '../../src/common/database/drizzle.js';
+import { ewkbToLatLng, latLngToEwkt, type LatLng } from '../../src/common/database/columns.js';
 
 /**
  * Kiểm chứng customType geography(Point,4326) trên PostGIS thật (testcontainers qua globalSetup):

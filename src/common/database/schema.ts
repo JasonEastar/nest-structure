@@ -4,3 +4,4 @@
  * Thêm module mới → thêm một dòng export ở đây.
  */
 export * from '../../modules/identity/schema/identity.schema.js';
+export * from '../../modules/location/schema/location.schema.js';

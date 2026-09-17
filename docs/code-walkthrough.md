@@ -28,11 +28,11 @@ Thứ tự chạy cho **mọi** request: middleware → guard → pipe → contr
 1. `src/main.ts` (25 dòng): nạp `.env`, tạo app, gắn Swagger, listen. Hết.
 2. `src/app.ts` (30 dòng): app được cấu hình gì: helmet, prefix `/api`, version `v1`, shutdown hooks.
 3. `src/app.module.ts` (60 dòng): danh sách module và 6 "lớp bọc" chạy cho mọi request (3 guard, 1 pipe, 1 filter, 1 interceptor). Đây là bản đồ toàn dự án.
-4. `src/modules/identity/identity.controller.ts` → `identity.service.ts` → `identity.repository.ts` → `schema/identity.schema.ts`: một feature hoàn chỉnh từ URL tới bảng DB. Module mới copy y hệt.
+4. `src/modules/location/`: module mẫu, đọc `location.controller.ts` → `location.service.ts` → `location.repository.ts` → `schema/location.schema.ts` → `dto/`. Một feature hoàn chỉnh từ URL tới bảng DB, kể cả PostGIS và phân trang. Module mới copy y hệt (mục 6).
 5. `src/common/auth/auth.guard.ts`: cách một token Google của Supabase biến thành `req.user`.
 6. `src/config/env.ts`: toàn bộ biến môi trường, mỗi biến có chú thích.
 
-Chưa cần đọc ngay: `common/redis/throttler.guard.ts` (rate limit, có Lua), `common/database/drizzle.ts` (kiểu toạ độ PostGIS), `modules/queue-board/` (giao diện xem hàng đợi cho ops).
+Chưa cần đọc ngay: `common/redis/throttler.guard.ts` (rate limit, có Lua), `common/database/columns.ts` (parse toạ độ PostGIS), `modules/queue-board/` (giao diện xem hàng đợi cho ops).
 
 ## 3. Một request đi qua đâu: `GET /api/v1/me`
 
@@ -71,37 +71,52 @@ Mỗi phút cần quét pin hết hạn. Có 2 instance mà dùng cron trong pro
 | `common/auth/permission.guard.ts` | Kiểm `@RequirePermissions` | Hiếm |
 | `common/auth/supabase.ts` | Xác minh JWT bằng JWKS; gọi Supabase Admin API (xoá user) | Đổi issuer, thuật toán |
 | `common/auth/decorators.ts` | `@Public()`, `@RequirePermissions()`, `@CurrentUser()` | Thêm decorator |
-| `common/database/drizzle.ts` | Kết nối Postgres, kiểu cột toạ độ `geography(Point)` | Thêm kiểu cột PostGIS |
+| `common/database/drizzle.ts` | Kết nối Postgres + Drizzle client | Hiếm |
+| `common/database/columns.ts` | Cột dùng chung cho schema: timestamps, uuid v7, toạ độ `geography(Point)` | Thêm kiểu cột mới |
 | `common/database/schema.ts` | Gom mọi `*.schema.ts` cho Drizzle | Thêm module có bảng |
 | `common/redis/cache.ts` | Kết nối Redis + 5 thao tác cache + danh sách key/TTL đang dùng | Thêm key cache |
 | `common/redis/queue.ts` | Kết nối BullMQ + tên các queue | Thêm queue |
 | `common/redis/throttler.guard.ts` | Rate limit đếm chung mọi instance | Đổi giới hạn |
 | `common/http/exceptions.ts` | Bảng mã lỗi + filter | Thêm mã lỗi |
-| `common/http/response.ts` | Bọc `{ data, meta }` | Thêm phân trang (bước 7) |
+| `common/http/response.ts` | Bọc `{ data, meta }`; `withMeta` cho list | Hiếm |
+| `common/http/pagination.ts` | Cursor phân trang + `pageOf()` | Viết endpoint list |
 | `common/http/validation.ts` | Pipe zod toàn cục | Hiếm |
 | `common/http/request-context.middleware.ts` | `X-Request-Id`, `X-Instance-Id` | Hiếm |
 | `common/http/express.d.ts` | Khai `req.user` cho TypeScript | Thêm field vào `req.user` |
 | `modules/health/*` | `/health/live` (process sống), `/health/ready` (DB + Redis ok) | Thêm dependency cần check |
 | `modules/identity/*` | `/me`, RBAC, admin gán role | Mọi thứ về user |
+| `modules/location/*` | Module mẫu: địa điểm đã lưu, đủ mọi loại file | Khi tạo module mới |
 | `modules/pin/pin.constants.ts` | Hằng số nghiệp vụ pin: tuổi thọ, rate limit, tier rep | Đổi luật chơi |
 | `modules/pin/pin.jobs.ts` | Lịch + worker hết hạn pin | Bước 9 |
 | `modules/queue-board/*` | Trang `/admin/queues` xem hàng đợi, cần quyền `queue:read` | Ops |
 
-## 6. Thêm một API mới (ví dụ `POST /api/v1/pins`)
+## 6. Thêm một API mới: copy module mẫu `modules/location/`
 
-1. `modules/pin/schema/pin.schema.ts`: khai bảng `markers` bằng Drizzle → `npm run db:generate` → sửa SQL nếu cần → `npm run db:migrate`. Thêm `export * from` vào `common/database/schema.ts`.
-2. `modules/pin/dto/create-pin.dto.ts`: zod schema cho body và response.
-3. `modules/pin/pin.repository.ts`: câu SQL insert/select.
-4. `modules/pin/pin.service.ts`: luật nghiệp vụ (rate limit tạo pin, tier rep...). Ném `new AppException('CONFLICT', {...})` khi vi phạm.
-5. `modules/pin/pin.controller.ts`: `@Post() create(@Body({ schema }) body, @CurrentUser() user)`. Cần quyền → `@RequirePermissions(['pin:create'])`.
-6. `pin.module.ts`: thêm controller/provider. `app.module.ts` đã import `PinModule` và `OPENAPI_DOCS` đã có `PinModule` → Swagger tự hiện.
-7. Test: unit cho luật ở service (`test/unit/`), integration gọi thật qua supertest (`test/integration/`).
+`location` là module mẫu chạy thật (địa điểm đã lưu của user: tên + toạ độ + bán kính, sau này thành "My areas"). Nó có đủ mọi loại file, đọc theo thứ tự này:
+
+| File | Bạn học được gì |
+|---|---|
+| `schema/location.schema.ts` | Khai bảng bằng Drizzle, cột toạ độ PostGIS, index GIST, khoá ngoại cascade. Sinh migration: `npm run db:generate` rồi sửa tay dòng `geography` bị đặt trong nháy. |
+| `dto/create-location.dto.ts` | Schema zod cho body, dùng `zText` (strip HTML) và `zLatLng`. Số giới hạn lấy từ `location.constants.ts`. |
+| `dto/location.dto.ts` | Response schema, query phân trang (`PaginationQuerySchema`), query nearby. Một file cho một use case, cả request lẫn response. |
+| `location.repository.ts` | Mọi SQL: insert/returning, cursor `(created_at, id)`, `ST_DWithin` + `ST_Distance` theo mét thật. Mọi query lọc theo `userId`. |
+| `location.service.ts` | Luật: tối đa 20 địa điểm, của người khác trả `NOT_FOUND` (không lộ), map row DB sang response ở một chỗ, `pageOf()` tính `nextCursor`. |
+| `location.controller.ts` | 5 route: POST, GET list, GET nearby, GET :id, DELETE :id. Chỉ khai route, gắn schema, gọi service. |
+| `location.module.ts` | Khai controller + provider. Không import DB/Redis vì `CommonModule` là `@Global`. |
+| `test/unit/location.service.spec.ts` | Test luật với repository giả cùng interface. |
+| `test/integration/location.spec.ts` | Gọi HTTP thật qua supertest trên PostGIS thật, token ký bởi Supabase giả (`test/setup/jwks.ts`): 422, cách ly user, biên 299 m / 301 m, cursor đi hết, giới hạn 20. |
+
+Các bước khi làm module `pin`:
+1. Tạo `modules/pin/` với đúng bộ file trên, đổi tên `location` → `pin`.
+2. Schema → `npm run db:generate` → sửa SQL → `npm run db:migrate`. Thêm `export *` vào `common/database/schema.ts`.
+3. Đăng ký `PinModule` trong `app.module.ts` (đã có) và trong `OPENAPI_DOCS.app` để Swagger hiện.
+4. Cần quyền → `@RequirePermissions(['pin:create'])` trên route; permission phải có trong seed `drizzle/0002_seed_rbac.sql`.
+5. Viết test unit cho luật, integration cho SQL và HTTP. Chạy `npm test`.
 
 ## 7. Những thứ cố ý chưa có
 
 Không viết trước cái chưa dùng. Khi bước tương ứng tới thì thêm, kèm test:
-- Phân trang cursor và `meta.nextCursor` (bước 7, endpoint list đầu tiên).
-- Helper zod strip HTML cho text người dùng, kiểm toạ độ WGS84 (bước 7, khi có body chứa text/toạ độ).
 - `INCR`, `SADD` trong `CacheService` (bước 8, đếm vote/like).
+- Cache viewport trong Redis (bước 7, khi có endpoint viewport của pin).
 - Gọi `i18n.t()` (bước 11, push notification). Module i18n đã nối sẵn vì đã có test và thư mục `i18n/`.
 - Tách worker khỏi HTTP bằng biến env (chỉ khi push fan-out làm API chậm, xem ADR-0006).
