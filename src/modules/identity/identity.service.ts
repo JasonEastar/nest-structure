@@ -7,6 +7,10 @@ import type { MeResponse } from './dto/me.dto.js';
 import type { RoleCode } from './dto/role.dto.js';
 import { IdentityRepository } from './identity.repository.js';
 
+/**
+ * Nghiệp vụ user: tạo profile lần đầu (thay trigger DB, vì Postgres và Supabase là 2 database), quyền hiệu lực (RBAC + cache),
+ * hồ sơ /me, gán role, xoá tài khoản. Implements AuthUserPort để AuthGuard/PermissionGuard trong common/ gọi được qua AUTH_USER.
+ */
 @Injectable()
 export class IdentityService implements AuthUserPort {
   private readonly logger = new Logger(IdentityService.name);

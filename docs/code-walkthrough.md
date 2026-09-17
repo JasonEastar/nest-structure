@@ -46,7 +46,7 @@ Chưa cần đọc ngay: `common/redis/throttler.guard.ts` (rate limit, có Lua)
 8. `identity.service.ts` hàm `getMe()`: gọi repository lấy profile, role, permission; ghép thành object đúng `MeResponseSchema`.
 9. `identity.repository.ts`: các câu `select` Drizzle trên bảng `profiles`, `user_roles`, `roles`.
 10. `common/http/response.ts`: bọc kết quả thành `{ data: {...}, meta: { requestId } }`.
-11. Nếu bước nào ném lỗi: `common/http/exceptions.ts` biến thành `{ error: { code: 'NOT_FOUND', params, requestId } }` với đúng HTTP status. Client chỉ cần đọc `error.code`.
+11. Nếu bước nào ném lỗi: `common/http/exceptions.ts` biến thành `{ error: { code: 'NOT_FOUND', message: 'Không tìm thấy địa điểm', params, requestId } }` với đúng HTTP status. `message` dịch theo ngôn ngữ request (`?lang=` hoặc `Accept-Language`, mặc định vi). Client rẽ nhánh theo `error.code`, hiển thị `error.message`.
 
 Đăng nhập: backend **không** làm OAuth. App gọi Supabase để đăng nhập Google, nhận token, gửi token cho backend. Backend chỉ xác minh.
 
@@ -64,7 +64,7 @@ Mỗi phút cần quét pin hết hạn. Có 2 instance mà dùng cron trong pro
 | `config/env.ts` | Khai báo và validate biến môi trường | Thêm biến env |
 | `config/load-env.ts` | Nạp `.env` trước mọi thứ | Không |
 | `config/logger.ts` | Log JSON một dòng mỗi request, ẩn token | Đổi field log, thêm redact |
-| `config/i18n.ts` | Dịch vi/en cho push notification (bước 11), hiện chưa có gì gọi | Bước 11 |
+| `config/i18n.ts` | Đa ngôn ngữ vi/en: cách chọn ngôn ngữ (`?lang` → `Accept-Language` → vi); câu chữ ở `i18n/<lang>/*.json` | Thêm ngôn ngữ, đổi cách chọn |
 | `config/openapi.ts` | Hai trang Swagger `/docs/app`, `/docs/admin` + xuất JSON | Đổi mô tả tài liệu |
 | `common/common.module.ts` | Gom DB, Redis, queue, Supabase thành một module dùng chung | Thêm hạ tầng mới |
 | `common/auth/auth.guard.ts` | Token → `req.user`; định nghĩa cổng `AUTH_USER` để guard gọi được IdentityService | Đổi cách xác thực |
@@ -77,7 +77,7 @@ Mỗi phút cần quét pin hết hạn. Có 2 instance mà dùng cron trong pro
 | `common/redis/cache.ts` | Kết nối Redis + 5 thao tác cache + danh sách key/TTL đang dùng | Thêm key cache |
 | `common/redis/queue.ts` | Kết nối BullMQ + tên các queue | Thêm queue |
 | `common/redis/throttler.guard.ts` | Rate limit đếm chung mọi instance | Đổi giới hạn |
-| `common/http/exceptions.ts` | Bảng mã lỗi + filter | Thêm mã lỗi |
+| `common/http/exceptions.ts` | Bảng mã lỗi + filter dịch `message` | Thêm mã lỗi (kèm câu trong `i18n/*/errors.json`) |
 | `common/http/response.ts` | Bọc `{ data, meta }`; `withMeta` cho list | Hiếm |
 | `common/http/pagination.ts` | Cursor phân trang + `pageOf()` | Viết endpoint list |
 | `common/http/validation.ts` | Pipe zod toàn cục | Hiếm |
@@ -118,7 +118,7 @@ Các bước khi làm module `pin`:
 Không viết trước cái chưa dùng. Khi bước tương ứng tới thì thêm, kèm test:
 - `INCR`, `SADD` trong `CacheService` (bước 8, đếm vote/like).
 - Cache viewport trong Redis (bước 7, khi có endpoint viewport của pin).
-- Gọi `i18n.t()` (bước 11, push notification). Module i18n đã nối sẵn vì đã có test và thư mục `i18n/`.
+- Template push notification trong `i18n/*/common.json` (bước 11).
 - Tách worker khỏi HTTP bằng biến env (chỉ khi push fan-out làm API chậm, xem ADR-0006).
 
 ## 8. Module lớn lên và hai module nối với nhau

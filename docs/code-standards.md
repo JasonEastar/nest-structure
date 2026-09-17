@@ -82,7 +82,7 @@ NEVER  dùng SUPABASE_SERVICE_ROLE_KEY ở client hoặc trong log/response
 ### 2.5 API
 
 ```
-MUST   server trả mã lỗi (ErrorCodes trong contracts), client dịch — NEVER trả câu tiếng Việt
+MUST   lỗi trả { code, message, params, requestId }: client rẽ nhánh theo code; message đã dịch theo ?lang / Accept-Language (vi mặc định, en) từ i18n/<lang>/errors.json — NEVER hard-code câu chữ trong service
 MUST   response shape: { data, meta } / { error: { code, params, requestId } }
 MUST   AuthGuard global; route mở dùng @Public()
 MUST   mọi route ghi có @RequirePermissions('<resource>:<action>') — quyền nằm trong DB + Redis, NEVER trong JWT

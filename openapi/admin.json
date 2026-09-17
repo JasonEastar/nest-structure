@@ -82,6 +82,9 @@
                         "code": {
                           "type": "string"
                         },
+                        "message": {
+                          "type": "string"
+                        },
                         "params": {
                           "type": "object",
                           "additionalProperties": {}
@@ -92,6 +95,7 @@
                       },
                       "required": [
                         "code",
+                        "message",
                         "params",
                         "requestId"
                       ],
@@ -119,6 +123,9 @@
                         "code": {
                           "type": "string"
                         },
+                        "message": {
+                          "type": "string"
+                        },
                         "params": {
                           "type": "object",
                           "additionalProperties": {}
@@ -129,6 +136,7 @@
                       },
                       "required": [
                         "code",
+                        "message",
                         "params",
                         "requestId"
                       ],
@@ -156,6 +164,9 @@
                         "code": {
                           "type": "string"
                         },
+                        "message": {
+                          "type": "string"
+                        },
                         "params": {
                           "type": "object",
                           "additionalProperties": {}
@@ -166,6 +177,7 @@
                       },
                       "required": [
                         "code",
+                        "message",
                         "params",
                         "requestId"
                       ],
@@ -193,6 +205,9 @@
                         "code": {
                           "type": "string"
                         },
+                        "message": {
+                          "type": "string"
+                        },
                         "params": {
                           "type": "object",
                           "additionalProperties": {}
@@ -203,6 +218,7 @@
                       },
                       "required": [
                         "code",
+                        "message",
                         "params",
                         "requestId"
                       ],
@@ -230,6 +246,9 @@
                         "code": {
                           "type": "string"
                         },
+                        "message": {
+                          "type": "string"
+                        },
                         "params": {
                           "type": "object",
                           "additionalProperties": {}
@@ -240,6 +259,7 @@
                       },
                       "required": [
                         "code",
+                        "message",
                         "params",
                         "requestId"
                       ],
@@ -298,6 +318,9 @@
                         "code": {
                           "type": "string"
                         },
+                        "message": {
+                          "type": "string"
+                        },
                         "params": {
                           "type": "object",
                           "additionalProperties": {}
@@ -308,6 +331,7 @@
                       },
                       "required": [
                         "code",
+                        "message",
                         "params",
                         "requestId"
                       ],
@@ -335,6 +359,9 @@
                         "code": {
                           "type": "string"
                         },
+                        "message": {
+                          "type": "string"
+                        },
                         "params": {
                           "type": "object",
                           "additionalProperties": {}
@@ -345,6 +372,7 @@
                       },
                       "required": [
                         "code",
+                        "message",
                         "params",
                         "requestId"
                       ],
@@ -372,6 +400,9 @@
                         "code": {
                           "type": "string"
                         },
+                        "message": {
+                          "type": "string"
+                        },
                         "params": {
                           "type": "object",
                           "additionalProperties": {}
@@ -382,6 +413,7 @@
                       },
                       "required": [
                         "code",
+                        "message",
                         "params",
                         "requestId"
                       ],
@@ -409,6 +441,9 @@
                         "code": {
                           "type": "string"
                         },
+                        "message": {
+                          "type": "string"
+                        },
                         "params": {
                           "type": "object",
                           "additionalProperties": {}
@@ -419,6 +454,7 @@
                       },
                       "required": [
                         "code",
+                        "message",
                         "params",
                         "requestId"
                       ],
@@ -446,6 +482,9 @@
                         "code": {
                           "type": "string"
                         },
+                        "message": {
+                          "type": "string"
+                        },
                         "params": {
                           "type": "object",
                           "additionalProperties": {}
@@ -456,6 +495,7 @@
                       },
                       "required": [
                         "code",
+                        "message",
                         "params",
                         "requestId"
                       ],
@@ -541,6 +581,9 @@
                         "code": {
                           "type": "string"
                         },
+                        "message": {
+                          "type": "string"
+                        },
                         "params": {
                           "type": "object",
                           "additionalProperties": {}
@@ -551,6 +594,7 @@
                       },
                       "required": [
                         "code",
+                        "message",
                         "params",
                         "requestId"
                       ],
@@ -578,6 +622,9 @@
                         "code": {
                           "type": "string"
                         },
+                        "message": {
+                          "type": "string"
+                        },
                         "params": {
                           "type": "object",
                           "additionalProperties": {}
@@ -588,6 +635,7 @@
                       },
                       "required": [
                         "code",
+                        "message",
                         "params",
                         "requestId"
                       ],
@@ -615,6 +663,9 @@
                         "code": {
                           "type": "string"
                         },
+                        "message": {
+                          "type": "string"
+                        },
                         "params": {
                           "type": "object",
                           "additionalProperties": {}
@@ -625,6 +676,7 @@
                       },
                       "required": [
                         "code",
+                        "message",
                         "params",
                         "requestId"
                       ],
@@ -652,6 +704,9 @@
                         "code": {
                           "type": "string"
                         },
+                        "message": {
+                          "type": "string"
+                        },
                         "params": {
                           "type": "object",
                           "additionalProperties": {}
@@ -662,6 +717,7 @@
                       },
                       "required": [
                         "code",
+                        "message",
                         "params",
                         "requestId"
                       ],
@@ -689,6 +745,9 @@
                         "code": {
                           "type": "string"
                         },
+                        "message": {
+                          "type": "string"
+                        },
                         "params": {
                           "type": "object",
                           "additionalProperties": {}
@@ -699,6 +758,7 @@
                       },
                       "required": [
                         "code",
+                        "message",
                         "params",
                         "requestId"
                       ],

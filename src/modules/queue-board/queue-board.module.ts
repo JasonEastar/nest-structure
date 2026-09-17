@@ -24,7 +24,8 @@ const enabled = (env: NodeJS.ProcessEnv) => env.NODE_ENV !== 'test';
 export function queueBoardAuth(jwt: SupabaseJwtService, users: AuthUserPort) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const deny = (code: 'UNAUTHENTICATED' | 'FORBIDDEN'): void => {
-      res.status(ErrorCodes[code]).json({ error: { code, params: {}, requestId: requestIdOf(req) } });
+      // Ngoài Nest pipeline (không qua filter) → tự ghi body cùng shape ErrorEnvelope; công cụ ops nên message tiếng Anh cố định
+      res.status(ErrorCodes[code]).json({ error: { code, message: code, params: {}, requestId: requestIdOf(req) } });
     };
     const [scheme, bearer] = (req.header('authorization') ?? '').split(' ');
     const token = scheme?.toLowerCase() === 'bearer' ? bearer : (req.query.access_token as string | undefined);

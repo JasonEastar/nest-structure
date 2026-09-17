@@ -1,0 +1,18 @@
+{
+  "VALIDATION_FAILED": "Dữ liệu gửi lên không hợp lệ",
+  "NOT_FOUND": "Không tìm thấy {resource}",
+  "UNAUTHENTICATED": "Bạn cần đăng nhập để tiếp tục",
+  "FORBIDDEN": "Bạn không có quyền thực hiện thao tác này",
+  "RATE_LIMITED": "Bạn thao tác quá nhanh, thử lại sau {retryAfter} giây",
+  "CONFLICT": "Thao tác xung đột với dữ liệu hiện có",
+  "CONFLICT_LIMIT_REACHED": "Đã đạt giới hạn tối đa {max}",
+  "BAD_REQUEST": "Yêu cầu không hợp lệ",
+  "PAYLOAD_TOO_LARGE": "Dữ liệu gửi lên quá lớn",
+  "SERVICE_UNAVAILABLE": "Hệ thống đang bận, vui lòng thử lại sau",
+  "INTERNAL": "Có lỗi xảy ra, vui lòng thử lại sau",
+  "resource": {
+    "profile": "hồ sơ",
+    "location": "địa điểm",
+    "pin": "pin"
+  }
+}

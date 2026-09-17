@@ -2,13 +2,40 @@ import { type ArgumentsHost, HttpStatus, NotFoundException } from '@nestjs/commo
 import { AllExceptionsFilter, AppException, ErrorCodes } from '../../src/common/http/exceptions.js';
 
 function host(req: Record<string, unknown>, res: Record<string, unknown>): ArgumentsHost {
-  return { switchToHttp: () => ({ getRequest: () => req, getResponse: () => res }) } as unknown as ArgumentsHost;
+  // getType/getArgs: nestjs-i18n (I18nContext.current) đọc để tìm ngữ cảnh; không có middleware i18n → trả undefined → vi
+  return {
+    getType: () => 'http',
+    getArgs: () => [req, res],
+    switchToHttp: () => ({ getRequest: () => req, getResponse: () => res }),
+  } as unknown as ArgumentsHost;
 }
 
+/**
+ * Bộ dịch giả cùng interface I18nService.t: chỉ biết vài key, key lạ trả lại chính key (đúng hành vi nestjs-i18n)
+ * → kiểm được thứ tự tìm CODE_<reason> → CODE → mã lỗi và dịch resource. Bản dịch thật kiểm ở integration.
+ */
+const dictionary: Record<string, string> = {
+  'vi:errors.FORBIDDEN': 'Không có quyền',
+  'vi:errors.NOT_FOUND': 'Không tìm thấy {resource}',
+  'vi:errors.resource.location': 'địa điểm',
+  'vi:errors.CONFLICT': 'Xung đột',
+  'vi:errors.CONFLICT_LIMIT_REACHED': 'Đã đạt giới hạn {max}',
+  'en:errors.NOT_FOUND': '{resource} not found',
+};
+const i18n = {
+  t: (key: string, opts?: { lang?: string; args?: Record<string, unknown> }) => {
+    const text = dictionary[`${opts?.lang ?? 'vi'}:${key}`];
+    return text ? text.replace(/\{(\w+)\}/g, (_m, k: string) => String(opts?.args?.[k] ?? '')) : key;
+  },
+};
+
 function fakeRes(headersSent = false) {
-  const calls: { status?: number; body?: unknown } = {};
+  const calls: { status?: number; body?: unknown; headers: Record<string, string> } = { headers: {} };
   const res = {
     headersSent,
+    setHeader(name: string, value: string) {
+      calls.headers[name] = value;
+    },
     status(code: number) {
       calls.status = code;
       return res;
@@ -31,14 +58,25 @@ describe('AppException', () => {
 });
 
 describe('AllExceptionsFilter', () => {
-  const filter = new AllExceptionsFilter();
+  const filter = new AllExceptionsFilter(i18n as never);
   const req = { id: 'req-1', method: 'GET', originalUrl: '/api/v1/x', path: '/api/v1/x' };
 
-  it('AppException → { error: { code, params, requestId } } với status của nó', () => {
+  it('AppException → { error: { code, message, params, requestId } } với status của nó; Content-Language mặc định vi', () => {
     const { res, calls } = fakeRes();
     filter.catch(new AppException('FORBIDDEN', { missing: ['pin:create'] }), host(req, res));
     expect(calls.status).toBe(403);
-    expect(calls.body).toEqual({ error: { code: 'FORBIDDEN', params: { missing: ['pin:create'] }, requestId: 'req-1' } });
+    expect(calls.body).toEqual({
+      error: { code: 'FORBIDDEN', message: 'Không có quyền', params: { missing: ['pin:create'] }, requestId: 'req-1' },
+    });
+    expect(calls.headers['Content-Language']).toBe('vi');
+  });
+
+  it('translate: CODE_<reason> ưu tiên hơn CODE; resource được dịch; thiếu câu dịch → trả mã', () => {
+    expect(filter.translate('vi', 'CONFLICT', { reason: 'LIMIT_REACHED', max: 20 })).toBe('Đã đạt giới hạn 20');
+    expect(filter.translate('vi', 'CONFLICT', { reason: 'UNKNOWN' })).toBe('Xung đột');
+    expect(filter.translate('vi', 'NOT_FOUND', { resource: 'location' })).toBe('Không tìm thấy địa điểm');
+    expect(filter.translate('en', 'NOT_FOUND', { resource: 'probe' })).toBe('probe not found');
+    expect(filter.translate('vi', 'RATE_LIMITED', { retryAfter: 3 })).toBe('RATE_LIMITED');
   });
 
   it('HttpException của Nest map sang mã dự án', () => {

@@ -1,17 +1,13 @@
-import {
-  ArgumentsHost,
-  Catch,
-  type ExceptionFilter,
-  HttpException,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
+import { ArgumentsHost, Catch, type ExceptionFilter, HttpException, HttpStatus, Inject, Logger } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { I18nContext, I18nService } from 'nestjs-i18n';
+import { DEFAULT_LOCALE } from '../../config/i18n.js';
 import { requestIdOf } from './request-context.middleware.js';
 
 /**
- * Mã lỗi trả cho client (SCREAMING_SNAKE). Server KHÔNG trả câu tiếng Việt; client dịch theo mã.
- * Thêm mã mới ở đây, kèm status mặc định.
+ * Mã lỗi trả cho client (SCREAMING_SNAKE) kèm HTTP status mặc định.
+ * Thêm mã mới: thêm ở đây + thêm câu dịch cùng tên trong i18n/{vi,en}/errors.json.
+ * Client xử lý logic theo `code`; `message` đã dịch theo ngôn ngữ request, hiển thị được ngay.
  */
 export const ErrorCodes = {
   VALIDATION_FAILED: HttpStatus.UNPROCESSABLE_ENTITY,
@@ -29,8 +25,14 @@ export const ErrorCodes = {
 export type ErrorCode = keyof typeof ErrorCodes;
 export type ErrorParams = Record<string, unknown>;
 
+/** Shape lỗi thống nhất cho mọi API. */
 export interface ErrorEnvelope {
-  error: { code: ErrorCode; params: ErrorParams; requestId: string };
+  error: {
+    code: ErrorCode; // client rẽ nhánh theo mã này
+    message: string; // đã dịch (vi/en) theo request, hiển thị thẳng cho người dùng
+    params: ErrorParams; // dữ liệu phụ để client tự dịch lại nếu muốn (resource, retryAfter, issues…)
+    requestId: string; // gửi kèm khi báo lỗi để tra log
+  };
 }
 
 /** Lỗi nghiệp vụ: service ném `new AppException('NOT_FOUND', { resource: 'pin' })`. */
@@ -58,12 +60,33 @@ const STATUS_TO_CODE: Partial<Record<number, ErrorCode>> = {
 };
 
 /**
- * Filter toàn cục (APP_FILTER): mọi lỗi → `{ error: { code, params, requestId } }`.
- * 5xx: log stack, không lộ chi tiết ra client.
+ * Filter toàn cục (APP_FILTER): mọi lỗi → `{ error: { code, message, params, requestId } }` (ErrorEnvelope).
+ * - AppException: giữ code/params/status của nó. HttpException của Nest: map status → code. Lỗi lạ: 500 INTERNAL.
+ * - `message` dịch từ i18n/errors.json theo ngôn ngữ request (Accept-Language), tìm theo thứ tự
+ *   `CODE_<reason>` (vd CONFLICT_LIMIT_REACHED) → `CODE` → chính mã lỗi nếu chưa có câu dịch.
+ * - 5xx: log stack, không lộ chi tiết ra client.
  */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
+
+  constructor(@Inject(I18nService) private readonly i18n: Pick<I18nService, 't'>) {}
+
+  /** Câu lỗi theo ngôn ngữ. `params.resource` được dịch qua `errors.resource.<tên>` nếu có (vd location → địa điểm). */
+  translate(lang: string, code: ErrorCode, params: ErrorParams): string {
+    const args = { ...params };
+    if (typeof params.resource === 'string') {
+      args.resource = this.lookup(lang, `errors.resource.${params.resource}`) ?? params.resource;
+    }
+    const byReason = typeof params.reason === 'string' ? this.lookup(lang, `errors.${code}_${params.reason}`, args) : undefined;
+    return byReason ?? this.lookup(lang, `errors.${code}`, args) ?? code;
+  }
+
+  /** nestjs-i18n trả lại chính key khi thiếu câu dịch → coi là undefined để fallback. */
+  private lookup(lang: string, key: string, args?: ErrorParams): string | undefined {
+    const text = this.i18n.t(key as never, { lang, args }) as unknown;
+    return typeof text === 'string' && text !== key ? text : undefined;
+  }
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -97,7 +120,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       res.status(status).json(exception.getResponse());
       return;
     }
-    const body: ErrorEnvelope = { error: { code, params, requestId } };
+    const lang = I18nContext.current(host)?.lang ?? DEFAULT_LOCALE;
+    res.setHeader('Content-Language', lang);
+    const body: ErrorEnvelope = { error: { code, message: this.translate(lang, code, params), params, requestId } };
     res.status(status).json(body);
   }
 }

@@ -6,6 +6,7 @@ import { zodResponse } from '../../config/openapi.js';
 import { MeResponseSchema } from './dto/me.dto.js';
 import { IdentityService } from './identity.service.js';
 
+/** /api/v1/me — hồ sơ của user đang đăng nhập (AuthGuard đã tạo profile ở request đầu tiên). */
 @ApiTags('identity')
 @ApiBearerAuth('supabase')
 @Controller('me')

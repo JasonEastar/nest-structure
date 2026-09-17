@@ -86,7 +86,7 @@ Người mới đọc [code-walkthrough.md](./code-walkthrough.md) trước. Mod
 | `app.module.ts` | Import modules + **toàn bộ** enhancer toàn cục theo thứ tự | Thứ tự guard nhìn thấy một chỗ; test `overrideProvider` được vì dùng token `APP_*`, không `app.useGlobal*` |
 | `common/common.module.ts` | `@Global()` gom provider hạ tầng | Feature module không phải import 6 module hạ tầng; chỉ 1 chỗ được `@Global` |
 | `common/redis/cache.ts` | 2 connection db0/db1 | Eviction cache không được đụng job BullMQ |
-| `common/http/exceptions.ts` | `ErrorCodes` + filter | Mọi lỗi cùng shape, client dịch mã; không câu tiếng Việt từ server |
+| `common/http/exceptions.ts` | `ErrorCodes` + filter dịch `message` qua i18n | Mọi lỗi cùng shape `{ code, message, params, requestId }`; câu chữ chỉ ở `i18n/*/errors.json`, không trong service |
 | `common/http/validation.ts` | pipe zod có sẵn Nest 12 | Không class-validator, không nestjs-zod; schema đặt trên `@Body({ schema })` |
 | `config/openapi.ts` | 2 document qua `include:` | Admin API không lộ cho app; `openapi/*.json` cho mobile |
 | `modules/<x>/<x>.schema.ts` | Bảng Drizzle của module | Mở thư mục module thấy đủ bảng + DTO + logic; `drizzle-kit` gom bằng glob |

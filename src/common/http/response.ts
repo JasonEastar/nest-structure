@@ -1,5 +1,7 @@
 import { type CallHandler, type ExecutionContext, Injectable, type NestInterceptor, StreamableFile } from '@nestjs/common';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
+import { I18nContext } from 'nestjs-i18n';
+import { DEFAULT_LOCALE } from '../../config/i18n.js';
 import { type Observable, map } from 'rxjs';
 import { requestIdOf } from './request-context.middleware.js';
 
@@ -35,6 +37,8 @@ export class ResponseInterceptor implements NestInterceptor {
     if (SKIP_PREFIXES.some((p) => req.path.startsWith(p))) return next.handle();
 
     const requestId = requestIdOf(req);
+    // Client biết response này ở ngôn ngữ nào (cùng cách chọn với message lỗi: ?lang → Accept-Language → vi)
+    context.switchToHttp().getResponse<Response>().setHeader('Content-Language', I18nContext.current(context)?.lang ?? DEFAULT_LOCALE);
     return next.handle().pipe(
       map((body: unknown): unknown => {
         if (body instanceof StreamableFile) return body; // tải file: không bọc

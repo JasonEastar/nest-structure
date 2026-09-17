@@ -123,10 +123,11 @@ export const NearbyLocationsQuerySchema = z.object({
 Sai → **422** với body:
 
 ```json
-{ "error": { "code": "VALIDATION_FAILED", "params": { "issues": [{ "path": "lat", "message": "Too big: expected number to be <=90" }] }, "requestId": "…" } }
+{ "error": { "code": "VALIDATION_FAILED", "message": "Dữ liệu gửi lên không hợp lệ",
+             "params": { "issues": [{ "path": "lat", "message": "Too big: expected number to be <=90" }] }, "requestId": "…" } }
 ```
 
-Số giới hạn để trong `<x>.constants.ts`, không viết số trong schema. Helper có sẵn: `zText(max, min?)`, `zLatLng`, `PaginationQuerySchema`. Cần enum: `z.enum(['traffic_jam', 'flooding'])`. Cần field tuỳ chọn: `.optional()` (không gửi) khác `.nullable()` (gửi `null`).
+`message` dịch theo ngôn ngữ request; `issues[].message` là câu kỹ thuật của zod (tiếng Anh) để dev debug, không hiển thị cho người dùng. Số giới hạn để trong `<x>.constants.ts`, không viết số trong schema. Helper có sẵn: `zText(max, min?)`, `zLatLng`, `PaginationQuerySchema`. Cần enum: `z.enum(['traffic_jam', 'flooding'])`. Cần field tuỳ chọn: `.optional()` (không gửi) khác `.nullable()` (gửi `null`).
 
 ## 6. Trả response và ném lỗi
 
@@ -143,10 +144,10 @@ Controller `return` dữ liệu thuần, interceptor bọc thành envelope. Clie
 | Đọc | `@Get()` return object | 200 |
 | Xoá / không có gì trả | `@HttpCode(HttpStatus.NO_CONTENT)` + `Promise<void>` | 204 |
 | Danh sách phân trang | service: `return pageOf(rows, query.limit, (r) => ({ createdAt: r.createdAt, id: r.id }))` sau khi repository lấy `limit + 1` dòng | `meta.nextCursor` = chuỗi hoặc `null`; client gửi lại `?cursor=` |
-| Lỗi nghiệp vụ | `throw new AppException('NOT_FOUND', { resource: 'location', id })` | `{ error: { code, params, requestId } }` đúng HTTP status |
-| Lỗi mới chưa có mã | thêm vào `ErrorCodes` trong `common/http/exceptions.ts` kèm status | Client dịch theo `code`, server không trả câu chữ |
+| Lỗi nghiệp vụ | `throw new AppException('NOT_FOUND', { resource: 'location', id })` | `{ error: { code, message, params, requestId } }` đúng HTTP status; `message` = câu trong `i18n/<lang>/errors.json` (`NOT_FOUND` + `resource.location` → "Không tìm thấy địa điểm") |
+| Lỗi mới chưa có mã | thêm vào `ErrorCodes` trong `common/http/exceptions.ts` kèm status, thêm câu cùng tên vào `i18n/vi/errors.json` và `i18n/en/errors.json` | Cần câu riêng theo tình huống: `params.reason` + key `CODE_REASON` (vd `CONFLICT_LIMIT_REACHED`) |
 
-Mã lỗi hiện có: `VALIDATION_FAILED` 422 · `NOT_FOUND` 404 · `UNAUTHENTICATED` 401 · `FORBIDDEN` 403 · `RATE_LIMITED` 429 · `CONFLICT` 409 · `BAD_REQUEST` 400 · `PAYLOAD_TOO_LARGE` 413 · `SERVICE_UNAVAILABLE` 503 · `INTERNAL` 500. Lỗi 5xx bất ngờ (throw Error thường) tự thành `INTERNAL`, stack chỉ ghi log.
+Ngôn ngữ: client gửi `Accept-Language: en` (hoặc `?lang=en` khi test trên Swagger), mặc định vi; response luôn có header `Content-Language`. Mã lỗi hiện có: `VALIDATION_FAILED` 422 · `NOT_FOUND` 404 · `UNAUTHENTICATED` 401 · `FORBIDDEN` 403 · `RATE_LIMITED` 429 · `CONFLICT` 409 · `BAD_REQUEST` 400 · `PAYLOAD_TOO_LARGE` 413 · `SERVICE_UNAVAILABLE` 503 · `INTERNAL` 500. Lỗi 5xx bất ngờ (throw Error thường) tự thành `INTERNAL`, stack chỉ ghi log.
 
 Map row DB sang response ở **một hàm** trong service (`toResponse`), controller không tự ghép object. Dữ liệu của người khác trả `NOT_FOUND`, không trả `FORBIDDEN` (không lộ tồn tại).
 

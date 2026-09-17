@@ -92,6 +92,7 @@ describe('Cross-cutting (e2e): validation · envelope · errors · i18n · prefi
       .expect(404);
     expect(res.body.error).toEqual({
       code: 'NOT_FOUND',
+      message: 'Không tìm thấy probe',
       params: { resource: 'probe', id: '00000000-0000-7000-8000-000000000000' },
       requestId: expect.any(String),
     });
@@ -105,11 +106,28 @@ describe('Cross-cutting (e2e): validation · envelope · errors · i18n · prefi
     expect(JSON.stringify(boom.body)).not.toContain('kaboom');
   });
 
-  it('i18n: mặc định vi, Accept-Language: en → tiếng Anh', async () => {
+  it('i18n: mặc định vi, Accept-Language: en → tiếng Anh, ?lang= thắng header; Content-Language kèm response', async () => {
     const vi = await request(app.getHttpServer()).get('/api/v1/probe/hello').expect(200);
     expect(vi.body.data.text).toBe('Xin chào');
+    expect(vi.headers['content-language']).toBe('vi');
     const en = await request(app.getHttpServer()).get('/api/v1/probe/hello').set('Accept-Language', 'en').expect(200);
     expect(en.body.data.text).toBe('Hello');
+    expect(en.headers['content-language']).toBe('en');
+    const q = await request(app.getHttpServer()).get('/api/v1/probe/hello?lang=en').set('Accept-Language', 'vi').expect(200);
+    expect(q.body.data.text).toBe('Hello');
+  });
+
+  it('lỗi có message đã dịch: NOT_FOUND vi/en với resource, VALIDATION_FAILED, 404 route lạ', async () => {
+    const id = '00000000-0000-7000-8000-000000000000';
+    const vi = await request(app.getHttpServer()).get(`/api/v1/probe/${id}`).expect(404);
+    expect(vi.body.error.message).toBe('Không tìm thấy probe'); // resource 'probe' không có câu dịch → giữ nguyên
+    expect(vi.headers['content-language']).toBe('vi');
+    const en = await request(app.getHttpServer()).get(`/api/v1/probe/${id}`).set('Accept-Language', 'en').expect(404);
+    expect(en.body.error.message).toBe('probe not found');
+    const bad = await request(app.getHttpServer()).post('/api/v1/probe').send({}).set('Accept-Language', 'en').expect(422);
+    expect(bad.body.error.message).toBe('The submitted data is invalid');
+    const nf = await request(app.getHttpServer()).get('/api/v1/__nope').expect(404);
+    expect(nf.body.error).toMatchObject({ code: 'NOT_FOUND', message: 'Không tìm thấy ' }); // HttpException Nest: không có resource
   });
 
   it('/health/ready giữ shape Terminus, không bị bọc envelope', async () => {

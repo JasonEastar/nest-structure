@@ -17,9 +17,11 @@ export interface OpenApiDocs {
   admin: Type[];
 }
 
+/** Shape lỗi cho tài liệu (khớp ErrorEnvelope trong exceptions.ts). */
 const ERROR_ENVELOPE = z.object({
   error: z.object({
     code: z.string(),
+    message: z.string(), // đã dịch theo ?lang / Accept-Language (vi mặc định, en)
     params: z.record(z.string(), z.unknown()),
     requestId: z.string(),
   }),
@@ -50,7 +52,7 @@ export function buildOpenApiDocuments(app: INestApplication, docs: OpenApiDocs):
   return {
     app: SwaggerModule.createDocument(
       app,
-      baseBuilder('C9 Map API', 'API cho ứng dụng di động. Response: { data, meta } · lỗi: { error: { code, params, requestId } }').build(),
+      baseBuilder('C9 Map API', 'API cho ứng dụng di động. Response: { data, meta } · lỗi: { error: { code, message, params, requestId } }. Ngôn ngữ: ?lang=vi|en hoặc Accept-Language (mặc định vi), response kèm Content-Language.').build(),
       { ...options, include: docs.app },
     ),
     admin: SwaggerModule.createDocument(

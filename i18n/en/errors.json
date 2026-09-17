@@ -1,0 +1,18 @@
+{
+  "VALIDATION_FAILED": "The submitted data is invalid",
+  "NOT_FOUND": "{resource} not found",
+  "UNAUTHENTICATED": "Please sign in to continue",
+  "FORBIDDEN": "You are not allowed to do this",
+  "RATE_LIMITED": "Too many requests, try again in {retryAfter} seconds",
+  "CONFLICT": "This action conflicts with existing data",
+  "CONFLICT_LIMIT_REACHED": "Limit of {max} reached",
+  "BAD_REQUEST": "Invalid request",
+  "PAYLOAD_TOO_LARGE": "The submitted data is too large",
+  "SERVICE_UNAVAILABLE": "The service is busy, please try again later",
+  "INTERNAL": "Something went wrong, please try again later",
+  "resource": {
+    "profile": "Profile",
+    "location": "Location",
+    "pin": "Pin"
+  }
+}
