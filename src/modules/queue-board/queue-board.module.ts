@@ -20,7 +20,19 @@ export const QUEUE_BOARD_ROUTE = '/admin/queues';
 const QUEUE_BOARD_PERMISSION = 'queue:read';
 const enabled = (env: NodeJS.ProcessEnv) => env.NODE_ENV !== 'test';
 
-/** Middleware xác thực: Bearer (UI gọi API bằng fetch) hoặc `?access_token=` (mở bằng trình duyệt). */
+const COOKIE = 'c9_board_token';
+
+/** Đọc một cookie từ header (không thêm cookie-parser chỉ vì một chỗ dùng). */
+function cookieOf(req: Request, name: string): string | undefined {
+  const pair = (req.headers.cookie ?? '').split(';').map((c) => c.trim()).find((c) => c.startsWith(`${name}=`));
+  return pair ? decodeURIComponent(pair.slice(name.length + 1)) : undefined;
+}
+
+/**
+ * Middleware xác thực. Token lấy theo thứ tự: Bearer (gọi API) → `?access_token=` (mở trang lần đầu bằng trình duyệt)
+ * → cookie. Mở bằng query thì đặt cookie HttpOnly giới hạn path /admin/queues, vì giao diện Bull Board sau đó
+ * tự gọi /admin/queues/api/... KHÔNG kèm query — không có cookie sẽ 401 và trang quay vòng mãi.
+ */
 export function queueBoardAuth(jwt: SupabaseJwtService, users: AuthUserPort) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const deny = (code: 'UNAUTHENTICATED' | 'FORBIDDEN'): void => {
@@ -28,12 +40,17 @@ export function queueBoardAuth(jwt: SupabaseJwtService, users: AuthUserPort) {
       res.status(ErrorCodes[code]).json({ error: { code, message: code, params: {}, requestId: requestIdOf(req) } });
     };
     const [scheme, bearer] = (req.header('authorization') ?? '').split(' ');
-    const token = scheme?.toLowerCase() === 'bearer' ? bearer : (req.query.access_token as string | undefined);
+    const fromQuery = typeof req.query.access_token === 'string' ? req.query.access_token : undefined;
+    const token = (scheme?.toLowerCase() === 'bearer' && bearer) || fromQuery || cookieOf(req, COOKIE);
     if (!token) return deny('UNAUTHENTICATED');
     try {
       const claims = await jwt.verify(token);
       const permissions = await users.getPermissions(claims.sub);
       if (!permissions.includes(QUEUE_BOARD_PERMISSION)) return deny('FORBIDDEN');
+      if (fromQuery) {
+        // Sống bằng tuổi thọ token (1 giờ); hết hạn thì mở lại bằng ?access_token= mới
+        res.setHeader('Set-Cookie', `${COOKIE}=${encodeURIComponent(token)}; Path=${QUEUE_BOARD_ROUTE}; HttpOnly; SameSite=Lax; Max-Age=3600`);
+      }
       next();
     } catch {
       deny('UNAUTHENTICATED');

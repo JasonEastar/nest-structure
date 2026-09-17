@@ -14,6 +14,7 @@ const row = (n: number, userId = 'u1'): SavedLocationRow => ({
   name: `Địa điểm ${n}`,
   point: { lat: 10.7 + n / 1000, lng: 106.7 },
   radiusMeters: 500,
+  isPublic: false,
   createdAt: new Date(Date.UTC(2026, 8, 16, 10, 0, n)),
   updatedAt: new Date(Date.UTC(2026, 8, 16, 10, 0, n)),
 });
@@ -25,7 +26,7 @@ function makeRepo(overrides: Partial<LocationRepository> = {}): LocationReposito
     findPage: async () => [],
     findById: async () => null,
     deleteById: async () => false,
-    findWithin: async () => [],
+    findPublicWithin: async () => [],
     ...overrides,
   } as LocationRepository;
 }
@@ -33,19 +34,20 @@ function makeRepo(overrides: Partial<LocationRepository> = {}): LocationReposito
 describe('LocationService', () => {
   it('create: đủ 20 địa điểm → CONFLICT LIMIT_REACHED; chưa đủ → tạo và map lat/lng, ISO date', async () => {
     const full = new LocationService(makeRepo({ countByUser: async () => LOCATION_LIMITS.maxPerUser }));
-    await expect(full.create('u1', { name: 'Nhà', lat: 10.7, lng: 106.7, radiusMeters: 500 })).rejects.toMatchObject({
+    await expect(full.create('u1', { name: 'Nhà', lat: 10.7, lng: 106.7, radiusMeters: 500, isPublic: false })).rejects.toMatchObject({
       code: 'CONFLICT',
       params: { reason: 'LIMIT_REACHED', max: LOCATION_LIMITS.maxPerUser },
     });
 
     const ok = new LocationService(makeRepo());
-    const created = await ok.create('u1', { name: 'Nhà', lat: 10.7, lng: 106.7, radiusMeters: 300 });
+    const created = await ok.create('u1', { name: 'Nhà', lat: 10.7, lng: 106.7, radiusMeters: 300, isPublic: true });
     expect(created).toEqual({
       id: expect.any(String),
       name: 'Nhà',
       lat: 10.7,
       lng: 106.7,
       radiusMeters: 300,
+      isPublic: true,
       createdAt: '2026-09-16T10:00:01.000Z',
     });
   });
@@ -73,9 +75,12 @@ describe('LocationService', () => {
     await expect(service.remove('u1', row(1).id)).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
-  it('nearby: làm tròn distanceMeters', async () => {
-    const service = new LocationService(makeRepo({ findWithin: async () => [{ ...row(1), distanceMeters: 123.6 }] }));
-    const [hit] = await service.nearby('u1', { lat: 10.7, lng: 106.7, radiusMeters: 1000 });
-    expect(hit).toMatchObject({ name: 'Địa điểm 1', distanceMeters: 124 });
+  it('nearbyPublic: chỉ trường an toàn, làm tròn distanceMeters', async () => {
+    const r = row(1);
+    const service = new LocationService(
+      makeRepo({ findPublicWithin: async () => [{ id: r.id, name: r.name, point: r.point, distanceMeters: 123.6 }] }),
+    );
+    const [hit] = await service.nearbyPublic({ lat: 10.7, lng: 106.7, radiusMeters: 1000 });
+    expect(hit).toEqual({ id: r.id, name: 'Địa điểm 1', lat: r.point.lat, lng: r.point.lng, distanceMeters: 124 });
   });
 });

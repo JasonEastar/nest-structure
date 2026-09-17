@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { AppException } from '../../common/http/exceptions.js';
 import { decodeCursor, pageOf } from '../../common/http/pagination.js';
 import type { CreateLocation } from './dto/create-location.dto.js';
-import type { ListLocationsQuery, LocationResponse, NearbyLocationResponse, NearbyLocationsQuery } from './dto/location.dto.js';
+import type { ListLocationsQuery, LocationResponse, NearbyLocationsQuery, PublicLocationResponse } from './dto/location.dto.js';
 import { LOCATION_LIMITS } from './location.constants.js';
 import { LocationRepository } from './location.repository.js';
 import type { SavedLocationRow } from './schema/location.schema.js';
@@ -20,6 +20,7 @@ export class LocationService {
       name: input.name,
       point: { lat: input.lat, lng: input.lng },
       radiusMeters: input.radiusMeters,
+      isPublic: input.isPublic,
     });
     return toResponse(row);
   }
@@ -39,9 +40,10 @@ export class LocationService {
     if (!(await this.repo.deleteById(userId, id))) throw new AppException('NOT_FOUND', { resource: 'location', id });
   }
 
-  async nearby(userId: string, query: NearbyLocationsQuery): Promise<NearbyLocationResponse[]> {
-    const rows = await this.repo.findWithin(userId, { lat: query.lat, lng: query.lng }, query.radiusMeters);
-    return rows.map((r) => ({ ...toResponse(r), distanceMeters: Math.round(r.distanceMeters) }));
+  /** API public: chỉ địa điểm chủ nhân đã bật isPublic, trả trường an toàn. Không có userId vì không đăng nhập. */
+  async nearbyPublic(query: NearbyLocationsQuery): Promise<PublicLocationResponse[]> {
+    const rows = await this.repo.findPublicWithin({ lat: query.lat, lng: query.lng }, query.radiusMeters);
+    return rows.map((r) => ({ id: r.id, name: r.name, lat: r.point.lat, lng: r.point.lng, distanceMeters: Math.round(r.distanceMeters) }));
   }
 }
 
@@ -53,6 +55,7 @@ function toResponse(row: SavedLocationRow): LocationResponse {
     lat: row.point.lat,
     lng: row.point.lng,
     radiusMeters: row.radiusMeters,
+    isPublic: row.isPublic,
     createdAt: row.createdAt.toISOString(),
   };
 }

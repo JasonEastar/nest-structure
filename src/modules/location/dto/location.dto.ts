@@ -9,6 +9,7 @@ export const LocationResponseSchema = z.object({
   lat: z.number(),
   lng: z.number(),
   radiusMeters: z.number().int(),
+  isPublic: z.boolean(),
   createdAt: z.iso.datetime(),
 });
 export type LocationResponse = z.infer<typeof LocationResponseSchema>;
@@ -17,7 +18,7 @@ export type LocationResponse = z.infer<typeof LocationResponseSchema>;
 export const ListLocationsQuerySchema = PaginationQuerySchema;
 export type ListLocationsQuery = z.infer<typeof ListLocationsQuerySchema>;
 
-/** GET /locations/nearby?lat=&lng=&radiusMeters= — địa điểm đã lưu của TÔI trong bán kính quanh một điểm. */
+/** GET /public/locations/nearby?lat=&lng=&radiusMeters= — địa điểm CÔNG KHAI trong bán kính quanh một điểm, không cần đăng nhập. */
 export const NearbyLocationsQuerySchema = z.object({
   lat: z.coerce.number().min(-90).max(90),
   lng: z.coerce.number().min(-180).max(180),
@@ -25,7 +26,13 @@ export const NearbyLocationsQuerySchema = z.object({
 });
 export type NearbyLocationsQuery = z.infer<typeof NearbyLocationsQuerySchema>;
 
-/** Response kèm khoảng cách (mét) từ điểm truy vấn. */
-export const NearbyLocationResponseSchema = LocationResponseSchema.extend({ distanceMeters: z.number() });
-export type NearbyLocationResponse = z.infer<typeof NearbyLocationResponseSchema>;
+/** Response public: chỉ trường an toàn (không chủ, không bán kính riêng), kèm khoảng cách (mét) từ điểm truy vấn. */
+export const PublicLocationResponseSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  lat: z.number(),
+  lng: z.number(),
+  distanceMeters: z.number(),
+});
+export type PublicLocationResponse = z.infer<typeof PublicLocationResponseSchema>;
 

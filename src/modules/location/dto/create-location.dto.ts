@@ -16,5 +16,6 @@ export const CreateLocationSchema = z.object({
     .min(LOCATION_LIMITS.radiusMeters.min)
     .max(LOCATION_LIMITS.radiusMeters.max)
     .default(LOCATION_LIMITS.radiusMeters.default),
+  isPublic: z.boolean().default(false), // true = ai cũng thấy qua /public/locations/nearby (không kèm thông tin chủ)
 });
 export type CreateLocation = z.infer<typeof CreateLocationSchema>;

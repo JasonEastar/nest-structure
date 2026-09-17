@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Lấy access_token thật từ Supabase project (dev/CI) mà không cần bấm qua Google.
- *   node scripts/dev-token.mjs [email]           → in access_token
+ *   node scripts/dev-token.mjs [email]           → in access_token (mặc định user dev@c9map.test, dùng lại mỗi lần)
  *   node scripts/dev-token.mjs [email] --json    → in { userId, accessToken }
  *
  * Cách làm: admin.createUser (email_confirm) → admin.generateLink(magiclink) → verifyOtp(token_hash).
@@ -18,7 +18,9 @@ if (!SUPABASE_URL || !SUPABASE_SECRET_KEY || !SUPABASE_PUBLISHABLE_KEY) {
   process.exit(1);
 }
 
-const email = process.argv[2]?.includes('@') ? process.argv[2] : `dev+${Date.now()}@c9map.test`;
+// Mặc định MỘT user cố định để role đã gán (admin, queue:read…) giữ nguyên giữa các lần lấy token.
+// Muốn user mới tinh: node scripts/dev-token.mjs someone@c9map.test
+const email = process.argv[2]?.includes('@') ? process.argv[2] : 'dev@c9map.test';
 const asJson = process.argv.includes('--json');
 
 const admin = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {

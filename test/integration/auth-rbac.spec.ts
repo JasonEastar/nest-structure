@@ -310,5 +310,12 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
       .set('authorization', `Bearer ${token}`)
       .expect(200);
     expect(ok.body.queues.map((q: { name: string }) => q.name)).toContain('marker-maintenance');
+
+    // Mở bằng trình duyệt: ?access_token= → 200 + cookie HttpOnly giới hạn path; UI gọi API tiếp bằng cookie (không query) → 200
+    const page = await request(app.getHttpServer()).get(`/admin/queues?access_token=${token}`).expect(200);
+    const cookie = (page.headers['set-cookie'] as unknown as string[])[0]!;
+    expect(cookie).toMatch(/^c9_board_token=.+; Path=\/admin\/queues; HttpOnly; SameSite=Lax; Max-Age=3600$/);
+    await request(app.getHttpServer()).get('/admin/queues/api/queues').set('cookie', cookie.split(';')[0]!).expect(200);
+    await request(app.getHttpServer()).get('/admin/queues/api/queues').expect(401); // không cookie, không token vẫn chặn
   });
 });

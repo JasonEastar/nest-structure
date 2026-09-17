@@ -1,4 +1,4 @@
-import { index, integer, pgTable, text, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, pgTable, text, uuid } from 'drizzle-orm/pg-core';
 import { geographyPoint, timestamps, uuidV7Pk } from '../../../common/database/columns.js';
 import { profiles } from '../../identity/schema/identity.schema.js';
 
@@ -19,6 +19,7 @@ export const savedLocations = pgTable(
     name: text('name').notNull(),
     point: geographyPoint('point').notNull(),
     radiusMeters: integer('radius_m').notNull().default(500),
+    isPublic: boolean('is_public').notNull().default(false), // chủ nhân cho phép hiện trên API public (mặc định riêng tư)
     ...timestamps,
   },
   (t) => [

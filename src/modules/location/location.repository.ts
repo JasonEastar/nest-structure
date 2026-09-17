@@ -10,7 +10,7 @@ import { type SavedLocationRow, savedLocations } from './schema/location.schema.
 export class LocationRepository {
   constructor(@InjectDb() private readonly db: Db) {}
 
-  async insert(userId: string, data: { name: string; point: LatLng; radiusMeters: number }): Promise<SavedLocationRow> {
+  async insert(userId: string, data: { name: string; point: LatLng; radiusMeters: number; isPublic: boolean }): Promise<SavedLocationRow> {
     const [row] = await this.db.insert(savedLocations).values({ userId, ...data }).returning();
     return row!;
   }
@@ -54,22 +54,21 @@ export class LocationRepository {
     return rows.length > 0;
   }
 
-  /** PostGIS: ST_DWithin trên geography = mét thật; ép `::geography` vì tham số vào là text (columns.ts). */
-  async findWithin(userId: string, center: LatLng, meters: number): Promise<(SavedLocationRow & { distanceMeters: number })[]> {
+  /**
+   * Địa điểm CÔNG KHAI (is_public) trong bán kính, cho API không cần đăng nhập → chỉ select trường an toàn, không lọc user.
+   * PostGIS: ST_DWithin trên geography = mét thật; ép `::geography` vì tham số vào là text (columns.ts).
+   */
+  async findPublicWithin(center: LatLng, meters: number): Promise<{ id: string; name: string; point: LatLng; distanceMeters: number }[]> {
     const centerGeo = sql`${latLngToEwkt(center)}::geography`;
     return this.db
       .select({
         id: savedLocations.id,
-        userId: savedLocations.userId,
         name: savedLocations.name,
         point: savedLocations.point,
-        radiusMeters: savedLocations.radiusMeters,
-        createdAt: savedLocations.createdAt,
-        updatedAt: savedLocations.updatedAt,
         distanceMeters: sql<number>`ST_Distance(${savedLocations.point}, ${centerGeo})`.mapWith(Number),
       })
       .from(savedLocations)
-      .where(and(eq(savedLocations.userId, userId), sql`ST_DWithin(${savedLocations.point}, ${centerGeo}, ${meters})`))
+      .where(and(eq(savedLocations.isPublic, true), sql`ST_DWithin(${savedLocations.point}, ${centerGeo}, ${meters})`))
       .orderBy(sql`ST_Distance(${savedLocations.point}, ${centerGeo})`);
   }
 }

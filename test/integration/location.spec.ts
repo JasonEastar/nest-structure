@@ -7,8 +7,8 @@ import { type FakeSupabase, startFakeSupabase } from '../setup/jwks.js';
 
 /**
  * Module mẫu location trên hạ tầng thật (PostGIS + Redis testcontainers, JWT ký bởi JWKS giả).
- * Kiểm: validate 422 · tạo + đọc lại lat/lng · cursor phân trang · nearby biên 299 m / 301 m · cách ly giữa 2 user
- * · giới hạn 20 / user · xoá.
+ * Kiểm: validate 422 · tạo + đọc lại lat/lng · cursor phân trang · public nearby (không token, chỉ is_public, biên 299 m / 301 m)
+ * · cách ly giữa 2 user · giới hạn 20 / user · xoá.
  */
 describe('Locations (e2e)', () => {
   let app: INestApplication;
@@ -56,7 +56,7 @@ describe('Locations (e2e)', () => {
 
   it('tạo → 201 envelope, đọc lại đúng lat/lng (đi qua geography), name bị strip HTML, radius mặc định 500', async () => {
     const res = await create(tokenA, { name: '<b>Nhà</b>', lat: center.lat, lng: center.lng }).expect(201);
-    expect(res.body.data).toMatchObject({ name: 'Nhà', lat: center.lat, lng: center.lng, radiusMeters: 500 });
+    expect(res.body.data).toMatchObject({ name: 'Nhà', lat: center.lat, lng: center.lng, radiusMeters: 500, isPublic: false });
     expect(res.body.meta.requestId).toEqual(expect.any(String));
 
     const got = await api().get(`/api/v1/locations/${res.body.data.id}`).set('authorization', `Bearer ${tokenA}`).expect(200);
@@ -71,22 +71,22 @@ describe('Locations (e2e)', () => {
     expect(listB.body.data).toEqual([]);
   });
 
-  it('nearby: 299 m vào, 301 m ra (ST_DWithin theo mét thật), sắp theo khoảng cách', async () => {
-    await create(tokenB, { name: 'gần', ...meters(299) }).expect(201);
-    await create(tokenB, { name: 'xa', ...meters(301) }).expect(201);
-    const res = await api()
-      .get(`/api/v1/locations/nearby?lat=${center.lat}&lng=${center.lng}&radiusMeters=300`)
-      .set('authorization', `Bearer ${tokenB}`)
-      .expect(200);
+  it('public nearby: không cần token; chỉ địa điểm is_public; 299 m vào, 301 m ra; không lộ chủ/bán kính', async () => {
+    await create(tokenB, { name: 'gần', ...meters(299), isPublic: true }).expect(201);
+    await create(tokenB, { name: 'xa', ...meters(301), isPublic: true }).expect(201);
+    await create(tokenA, { name: 'riêng tư', ...meters(10) }).expect(201); // isPublic mặc định false → không bao giờ hiện
+    const url = (r: number) => `/api/v1/public/locations/nearby?lat=${center.lat}&lng=${center.lng}&radiusMeters=${r}`;
+
+    const res = await api().get(url(300)).expect(200); // không Authorization
     expect(res.body.data.map((r: { name: string }) => r.name)).toEqual(['gần']);
     expect(res.body.data[0].distanceMeters).toBeGreaterThanOrEqual(298);
     expect(res.body.data[0].distanceMeters).toBeLessThanOrEqual(300);
+    expect(Object.keys(res.body.data[0]).sort()).toEqual(['distanceMeters', 'id', 'lat', 'lng', 'name']);
 
-    const wide = await api()
-      .get(`/api/v1/locations/nearby?lat=${center.lat}&lng=${center.lng}&radiusMeters=400`)
-      .set('authorization', `Bearer ${tokenB}`)
-      .expect(200);
+    const wide = await api().get(url(400)).expect(200);
     expect(wide.body.data.map((r: { name: string }) => r.name)).toEqual(['gần', 'xa']);
+    await api().get(url(0)).expect(422); // validate vẫn chạy trên route public
+    await api().get('/api/v1/locations').expect(401); // route thường vẫn cần token
   });
 
   it('list: mới nhất trước, cursor đi hết không trùng không sót; cursor hỏng → 400', async () => {

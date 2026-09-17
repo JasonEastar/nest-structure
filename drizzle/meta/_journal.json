@@ -29,6 +29,13 @@
       "when": 1789618066082,
       "tag": "0003_location",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789624278685,
+      "tag": "0004_location-public",
+      "breakpoints": true
     }
   ]
 }
