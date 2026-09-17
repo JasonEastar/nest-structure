@@ -6,7 +6,7 @@ import { AcceptLanguageResolver, I18nModule } from 'nestjs-i18n';
  * - errors.json : câu `message` trong body lỗi (AllExceptionsFilter dịch theo mã lỗi + params).
  * - common.json : câu dùng chung, template push notification (bước 11).
  * Ngôn ngữ của một request: CHỈ header `Accept-Language` (vi | en), không có thì vi. Không nhận qua query/body
- * để toàn hệ thống một cách duy nhất. Response luôn kèm header `Content-Language` để client biết đã nhận ngôn ngữ nào.
+ * để toàn hệ thống một cách duy nhất.
  * Trong code: `I18nContext.current(host)?.lang` lấy ngôn ngữ; `I18nService.t('errors.NOT_FOUND', { lang, args })` dịch.
  */
 export const SUPPORTED_LOCALES = ['vi', 'en'] as const;

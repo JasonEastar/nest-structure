@@ -61,14 +61,13 @@ describe('AllExceptionsFilter', () => {
   const filter = new AllExceptionsFilter(i18n as never);
   const req = { id: 'req-1', method: 'GET', originalUrl: '/api/v1/x', path: '/api/v1/x' };
 
-  it('AppException → { error: { code, message, params, requestId } } với status của nó; Content-Language mặc định vi', () => {
+  it('AppException → { error: { code, message, params, requestId } } với status của nó; ngôn ngữ mặc định vi', () => {
     const { res, calls } = fakeRes();
     filter.catch(new AppException('FORBIDDEN', { missing: ['pin:create'] }), host(req, res));
     expect(calls.status).toBe(403);
     expect(calls.body).toEqual({
       error: { code: 'FORBIDDEN', message: 'Không có quyền', params: { missing: ['pin:create'] }, requestId: 'req-1' },
     });
-    expect(calls.headers['Content-Language']).toBe('vi');
   });
 
   it('translate: CODE_<reason> ưu tiên hơn CODE; resource được dịch; thiếu câu dịch → trả mã', () => {

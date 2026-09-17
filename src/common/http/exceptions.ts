@@ -121,7 +121,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return;
     }
     const lang = I18nContext.current(host)?.lang ?? DEFAULT_LOCALE;
-    res.setHeader('Content-Language', lang);
     const body: ErrorEnvelope = { error: { code, message: this.translate(lang, code, params), params, requestId } };
     res.status(status).json(body);
   }

@@ -106,13 +106,11 @@ describe('Cross-cutting (e2e): validation · envelope · errors · i18n · prefi
     expect(JSON.stringify(boom.body)).not.toContain('kaboom');
   });
 
-  it('i18n: chỉ Accept-Language quyết định (vi mặc định, en, en-US → en, ?lang bị bỏ qua); Content-Language kèm response', async () => {
+  it('i18n: chỉ Accept-Language quyết định (vi mặc định, en, en-US → en, ?lang bị bỏ qua)', async () => {
     const vi = await request(app.getHttpServer()).get('/api/v1/probe/hello').expect(200);
     expect(vi.body.data.text).toBe('Xin chào');
-    expect(vi.headers['content-language']).toBe('vi');
     const en = await request(app.getHttpServer()).get('/api/v1/probe/hello').set('Accept-Language', 'en').expect(200);
     expect(en.body.data.text).toBe('Hello');
-    expect(en.headers['content-language']).toBe('en');
     const region = await request(app.getHttpServer()).get('/api/v1/probe/hello').set('Accept-Language', 'en-US,en;q=0.9').expect(200);
     expect(region.body.data.text).toBe('Hello');
     const unknown = await request(app.getHttpServer()).get('/api/v1/probe/hello').set('Accept-Language', 'ja').expect(200);
@@ -125,7 +123,6 @@ describe('Cross-cutting (e2e): validation · envelope · errors · i18n · prefi
     const id = '00000000-0000-7000-8000-000000000000';
     const vi = await request(app.getHttpServer()).get(`/api/v1/probe/${id}`).expect(404);
     expect(vi.body.error.message).toBe('Không tìm thấy probe'); // resource 'probe' không có câu dịch → giữ nguyên
-    expect(vi.headers['content-language']).toBe('vi');
     const en = await request(app.getHttpServer()).get(`/api/v1/probe/${id}`).set('Accept-Language', 'en').expect(404);
     expect(en.body.error.message).toBe('probe not found');
     const bad = await request(app.getHttpServer()).post('/api/v1/probe').send({}).set('Accept-Language', 'en').expect(422);
