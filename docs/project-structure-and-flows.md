@@ -13,13 +13,13 @@ c9_map/
 │   ├── main.ts                       # điểm vào server: load-env → createApp → Swagger UI → listen
 │   ├── app.ts                        # createApp(): helmet · trust proxy · prefix /api · version v1 · shutdown hooks (dùng chung với openapi-export)
 │   ├── app.module.ts                 # imports ConfigModule + CommonModule + modules; providers APP_GUARD Throttler → Auth → Permission · APP_PIPE · APP_FILTER · APP_INTERCEPTOR
-│   ├── openapi-export.ts             # `npm run openapi:export` → openapi/{app,admin}.json
+│   ├── openapi-export.ts             # `npm run openapi:export` → openapi/<key>.json mỗi định nghĩa (users, locations, health)
 │   ├── config/                       # cấu hình app — không nghiệp vụ, không hạ tầng
 │   │   ├── env.ts                    # zod schema → `env` có kiểu, fail-fast lúc boot
 │   │   ├── load-env.ts               # nạp .env (import đầu tiên của main.ts / openapi-export.ts)
 │   │   ├── logger.ts                 # nestjs-pino: genReqId · redact · bỏ log /health
 │   │   ├── i18n.ts                   # nestjs-i18n vi/en, resolver Accept-Language
-│   │   └── openapi.ts                # 2 DocumentBuilder (app, admin) · exportOpenApi()
+│   │   └── openapi.ts                # định nghĩa theo module (OPENAPI_DOCS) · tự ghi quyền/public · envelope() · exportOpenApi()
 │   ├── common/                       # hạ tầng dùng chung, gom theo mối quan tâm — KHÔNG import modules/
 │   │   ├── common.module.ts          # @Global: DRIZZLE · REDIS_CACHE · CacheService · SUPABASE_ADMIN · SupabaseJwtService; imports QueueRoot, Throttler
 │   │   ├── auth/
@@ -47,8 +47,7 @@ c9_map/
 │       │   ├── health.module.ts · health.controller.ts (GET /health/live · /health/ready) · health.indicators.ts
 │       ├── identity/
 │       │   ├── identity.module.ts
-│       │   ├── identity.controller.ts        # GET/DELETE /api/v1/me
-│       │   ├── identity-admin.controller.ts  # /admin/roles · /admin/users/:id/roles (@RequirePermissions('role:manage'))
+│       │   ├── identity.controller.ts        # IdentityController GET/DELETE /me · IdentityAdminController /admin/roles (@RequirePermissions)
 │       │   ├── identity.service.ts           # ensureProfile · getMe · deleteMe · touchDevice · getPermissions · setUserRoles
 │       │   ├── identity.repository.ts        # mọi SQL của identity (Drizzle)
 │       │   ├── dto/                          # zod request/response — Swagger đọc tự động
@@ -71,7 +70,7 @@ c9_map/
 │   ├── integration/*.spec.ts         # AppModule thật trên testcontainers (app · cross-cutting · geography · redis-queue · auth-rbac · location · supabase-real)
 │   └── setup/{containers,env,jwks}.ts # globalSetup testcontainers + migrate · setupFiles inject URL · Supabase JWKS giả (ES256)
 ├── scripts/                          # smoke-multi-instance.sh · dev-token.mjs · verify-auth.mjs
-├── i18n/{vi,en}/*.json · openapi/{app,admin}.json
+├── i18n/{vi,en}/*.json · openapi/{users,locations,health}.json
 ├── Dockerfile · docker-compose.yml · nginx.conf · vitest.config.ts · .env.example · .github/workflows/ci.yml
 └── package.json · tsconfig.json · nest-cli.json
 ```

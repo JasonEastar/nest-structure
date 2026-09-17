@@ -26,4 +26,4 @@ const server = app.getHttpServer();
 server.keepAliveTimeout = 65_000;
 server.headersTimeout = 66_000;
 
-logger.log(`c9_map listening on :${env.PORT} instance=${env.INSTANCE_ID} env=${env.NODE_ENV} docs=/docs/app`);
+logger.log(`c9_map listening on :${env.PORT} instance=${env.INSTANCE_ID} env=${env.NODE_ENV} docs=/docs`);

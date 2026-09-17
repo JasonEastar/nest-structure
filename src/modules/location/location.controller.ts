@@ -26,7 +26,7 @@ import { LocationService } from './location.service.js';
 // ---------------------------------------------------------------------------------------------------------------------
 // 1. Route cần đăng nhập — /api/v1/locations
 // ---------------------------------------------------------------------------------------------------------------------
-@ApiTags('locations')
+@ApiTags('Locations')
 @ApiBearerAuth('supabase')
 @Controller('locations')
 export class LocationController {
@@ -66,7 +66,7 @@ export class LocationController {
 //    Vẫn bị rate limit (theo x-device-id rồi IP) và chỉ trả trường an toàn — không lộ dữ liệu của user.
 // ---------------------------------------------------------------------------------------------------------------------
 @Public()
-@ApiTags('locations') // cùng tag với nhóm 1 → Swagger gom chung một mục 'locations'
+@ApiTags('Locations') // cùng tag với nhóm 1 → Swagger gom chung một mục
 @Controller('public/locations')
 export class LocationPublicController {
   constructor(private readonly locations: LocationService) {}

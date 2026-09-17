@@ -91,7 +91,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 | Kiểm tra | `@RequirePermissions('report:review')` → `PermissionGuard` đọc `c9:perms:{userId}` (Set, TTL 300 s), miss → query `user_roles ⋈ role_permissions ⋈ permissions` |
 | Quyền sở hữu | Không mã hoá trong permission. Service kiểm `author_id === user.id` hoặc permission `*_any` |
 | Thu hồi | Admin đổi role/permission → `DEL c9:perms:{userId}` ngay; JWT không chứa role nên không cần đợi token hết hạn |
-| Admin API | `/api/v1/admin/roles`, `/admin/users/:id/roles` — document `/docs/admin`, permission `role:manage` |
+| Admin API | `/api/v1/admin/roles`, `/admin/users/:id/roles` — cùng định nghĩa Swagger "User & Auth", permission `role:manage` tự ghi vào mô tả |
 | Không dùng | CASL / Supabase Custom Access Token Hook (role trong JWT) — đơn giản hơn và thu hồi tức thì |
 
 ### 5.2 Postgres + PostGIS (riêng — ADR-0005)
@@ -170,9 +170,9 @@ Processor chạy trên **mọi** instance (all-in-one); một job chỉ được
 
 ## 10. API docs & codegen
 
-- Hai document: `/docs/app` (Identity, Pin, Engagement, Reputation, Alert) và `/docs/admin` (Moderation, Promoted, Queues) qua `include:`. UI: Swagger UI đi kèm `SwaggerModule.setup()`, theo đúng tài liệu NestJS (https://docs.nestjs.com/openapi/introduction). `jsonDocumentUrl` → `/docs/app-json`, `/docs/admin-json`.
+- Một định nghĩa mỗi module nghiệp vụ (User & Auth, Locations, Health, sau này Pins, Engagement…) qua `include:`, dropdown "Select a definition" tại `/docs`. Route admin nằm cùng định nghĩa với module của nó, mô tả tự ghi "Quyền cần có" từ `@RequirePermissions`. UI: Swagger UI đi kèm `SwaggerModule.setup()`, theo đúng tài liệu NestJS (https://docs.nestjs.com/openapi/introduction). `jsonDocumentUrl` → `/docs/app-json`, `/docs/admin-json`.
 - Schema zod đặt trên decorator (`@Body({ schema })`) → Swagger 12 tự sinh request body/params (zod 4.6 có `~standard.jsonSchema`). Không cần `nestjs-zod`, không bật CLI plugin. Chi tiết: [nestjs-guide.md §6](./nestjs-guide.md).
-- CI xuất `openapi/app.json`, `openapi/admin.json` làm artifact. Mobile: Dart `openapi-generator` (dart-dio) hoặc TS `orval` / `@hey-api/openapi-ts`.
+- CI xuất `openapi/<key>.json` (users, locations, health…) làm artifact. Mobile: Dart `openapi-generator` (dart-dio) hoặc TS `orval` / `@hey-api/openapi-ts`.
 
 ## 11. i18n
 

@@ -51,7 +51,7 @@ Cây đầy đủ: [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md).
 | **Profile** | Upsert phía app ở request đầu tiên (`ON CONFLICT DO NOTHING` + role `user`), flag Redis 1 giờ | DB riêng nên không có trigger `auth.users`; upsert idempotent, an toàn đa instance |
 | **RBAC** | Bảng `roles/permissions/role_permissions/user_roles`, cache `c9:perms:{id}` 300 s, `DEL` khi admin đổi | Thu hồi tức thì, không đợi token hết hạn |
 | **Validation** | `StandardSchemaValidationPipe` (`APP_PIPE`), `@Body({ schema })` | Có sẵn Nest 12, zod làm luôn coerce/default/strip HTML |
-| **Swagger** | 2 document (`/docs/app`, `/docs/admin`) qua `include:`; export JSON trong CI | Mobile codegen; admin API không lộ cho app |
+| **Swagger** | Một định nghĩa mỗi module nghiệp vụ (`/docs`, dropdown) qua `include:`; quyền/public tự ghi từ metadata guard; export `openapi/<key>.json` trong CI | Mobile codegen; admin API không lộ cho app |
 | **Redis** | DB 0 cache (`allkeys-lru`), DB 1 BullMQ (không eviction, `maxRetriesPerRequest: null`), `appendonly yes` | Eviction làm mất job; tách DB tránh nhầm |
 | **Rate limit** | Throttler Redis, tracker `u:` → `d:` → `ip:`, `trust proxy` 1 | Đếm chung qua 2 instance; user có token bị giới hạn theo user, không theo IP của nginx |
 | **Queue/cron** | BullMQ `upsertJobScheduler(id cố định, tz Asia/Ho_Chi_Minh)` | Chạy đúng 1 lần dù N replica |

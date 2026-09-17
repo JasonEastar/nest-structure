@@ -44,7 +44,7 @@ npm run db:migrate       # migration + seed RBAC (bước riêng, không chạy 
 npm run dev:infra:full   # + api-1, api-2, nginx :3000 — test đa instance
 npx nest start --watch       # chạy 1 instance ngoài docker khi debug
 curl -i localhost:3000/health/live   # gọi 10 lần → thấy 2 X-Instance-Id
-open http://localhost:3000/docs/app  # Swagger UI
+open http://localhost:3000/docs      # Swagger UI, dropdown chọn User & Auth · Locations · Health
 ```
 
 ## Quy tắc làm việc với Claude Code

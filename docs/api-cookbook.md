@@ -13,7 +13,7 @@ npm install
 npm run dev:infra               # Postgres + PostGIS, Redis (Docker). Port host: PG_HOST_PORT / REDIS_HOST_PORT trong .env
 npm run db:migrate              # tạo bảng + seed role/permission
 npm run dev                     # http://localhost:3000, sửa file là tự reload
-open http://localhost:3000/docs/app          # Swagger cho app · /docs/admin cho quản trị
+open http://localhost:3000/docs              # Swagger UI, dropdown 'Select a definition' chọn module
 TOKEN=$(node scripts/dev-token.mjs)          # token Supabase thật, không cần bấm Google
 curl -H "authorization: Bearer $TOKEN" localhost:3000/api/v1/me
 ```
@@ -30,7 +30,7 @@ Trong Swagger bấm **Authorize**, dán token → gọi thử mọi API. Tài kh
 | Truy vấn đặc biệt = path tĩnh, khai **trước** `:id` | `GET /locations/mine-count` | `/locations/:id` khai trước → `mine-count` bị hiểu là id |
 | API công khai (không đăng nhập) | `GET /public/locations/nearby`: class thứ hai `<X>PublicController` trong cùng `<x>.controller.ts`, `@Public()` ở class, không `@ApiBearerAuth`, chỉ trả trường an toàn | `@Public()` rải trên từng route của controller thường |
 | Hành động không phải CRUD (hiếm) | `POST /pins/:id/vote` · `POST /pins/:id/report` | `PUT /pins/:id?action=vote` |
-| API quản trị | `/admin/...` trong module riêng `<x>-admin.controller.ts` + `IdentityAdminModule` kiểu | trộn vào controller app |
+| API quản trị | `/admin/...`: class thứ hai `<X>AdminController` trong cùng `<x>.controller.ts`, `@RequirePermissions([...])` ở class. Swagger tự ghi "Quyền cần có" | tự viết "cần quyền X" vào mô tả (sẽ lệch với guard) |
 | Version | tự động `/api/v1/...` (`app.ts`), controller không ghi `v1` | `@Controller('v1/locations')` |
 
 Tên hàm trong controller = `operationId` trong OpenAPI (mobile codegen dùng tên này): `list`, `get`, `create`, `update`, `remove`, `nearby`. Tên method HTTP: `GET` đọc · `POST` tạo hoặc hành động · `PUT` thay toàn bộ · `PATCH` sửa một phần · `DELETE` xoá.
@@ -47,13 +47,13 @@ modules/<x>/
 └── schema/<x>.schema.ts  # bảng
 ```
 
-Thứ tự viết: schema → migrate → dto → repository → service → controller → test. Đăng ký module trong `app.module.ts` (`imports`) và `OPENAPI_DOCS.app` (hoặc `.admin`).
+Thứ tự viết: schema → migrate → dto → repository → service → controller → test. Đăng ký module trong `app.module.ts` (`imports`) và thêm/gộp vào một định nghĩa trong `OPENAPI_DOCS` (key, title, description, tags, modules).
 
 ## 4. Nhận input: param, query, body, header, user
 
 ```ts
 // location.controller.ts
-@ApiTags('locations')            // nhóm trong Swagger = tên tài nguyên
+@ApiTags('Locations')            // tag trong Swagger, viết hoa chữ đầu; mô tả tag khai ở OPENAPI_DOCS
 @ApiBearerAuth('supabase')       // nút Authorize áp cho cả controller
 @Controller('locations')         // → /api/v1/locations
 export class LocationController {
@@ -166,9 +166,11 @@ list(...) {}
 
 - 401/403/422/429/500 đã khai toàn cục trong `config/openapi.ts` với schema `ErrorResponse`, không lặp lại.
 - **Servers**: `/` (máy đang mở trang) và `http://localhost:PORT`; deploy đặt `PUBLIC_URL` trong env để có thêm server public. **Select a definition** ở góc trên chuyển giữa App và Admin.
-- API nằm ở `/docs/app` hay `/docs/admin` do `OPENAPI_DOCS` trong `app.module.ts` quyết định theo module. Module admin tách riêng (`IdentityAdminModule`) để không lộ vào docs app.
+- Tài liệu chia theo module nghiệp vụ (`OPENAPI_DOCS` trong `app.module.ts`): mỗi mục một định nghĩa trong dropdown, JSON `/docs/<key>-json`, file `openapi/<key>.json`. Không chia app/admin.
+- **Quyền và public tự ghi vào mô tả** từ `@RequirePermissions` / `@Public()`: "Quyền cần có: `role:manage`" hoặc "Không cần đăng nhập" (bỏ ổ khoá). Không viết tay các câu này.
+- `@ApiOperation({ summary, description })`: `summary` một câu ngắn, `description` giải thích hành vi (trả gì khi rỗng, side effect, giới hạn) như ví dụ "Trả null nếu user chưa tham gia".
 - `npm run openapi:export` → `openapi/app.json`, `openapi/admin.json` cho mobile codegen. CI tự xuất.
-- Kiểm nhanh: mở `/docs/app`, tìm tag, xem "Example Value" của request và response có đúng ý không.
+- Kiểm nhanh: mở `/docs`, chọn định nghĩa, tìm tag, xem "Example Value" của request và response có đúng ý không.
 
 ## 8. Auth và quyền
 
@@ -195,5 +197,5 @@ npm test                            # unit + integration (testcontainers tự d�
 - [ ] Service ném `AppException` với mã trong `ErrorCodes`; của người khác → `NOT_FOUND`
 - [ ] Response map ở một hàm; list dùng `pageOf`; 204 cho xoá
 - [ ] `@ApiTags` · `@ApiOperation({ summary })` · `@ApiOkResponse/@ApiCreatedResponse({ standardSchema: envelope(...) })` · schema body/response có `.meta({ id })``
-- [ ] Module trong `app.module.ts` imports và `OPENAPI_DOCS`
-- [ ] Unit + integration test, `npm test` xanh, mở `/docs/app` xem lại
+- [ ] Module trong `app.module.ts` imports và một mục `OPENAPI_DOCS`
+- [ ] Unit + integration test, `npm test` xanh, mở `/docs` xem lại

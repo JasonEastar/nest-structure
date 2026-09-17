@@ -65,7 +65,7 @@ Mỗi phút cần quét pin hết hạn. Có 2 instance mà dùng cron trong pro
 | `config/load-env.ts` | Nạp `.env` trước mọi thứ | Không |
 | `config/logger.ts` | Log JSON một dòng mỗi request, ẩn token | Đổi field log, thêm redact |
 | `config/i18n.ts` | Đa ngôn ngữ vi/en: cách chọn ngôn ngữ (`?lang` → `Accept-Language` → vi); câu chữ ở `i18n/<lang>/*.json` | Thêm ngôn ngữ, đổi cách chọn |
-| `config/openapi.ts` | Hai trang Swagger `/docs/app`, `/docs/admin` (dropdown chuyển qua lại, Servers, Schemas từ `.meta({ id })`) + `envelope()` + xuất JSON | Đổi mô tả tài liệu, thêm server |
+| `config/openapi.ts` | Swagger `/docs` chia theo module (dropdown), Servers, Schemas từ `.meta({ id })`, tự ghi quyền/public vào mô tả từ metadata guard, `envelope()`, xuất `openapi/<key>.json` | Đổi mô tả tài liệu, thêm server |
 | `common/common.module.ts` | Gom DB, Redis, queue, Supabase thành một module dùng chung | Thêm hạ tầng mới |
 | `common/auth/auth.guard.ts` | Token → `req.user`; định nghĩa cổng `AUTH_USER` để guard gọi được IdentityService | Đổi cách xác thực |
 | `common/auth/permission.guard.ts` | Kiểm `@RequirePermissions` | Hiếm |
@@ -109,7 +109,7 @@ Mỗi phút cần quét pin hết hạn. Có 2 instance mà dùng cron trong pro
 Các bước khi làm module `pin`:
 1. Tạo `modules/pin/` với đúng bộ file trên, đổi tên `location` → `pin`.
 2. Schema → `npm run db:generate` → sửa SQL → `npm run db:migrate`. Thêm `export *` vào `common/database/schema.ts`.
-3. Đăng ký `PinModule` trong `app.module.ts` (đã có) và trong `OPENAPI_DOCS.app` để Swagger hiện.
+3. Đăng ký `PinModule` trong `app.module.ts` (đã có) và thêm một mục `OPENAPI_DOCS` (key `pins`, title `Pins`) để Swagger hiện.
 4. Cần quyền → `@RequirePermissions(['pin:create'])` trên route; permission phải có trong seed `drizzle/0002_seed_rbac.sql`.
 5. Viết test unit cho luật, integration cho SQL và HTTP. Chạy `npm test`.
 

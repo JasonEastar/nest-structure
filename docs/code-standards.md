@@ -133,13 +133,13 @@ c9_map/
 │   ├── main.ts                       # điểm vào server: load-env → createApp → Swagger UI → listen
 │   ├── app.ts                        # createApp(): helmet · trust proxy · prefix /api · version v1 · shutdown hooks (dùng chung với openapi-export)
 │   ├── app.module.ts                 # imports ConfigModule + CommonModule + modules; providers APP_GUARD Throttler → Auth → Permission · APP_PIPE · APP_FILTER · APP_INTERCEPTOR
-│   ├── openapi-export.ts             # `npm run openapi:export` → openapi/{app,admin}.json
+│   ├── openapi-export.ts             # `npm run openapi:export` → openapi/<key>.json mỗi định nghĩa (users, locations, health)
 │   ├── config/                       # cấu hình app — không nghiệp vụ, không hạ tầng
 │   │   ├── env.ts                    # zod schema → `env` có kiểu, fail-fast lúc boot
 │   │   ├── load-env.ts               # nạp .env (import đầu tiên của main.ts / openapi-export.ts)
 │   │   ├── logger.ts                 # nestjs-pino: genReqId · redact · bỏ log /health
 │   │   ├── i18n.ts                   # nestjs-i18n vi/en, resolver Accept-Language
-│   │   └── openapi.ts                # 2 DocumentBuilder (app, admin) · exportOpenApi()
+│   │   └── openapi.ts                # định nghĩa theo module (OPENAPI_DOCS) · tự ghi quyền/public · envelope() · exportOpenApi()
 │   ├── common/                       # hạ tầng dùng chung, gom theo mối quan tâm — KHÔNG import modules/
 │   │   ├── common.module.ts          # @Global: DRIZZLE · REDIS_CACHE · CacheService · SUPABASE_ADMIN · SupabaseJwtService; imports QueueRoot, Throttler
 │   │   ├── auth/
@@ -167,8 +167,7 @@ c9_map/
 │       │   ├── health.module.ts · health.controller.ts (GET /health/live · /health/ready) · health.indicators.ts
 │       ├── identity/
 │       │   ├── identity.module.ts
-│       │   ├── identity.controller.ts        # GET/DELETE /api/v1/me
-│       │   ├── identity-admin.controller.ts  # /admin/roles · /admin/users/:id/roles (@RequirePermissions('role:manage'))
+│       │   ├── identity.controller.ts        # IdentityController GET/DELETE /me · IdentityAdminController /admin/roles (@RequirePermissions)
 │       │   ├── identity.service.ts           # ensureProfile · getMe · deleteMe · touchDevice · getPermissions · setUserRoles
 │       │   ├── identity.repository.ts        # mọi SQL của identity (Drizzle)
 │       │   ├── dto/                          # zod request/response — Swagger đọc tự động
@@ -191,13 +190,13 @@ c9_map/
 │   ├── integration/*.spec.ts         # AppModule thật trên testcontainers (app · cross-cutting · geography · redis-queue · auth-rbac · location · supabase-real)
 │   └── setup/{containers,env,jwks}.ts # globalSetup testcontainers + migrate · setupFiles inject URL · Supabase JWKS giả (ES256)
 ├── scripts/                          # smoke-multi-instance.sh · dev-token.mjs · verify-auth.mjs
-├── i18n/{vi,en}/*.json · openapi/{app,admin}.json
+├── i18n/{vi,en}/*.json · openapi/{users,locations,health}.json
 ├── Dockerfile · docker-compose.yml · nginx.conf · vitest.config.ts · .env.example · .github/workflows/ci.yml
 └── package.json · tsconfig.json · nest-cli.json
 ```
 
 Nguồn: [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md) (sửa đổi 2026-09-17). Mobile (Flutter / React Native) là **repo riêng**, tiêu thụ `openapi.json`. Quy tắc file (theo quy ước Nest CLI `nest g resource` + rule `arch-feature-modules`):
-- `modules/<x>/`: file chính ở gốc, tên bắt đầu bằng `<x>.` hoặc `<x>-`: `<x>.module|controller|service|repository|constants|jobs.ts`; route public = class thứ hai `<X>PublicController` (`@Public()`, path `public/<x>`) trong CÙNG `<x>.controller.ts`; chỉ `<x>-admin.controller.ts` tách file vì phải ở module riêng cho Swagger admin; `<x>-geo.repository.ts` cho SQL PostGIS. Chỉ 2 thư mục con: `dto/` và `schema/`. Không tạo `controllers/ services/ repositories/`. **Mẫu chuẩn: `modules/location/`** — module mới copy y hệt.
+- `modules/<x>/`: file chính ở gốc, tên bắt đầu bằng `<x>.` hoặc `<x>-`: `<x>.module|controller|service|repository|constants|jobs.ts`; route public = class `<X>PublicController` (`@Public()`, path `public/<x>`), route quản trị = class `<X>AdminController` (`@RequirePermissions` ở class, path `admin/...`), cả hai trong CÙNG `<x>.controller.ts`, phân đoạn bằng comment; `<x>-geo.repository.ts` cho SQL PostGIS. Chỉ 2 thư mục con: `dto/` và `schema/`. Không tạo `controllers/ services/ repositories/`. **Mẫu chuẩn: `modules/location/`** — module mới copy y hệt.
 - `dto/<use-case>.dto.ts`: một file cho một use case, chứa CẢ schema request lẫn response của use case đó (`create-location.dto.ts` có `CreateLocationSchema`; `location.dto.ts` có `LocationResponseSchema` + query schema). **Không** tách `dto/requests/` và `dto/responses/`: request và response của cùng API phải đọc cạnh nhau; Swagger đọc zod trực tiếp nên không cần class riêng cho mỗi chiều.
 - **Mở rộng module** (bảng phụ, route phụ) và **nối hai module** (FK một chiều, join khi đọc, gọi service khi ghi, không inject repository của module khác, không `forwardRef`): quy trình 5 bước và ví dụ post ↔ location ở [code-walkthrough.md §8](./code-walkthrough.md).
 - **Ít file hơn là tốt hơn:** chỉ tách file khi vượt ~150–200 dòng hoặc khác mối quan tâm thật sự; trong file dùng comment `// ---- ... ----` chia đoạn. Giải thích cấu trúc bằng comment, không bằng thêm file.

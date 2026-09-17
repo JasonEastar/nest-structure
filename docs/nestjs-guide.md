@@ -75,9 +75,10 @@ Quy tắc: mỗi endpoint có **RequestSchema** và **ResponseSchema** trong `sr
 ## 6. OpenAPI (`@nestjs/swagger`, theo docs.nestjs.com/openapi)
 
 - `DocumentBuilder().setTitle().setVersion('1').addBearerAuth().addGlobalResponse(401|403|429|500 → ErrorEnvelope)`.
-- `SwaggerModule.createDocument(app, cfg, { include: [IdentityModule, PinModule, …], operationIdFactory: (_, m) => m })` × 2 (`/docs/app`, `/docs/admin`).
-- `SwaggerModule.setup('docs/app', app, factory, { jsonDocumentUrl: 'docs/app-json', useGlobalPrefix: false })`.
-- Request body/query/param lấy từ `schema` trên decorator — **không** cần `@ApiProperty` cho DTO zod. Response: `@ApiOkResponse({ schema })` hoặc `@ApiResponse` tham chiếu zod → tự chuyển.
+- `SwaggerModule.createDocument(app, cfg, { include: [<module>], operationIdFactory: (c, m) => `${c.replace(/Controller$/, '')}.${m}` })` một lần mỗi định nghĩa (theo module nghiệp vụ, `OPENAPI_DOCS`).
+- `SwaggerModule.setup('docs', app, doc, { explorer: true, swaggerOptions: { urls }, jsonDocumentUrl: 'docs/<key>-json', useGlobalPrefix: false })` → dropdown chuyển định nghĩa.
+- Sau `createDocument`: duyệt `paths`, tra `Reflector` (`@Public`, `@RequirePermissions`) qua `DiscoveryService.getControllers()` để ghi "Quyền cần có"/"Không cần đăng nhập" vào description (config/openapi.ts `annotateAccess`).
+- Request body/query/param lấy từ `schema` trên decorator — **không** cần `@ApiProperty` cho DTO zod. Response: `@ApiOkResponse({ standardSchema: envelope(ZodSchema) })`; schema có `.meta({ id })` → `components.schemas` + `$ref`.
 - Fallback nếu schema sinh sai: `zod-openapi` + `standardSchemaConverter` (chỉ khi cần).
 - CLI plugin `@nestjs/swagger` trong `nest-cli.json`: **không bật** (dành cho class DTO).
 - Script `openapi:export` tạo app không `listen`, ghi `openapi/app.json`, `openapi/admin.json` → CI artifact → mobile codegen.
