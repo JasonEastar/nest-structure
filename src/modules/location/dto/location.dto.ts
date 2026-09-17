@@ -11,7 +11,7 @@ export const LocationResponseSchema = z.object({
   radiusMeters: z.number().int(),
   isPublic: z.boolean(),
   createdAt: z.iso.datetime(),
-});
+}).meta({ id: 'Location' });
 export type LocationResponse = z.infer<typeof LocationResponseSchema>;
 
 /** GET /locations?cursor=&limit= */
@@ -23,7 +23,7 @@ export const NearbyLocationsQuerySchema = z.object({
   lat: z.coerce.number().min(-90).max(90),
   lng: z.coerce.number().min(-180).max(180),
   radiusMeters: z.coerce.number().int().min(1).max(LOCATION_LIMITS.nearbyMaxMeters).default(1_000),
-});
+}); // query schema KHÔNG đặt meta id: Swagger cần object inline để tách thành từng tham số ?lat=&lng=
 export type NearbyLocationsQuery = z.infer<typeof NearbyLocationsQuerySchema>;
 
 /** Response public: chỉ trường an toàn (không chủ, không bán kính riêng), kèm khoảng cách (mét) từ điểm truy vấn. */
@@ -33,6 +33,6 @@ export const PublicLocationResponseSchema = z.object({
   lat: z.number(),
   lng: z.number(),
   distanceMeters: z.number(),
-});
+}).meta({ id: 'PublicLocation' });
 export type PublicLocationResponse = z.infer<typeof PublicLocationResponseSchema>;
 

@@ -10,10 +10,10 @@ export const RoleSchema = z.object({
   code: RoleCodeSchema,
   name: z.string(),
   permissions: z.array(z.string()),
-});
+}).meta({ id: 'Role' });
 export type Role = z.infer<typeof RoleSchema>;
 
 export const SetUserRolesSchema = z.object({
   roles: z.array(RoleCodeSchema).min(1).max(ROLE_CODES.length),
-});
+}).meta({ id: 'SetUserRoles' });
 export type SetUserRoles = z.infer<typeof SetUserRolesSchema>;

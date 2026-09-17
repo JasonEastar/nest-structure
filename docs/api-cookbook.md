@@ -153,16 +153,19 @@ Request (param, query, body) Swagger tự đọc từ schema zod trên decorator
 
 ```ts
 @Post()
-@ApiOperation({ summary: 'Lưu một địa điểm (tối đa 20 / user)' })      // một câu, người đọc là dev mobile
-@ApiCreatedResponse({ schema: zodResponse(LocationResponseSchema, true) })  // true = bọc envelope { data, meta }
+@ApiOperation({ summary: 'Lưu một địa điểm (tối đa 20 / user)' })         // một câu, người đọc là dev mobile
+@ApiCreatedResponse({ standardSchema: envelope(LocationResponseSchema) })  // envelope() bọc { data, meta }
 create(...) {}
 
 @Get()
-@ApiOkResponse({ schema: zodResponse(z.array(LocationResponseSchema), true) })
+@ApiOkResponse({ standardSchema: envelope(z.array(LocationResponseSchema)) })
 list(...) {}
 ```
 
-- 401/403/422/429/500 đã khai toàn cục trong `config/openapi.ts`, không lặp lại.
+Để schema hiện trong mục **Schemas** (và mobile codegen sinh đúng tên type), đặt `.meta({ id: 'Location' })` ở cuối schema body/response trong file dto. **Không** đặt `meta` cho query schema: query phải inline thì Swagger mới tách được thành từng tham số `?lat=&lng=`. `operationId` tự sinh dạng `Location.list` (tên class bỏ `Controller` + tên hàm) nên không trùng giữa module.
+
+- 401/403/422/429/500 đã khai toàn cục trong `config/openapi.ts` với schema `ErrorResponse`, không lặp lại.
+- **Servers**: `/` (máy đang mở trang) và `http://localhost:PORT`; deploy đặt `PUBLIC_URL` trong env để có thêm server public. **Select a definition** ở góc trên chuyển giữa App và Admin.
 - API nằm ở `/docs/app` hay `/docs/admin` do `OPENAPI_DOCS` trong `app.module.ts` quyết định theo module. Module admin tách riêng (`IdentityAdminModule`) để không lộ vào docs app.
 - `npm run openapi:export` → `openapi/app.json`, `openapi/admin.json` cho mobile codegen. CI tự xuất.
 - Kiểm nhanh: mở `/docs/app`, tìm tag, xem "Example Value" của request và response có đúng ý không.
@@ -191,6 +194,6 @@ npm test                            # unit + integration (testcontainers tự d�
 - [ ] Schema zod trên `@Param/@Query/@Body`, số giới hạn ở constants, query dùng `coerce`
 - [ ] Service ném `AppException` với mã trong `ErrorCodes`; của người khác → `NOT_FOUND`
 - [ ] Response map ở một hàm; list dùng `pageOf`; 204 cho xoá
-- [ ] `@ApiTags` · `@ApiOperation({ summary })` · `@ApiOkResponse/@ApiCreatedResponse({ schema: zodResponse(..., true) })`
+- [ ] `@ApiTags` · `@ApiOperation({ summary })` · `@ApiOkResponse/@ApiCreatedResponse({ standardSchema: envelope(...) })` · schema body/response có `.meta({ id })``
 - [ ] Module trong `app.module.ts` imports và `OPENAPI_DOCS`
 - [ ] Unit + integration test, `npm test` xanh, mở `/docs/app` xem lại

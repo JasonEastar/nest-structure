@@ -15,7 +15,7 @@ export type Cursor = z.infer<typeof CursorSchema>;
 export const PaginationQuerySchema = z.object({
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-});
+}); // không meta id: query phải inline để Swagger tách thành tham số
 export type PaginationQuery = z.infer<typeof PaginationQuerySchema>;
 
 export function encodeCursor(cursor: Cursor): string {

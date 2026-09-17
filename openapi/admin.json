@@ -3,7 +3,7 @@
   "paths": {
     "/api/v1/admin/roles": {
       "get": {
-        "operationId": "listRoles",
+        "operationId": "IdentityAdmin.listRoles",
         "parameters": [],
         "responses": {
           "200": {
@@ -12,59 +12,36 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
                   "properties": {
                     "data": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "code": {
-                            "type": "string",
-                            "enum": [
-                              "user",
-                              "moderator",
-                              "venue",
-                              "admin"
-                            ]
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "permissions": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
-                            }
-                          }
-                        },
-                        "required": [
-                          "code",
-                          "name",
-                          "permissions"
-                        ],
-                        "additionalProperties": false
+                        "$ref": "#/components/schemas/Role"
                       }
                     },
                     "meta": {
                       "type": "object",
-                      "required": [
-                        "requestId"
-                      ],
                       "properties": {
                         "requestId": {
                           "type": "string"
                         },
                         "nextCursor": {
-                          "type": "string",
-                          "nullable": true
+                          "description": "Chỉ có ở endpoint list: null = hết trang",
+                          "nullable": true,
+                          "type": "string"
                         }
-                      }
+                      },
+                      "required": [
+                        "requestId"
+                      ],
+                      "additionalProperties": false
                     }
-                  }
+                  },
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -74,38 +51,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "params": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        },
-                        "requestId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "params",
-                        "requestId"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -115,38 +61,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "params": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        },
-                        "requestId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "params",
-                        "requestId"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -156,38 +71,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "params": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        },
-                        "requestId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "params",
-                        "requestId"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -197,38 +81,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "params": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        },
-                        "requestId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "params",
-                        "requestId"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -238,38 +91,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "params": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        },
-                        "requestId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "params",
-                        "requestId"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -288,7 +110,7 @@
     },
     "/api/v1/admin/users/{id}/roles": {
       "get": {
-        "operationId": "getUserRoles",
+        "operationId": "IdentityAdmin.getUserRoles",
         "parameters": [
           {
             "name": "id",
@@ -310,38 +132,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "params": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        },
-                        "requestId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "params",
-                        "requestId"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -351,38 +142,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "params": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        },
-                        "requestId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "params",
-                        "requestId"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -392,38 +152,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "params": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        },
-                        "requestId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "params",
-                        "requestId"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -433,38 +162,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "params": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        },
-                        "requestId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "params",
-                        "requestId"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -474,38 +172,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "params": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        },
-                        "requestId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "params",
-                        "requestId"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -522,7 +189,7 @@
         ]
       },
       "put": {
-        "operationId": "setUserRoles",
+        "operationId": "IdentityAdmin.setUserRoles",
         "parameters": [
           {
             "name": "id",
@@ -540,26 +207,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "roles": {
-                    "minItems": 1,
-                    "maxItems": 4,
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "enum": [
-                        "user",
-                        "moderator",
-                        "venue",
-                        "admin"
-                      ]
-                    }
-                  }
-                },
-                "required": [
-                  "roles"
-                ]
+                "$ref": "#/components/schemas/SetUserRoles"
               }
             }
           }
@@ -573,38 +221,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "params": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        },
-                        "requestId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "params",
-                        "requestId"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -614,38 +231,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "params": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        },
-                        "requestId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "params",
-                        "requestId"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -655,38 +241,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "params": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        },
-                        "requestId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "params",
-                        "requestId"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -696,38 +251,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "params": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        },
-                        "requestId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "params",
-                        "requestId"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -737,38 +261,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "params": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        },
-                        "requestId": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "code",
-                        "message",
-                        "params",
-                        "requestId"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -793,7 +286,16 @@
     "contact": {}
   },
   "tags": [],
-  "servers": [],
+  "servers": [
+    {
+      "url": "/",
+      "description": "Máy chủ đang mở trang này"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Local"
+    }
+  ],
   "components": {
     "securitySchemes": {
       "supabase": {
@@ -802,6 +304,96 @@
         "type": "http"
       }
     },
-    "schemas": {}
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Mã lỗi SCREAMING_SNAKE, client rẽ nhánh theo mã này"
+              },
+              "message": {
+                "type": "string",
+                "description": "Đã dịch theo ?lang / Accept-Language (vi mặc định, en)"
+              },
+              "params": {
+                "type": "object",
+                "additionalProperties": {},
+                "description": "Dữ liệu phụ: resource, retryAfter, issues…"
+              },
+              "requestId": {
+                "type": "string",
+                "description": "Gửi kèm khi báo lỗi để tra log"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "params",
+              "requestId"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "Role": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "user",
+              "moderator",
+              "venue",
+              "admin"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "permissions"
+        ],
+        "additionalProperties": false
+      },
+      "SetUserRoles": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "minItems": 1,
+            "maxItems": 4,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "user",
+                "moderator",
+                "venue",
+                "admin"
+              ]
+            }
+          }
+        },
+        "required": [
+          "roles"
+        ]
+      }
+    }
   }
 }

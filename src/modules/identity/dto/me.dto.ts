@@ -13,5 +13,5 @@ export const MeResponseSchema = z.object({
   phoneVerified: z.boolean(),
   roles: z.array(RoleCodeSchema),
   permissions: z.array(z.string()),
-});
+}).meta({ id: 'MeResponse' });
 export type MeResponse = z.infer<typeof MeResponseSchema>;

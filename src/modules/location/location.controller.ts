@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags
 import { z } from 'zod';
 import type { AuthUser } from '../../common/auth/auth.guard.js';
 import { CurrentUser, Public } from '../../common/auth/decorators.js';
-import { zodResponse } from '../../config/openapi.js';
+import { envelope } from '../../config/openapi.js';
 import { type CreateLocation, CreateLocationSchema } from './dto/create-location.dto.js';
 import {
   type ListLocationsQuery,
@@ -34,21 +34,21 @@ export class LocationController {
 
   @Post()
   @ApiOperation({ summary: 'Lưu một địa điểm (tối đa 20 / user)' })
-  @ApiCreatedResponse({ schema: zodResponse(LocationResponseSchema, true) })
+  @ApiCreatedResponse({ standardSchema: envelope(LocationResponseSchema) })
   create(@CurrentUser() user: AuthUser, @Body({ schema: CreateLocationSchema }) body: CreateLocation) {
     return this.locations.create(user.id, body);
   }
 
   @Get()
   @ApiOperation({ summary: 'Danh sách địa điểm đã lưu, mới nhất trước, phân trang cursor' })
-  @ApiOkResponse({ schema: zodResponse(z.array(LocationResponseSchema), true) })
+  @ApiOkResponse({ standardSchema: envelope(z.array(LocationResponseSchema)) })
   list(@CurrentUser() user: AuthUser, @Query({ schema: ListLocationsQuerySchema }) query: ListLocationsQuery) {
     return this.locations.list(user.id, query);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Chi tiết một địa điểm' })
-  @ApiOkResponse({ schema: zodResponse(LocationResponseSchema, true) })
+  @ApiOkResponse({ standardSchema: envelope(LocationResponseSchema) })
   get(@CurrentUser() user: AuthUser, @Param('id', { schema: z.uuid() }) id: string) {
     return this.locations.get(user.id, id);
   }
@@ -73,7 +73,7 @@ export class LocationPublicController {
 
   @Get('nearby')
   @ApiOperation({ summary: 'Địa điểm công khai trong bán kính quanh một toạ độ (PostGIS ST_DWithin), không cần đăng nhập' })
-  @ApiOkResponse({ schema: zodResponse(z.array(PublicLocationResponseSchema), true) })
+  @ApiOkResponse({ standardSchema: envelope(z.array(PublicLocationResponseSchema)) })
   nearby(@Query({ schema: NearbyLocationsQuerySchema }) query: NearbyLocationsQuery) {
     return this.locations.nearbyPublic(query);
   }

@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { RequirePermissions } from '../../common/auth/decorators.js';
-import { zodResponse } from '../../config/openapi.js';
+import { envelope } from '../../config/openapi.js';
 import { RoleSchema, type SetUserRoles, SetUserRolesSchema } from './dto/role.dto.js';
 import { IdentityService } from './identity.service.js';
 
@@ -16,7 +16,7 @@ export class IdentityAdminController {
 
   @Get('roles')
   @ApiOperation({ summary: 'Danh sách role và permission kèm theo' })
-  @ApiOkResponse({ schema: zodResponse(z.array(RoleSchema), true) })
+  @ApiOkResponse({ standardSchema: envelope(z.array(RoleSchema)) })
   listRoles() {
     return this.identity.listRoles();
   }

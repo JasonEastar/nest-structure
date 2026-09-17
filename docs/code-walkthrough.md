@@ -65,7 +65,7 @@ Mỗi phút cần quét pin hết hạn. Có 2 instance mà dùng cron trong pro
 | `config/load-env.ts` | Nạp `.env` trước mọi thứ | Không |
 | `config/logger.ts` | Log JSON một dòng mỗi request, ẩn token | Đổi field log, thêm redact |
 | `config/i18n.ts` | Đa ngôn ngữ vi/en: cách chọn ngôn ngữ (`?lang` → `Accept-Language` → vi); câu chữ ở `i18n/<lang>/*.json` | Thêm ngôn ngữ, đổi cách chọn |
-| `config/openapi.ts` | Hai trang Swagger `/docs/app`, `/docs/admin` + xuất JSON | Đổi mô tả tài liệu |
+| `config/openapi.ts` | Hai trang Swagger `/docs/app`, `/docs/admin` (dropdown chuyển qua lại, Servers, Schemas từ `.meta({ id })`) + `envelope()` + xuất JSON | Đổi mô tả tài liệu, thêm server |
 | `common/common.module.ts` | Gom DB, Redis, queue, Supabase thành một module dùng chung | Thêm hạ tầng mới |
 | `common/auth/auth.guard.ts` | Token → `req.user`; định nghĩa cổng `AUTH_USER` để guard gọi được IdentityService | Đổi cách xác thực |
 | `common/auth/permission.guard.ts` | Kiểm `@RequirePermissions` | Hiếm |

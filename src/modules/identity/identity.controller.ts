@@ -2,7 +2,7 @@ import { Controller, Delete, Get, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { AuthUser } from '../../common/auth/auth.guard.js';
 import { CurrentUser } from '../../common/auth/decorators.js';
-import { zodResponse } from '../../config/openapi.js';
+import { envelope } from '../../config/openapi.js';
 import { MeResponseSchema } from './dto/me.dto.js';
 import { IdentityService } from './identity.service.js';
 
@@ -15,7 +15,7 @@ export class IdentityController {
 
   @Get()
   @ApiOperation({ summary: 'Hồ sơ của tôi (tạo tự động ở request đầu sau khi đăng nhập Google)' })
-  @ApiOkResponse({ schema: zodResponse(MeResponseSchema, true) })
+  @ApiOkResponse({ standardSchema: envelope(MeResponseSchema) })
   me(@CurrentUser() user: AuthUser) {
     return this.identity.getMe(user.id);
   }

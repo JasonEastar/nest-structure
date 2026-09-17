@@ -3,82 +3,122 @@ import { join } from 'node:path';
 import type { INestApplication, Type } from '@nestjs/common';
 import { DocumentBuilder, type OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { z } from 'zod';
+import type { Env } from './env.js';
 
 /**
- * Hai tài liệu OpenAPI (theo docs.nestjs.com/openapi):
- * - /docs/app   : API cho mobile (module nghiệp vụ)
- * - /docs/admin : API quản trị (module admin) — không lộ cho app
- * Request body/query/param: Swagger 12 tự đọc schema zod trên decorator (@Body({ schema })).
- * Response: dùng `zodResponse(schema)` trong @ApiOkResponse.
- * JSON: /docs/app-json, /docs/admin-json → CI ghi ra openapi/*.json cho mobile codegen.
+ * Hai tài liệu OpenAPI (docs.nestjs.com/openapi):
+ * - /docs/app   : API cho mobile (module nghiệp vụ)      · JSON: /docs/app-json
+ * - /docs/admin : API quản trị, không lộ cho app          · JSON: /docs/admin-json
+ * Cả hai trang có dropdown "Select a definition" để chuyển qua lại (explorer + urls).
+ *
+ * Schema: Swagger 12 đọc zod trực tiếp. Mọi schema DTO đặt `.meta({ id: 'TênSchema' })` → xuất hiện trong
+ * mục "Schemas" (components.schemas) và được $ref thay vì inline — mobile codegen sinh đúng tên type.
+ * Request: `@Body({ schema })` tự đọc. Response: `@ApiOkResponse({ standardSchema: envelope(Schema) })`.
  */
 export interface OpenApiDocs {
   app: Type[];
   admin: Type[];
 }
 
-/** Shape lỗi cho tài liệu (khớp ErrorEnvelope trong exceptions.ts). */
-const ERROR_ENVELOPE = z.object({
-  error: z.object({
-    code: z.string(),
-    message: z.string(), // đã dịch theo ?lang / Accept-Language (vi mặc định, en)
-    params: z.record(z.string(), z.unknown()),
-    requestId: z.string(),
-  }),
+/** Shape lỗi thống nhất (khớp ErrorEnvelope trong exceptions.ts); id → Schemas: ErrorResponse. */
+const ErrorResponseSchema = z
+  .object({
+    error: z.object({
+      code: z.string().describe('Mã lỗi SCREAMING_SNAKE, client rẽ nhánh theo mã này'),
+      message: z.string().describe('Đã dịch theo ?lang / Accept-Language (vi mặc định, en)'),
+      params: z.record(z.string(), z.unknown()).describe('Dữ liệu phụ: resource, retryAfter, issues…'),
+      requestId: z.string().describe('Gửi kèm khi báo lỗi để tra log'),
+    }),
+  })
+  .meta({ id: 'ErrorResponse' });
+
+const MetaSchema = z.object({
+  requestId: z.string(),
+  nextCursor: z.string().nullable().optional().describe('Chỉ có ở endpoint list: null = hết trang'),
 });
 
-function baseBuilder(title: string, description: string): DocumentBuilder {
-  const errorSchema = zodResponse(ERROR_ENVELOPE);
-  return new DocumentBuilder()
+/** Bọc schema dữ liệu thành envelope { data, meta } cho @ApiOkResponse/@ApiCreatedResponse({ standardSchema }). */
+export function envelope<T extends z.ZodType>(data: T) {
+  return z.object({ data, meta: MetaSchema });
+}
+
+function baseBuilder(title: string, description: string, env: Pick<Env, 'PORT' | 'PUBLIC_URL'>): DocumentBuilder {
+  const b = new DocumentBuilder()
     .setTitle(title)
     .setDescription(description)
     .setVersion('1')
+    .addServer('/', 'Máy chủ đang mở trang này') // tương đối: dev localhost, Docker/nginx, staging đều đúng
+    .addServer(`http://localhost:${env.PORT}`, 'Local')
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'supabase')
     .addGlobalResponse(
-      { status: 401, description: 'UNAUTHENTICATED', schema: errorSchema },
-      { status: 403, description: 'FORBIDDEN', schema: errorSchema },
-      { status: 422, description: 'VALIDATION_FAILED', schema: errorSchema },
-      { status: 429, description: 'RATE_LIMITED', schema: errorSchema },
-      { status: 500, description: 'INTERNAL', schema: errorSchema },
+      { status: 401, description: 'UNAUTHENTICATED', standardSchema: ErrorResponseSchema },
+      { status: 403, description: 'FORBIDDEN', standardSchema: ErrorResponseSchema },
+      { status: 422, description: 'VALIDATION_FAILED', standardSchema: ErrorResponseSchema },
+      { status: 429, description: 'RATE_LIMITED', standardSchema: ErrorResponseSchema },
+      { status: 500, description: 'INTERNAL', standardSchema: ErrorResponseSchema },
     );
+  if (env.PUBLIC_URL) b.addServer(env.PUBLIC_URL, 'Public'); // staging/prod đặt PUBLIC_URL trong env
+  return b;
 }
 
-export function buildOpenApiDocuments(app: INestApplication, docs: OpenApiDocs): Record<'app' | 'admin', OpenAPIObject> {
+export function buildOpenApiDocuments(
+  app: INestApplication,
+  docs: OpenApiDocs,
+  env: Pick<Env, 'PORT' | 'PUBLIC_URL'>,
+): Record<'app' | 'admin', OpenAPIObject> {
   // SwaggerModule: include rỗng = lấy TẤT CẢ module → admin lộ vào /docs/app. Bắt buộc liệt kê tường minh.
   for (const [name, mods] of Object.entries(docs)) {
     if (mods.length === 0) throw new Error(`OPENAPI_DOCS.${name} rỗng: liệt kê module cho tài liệu này`);
   }
-  const options = { operationIdFactory: (_controller: string, method: string) => method };
+  const options = {
+    // operationId = Controller.method (bỏ hậu tố Controller) → không trùng giữa module (Location.list vs Pin.list)
+    operationIdFactory: (controller: string, method: string) => `${controller.replace(/Controller$/, '')}.${method}`,
+  };
   return {
     app: SwaggerModule.createDocument(
       app,
-      baseBuilder('C9 Map API', 'API cho ứng dụng di động. Response: { data, meta } · lỗi: { error: { code, message, params, requestId } }. Ngôn ngữ: ?lang=vi|en hoặc Accept-Language (mặc định vi), response kèm Content-Language.').build(),
+      baseBuilder(
+        'C9 Map API',
+        'API cho ứng dụng di động. Thành công: { data, meta } · lỗi: { error: { code, message, params, requestId } }. ' +
+          'Ngôn ngữ: ?lang=vi|en hoặc Accept-Language (mặc định vi), response kèm Content-Language.',
+        env,
+      ).build(),
       { ...options, include: docs.app },
     ),
     admin: SwaggerModule.createDocument(
       app,
-      baseBuilder('C9 Map Admin API', 'API quản trị (permission role:manage, report:review, ...)').build(),
+      baseBuilder('C9 Map Admin API', 'API quản trị (permission role:manage, report:review, ...)', env).build(),
       { ...options, include: docs.admin },
     ),
   };
 }
 
-/** Mount Swagger UI: /docs/app, /docs/admin (+ JSON tại /docs/app-json, /docs/admin-json). */
-export function setupOpenApi(app: INestApplication, docs: OpenApiDocs): void {
-  const documents = buildOpenApiDocuments(app, docs);
+/** Mount Swagger UI: /docs/app, /docs/admin, mỗi trang có dropdown chuyển định nghĩa; JSON tại /docs/<name>-json. */
+export function setupOpenApi(app: INestApplication, docs: OpenApiDocs, env: Pick<Env, 'PORT' | 'PUBLIC_URL'>): void {
+  const documents = buildOpenApiDocuments(app, docs, env);
+  const urls = [
+    { url: '/docs/app-json', name: 'App' },
+    { url: '/docs/admin-json', name: 'Admin' },
+  ];
   for (const name of ['app', 'admin'] as const) {
     SwaggerModule.setup(`docs/${name}`, app, documents[name], {
       useGlobalPrefix: false,
       jsonDocumentUrl: `docs/${name}-json`,
       customSiteTitle: `C9 Map · ${name}`,
-      swaggerOptions: { persistAuthorization: true },
+      explorer: true, // thanh "Select a definition"
+      swaggerOptions: { urls, persistAuthorization: true, displayRequestDuration: true },
     });
   }
 }
 
 /** Ghi openapi/app.json + openapi/admin.json (CI artifact → mobile codegen). */
-export async function exportOpenApi(app: INestApplication, docs: OpenApiDocs, outDir: string): Promise<string[]> {
-  const documents = buildOpenApiDocuments(app, docs);
+export async function exportOpenApi(
+  app: INestApplication,
+  docs: OpenApiDocs,
+  env: Pick<Env, 'PORT' | 'PUBLIC_URL'>,
+  outDir: string,
+): Promise<string[]> {
+  const documents = buildOpenApiDocuments(app, docs, env);
   await mkdir(outDir, { recursive: true });
   const written: string[] = [];
   for (const name of ['app', 'admin'] as const) {
@@ -87,22 +127,4 @@ export async function exportOpenApi(app: INestApplication, docs: OpenApiDocs, ou
     written.push(file);
   }
   return written;
-}
-
-/** zod → JSON Schema cho @ApiOkResponse({ schema: zodResponse(MySchema) }). Bọc envelope { data, meta }. */
-export function zodResponse(schema: z.ZodType, envelope = false): Record<string, unknown> {
-  const json = z.toJSONSchema(schema, { target: 'openapi-3.0', io: 'output' }) as Record<string, unknown>;
-  if (!envelope) return json;
-  return {
-    type: 'object',
-    required: ['data', 'meta'],
-    properties: {
-      data: json,
-      meta: {
-        type: 'object',
-        required: ['requestId'],
-        properties: { requestId: { type: 'string' }, nextCursor: { type: 'string', nullable: true } },
-      },
-    },
-  };
 }

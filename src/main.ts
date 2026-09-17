@@ -18,7 +18,7 @@ process.on('uncaughtException', (error) => {
 
 const env = loadEnv();
 const app = await createApp();
-setupOpenApi(app, OPENAPI_DOCS);
+setupOpenApi(app, OPENAPI_DOCS, env);
 await app.listen(env.PORT);
 
 // Phải lớn hơn keepalive_timeout của nginx (60 s) để tránh ECONNRESET ngẫu nhiên khi nginx tái dùng kết nối.
