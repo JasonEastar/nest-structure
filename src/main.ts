@@ -1,20 +1,14 @@
-import { existsSync } from 'node:fs';
+import './config/load-env.js'; // PHẢI đứng đầu: nạp .env trước khi app.module (ConfigModule) được evaluate
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Logger, RequestMethod, VersioningType } from '@nestjs/common';
+import { Logger, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import { Logger as PinoLogger } from 'nestjs-pino';
-import { AppModule, OPENAPI_DOCS } from './app.module.js';
+import { AppModule, GLOBAL_PREFIX_EXCLUDE, OPENAPI_DOCS } from './app.module.js';
 import { setupOpenApi } from './common/openapi.js';
 import { loadEnv } from './config/env.js';
-
-// Nạp .env TRƯỚC loadEnv(): ConfigModule chỉ đọc .env khi Nest resolve AppModule (sau bước này).
-// Node ≥ 20.12 có sẵn loadEnvFile, không cần dotenv. Biến đã có trong process.env không bị ghi đè.
-if (existsSync('.env')) {
-  process.loadEnvFile('.env');
-}
 
 const logger = new Logger('Bootstrap');
 
@@ -25,14 +19,6 @@ process.on('uncaughtException', (error) => {
   logger.fatal('Uncaught exception', error.stack);
   process.exit(1);
 });
-
-/** Route nằm ngoài prefix /api: health probe (Docker HEALTHCHECK), docs. */
-export const GLOBAL_PREFIX_EXCLUDE = [
-  { path: 'health/{*splat}', method: RequestMethod.GET },
-  { path: 'docs/{*splat}', method: RequestMethod.GET },
-  { path: 'admin/queues', method: RequestMethod.ALL },
-  { path: 'admin/queues/{*splat}', method: RequestMethod.ALL },
-];
 
 export async function createApp(): Promise<NestExpressApplication> {
   const env = loadEnv();

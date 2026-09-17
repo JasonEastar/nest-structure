@@ -73,10 +73,10 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 |---|---|
 | Phương thức | **Chỉ Google sign-in** (Supabase provider `google`) ở MVP. Apple thêm khi lên App Store (bắt buộc nếu có social login). Phone OTP **không dùng để đăng nhập**; gđ 2 chỉ dùng để *liên kết* SĐT (`updateUser({phone})` + `verifyOtp`) cho SOS |
 | Token | Supabase phát hành JWT **ES256**; access token **3600 s (mặc định, user chốt)**; refresh rotation bật. Thu hồi quyền không phụ thuộc token vì permission đọc từ DB/Redis |
-| Xác thực ở NestJS | `jose.createRemoteJWKSet(SUPABASE_URL + '/auth/v1/.well-known/jwks.json')`, kiểm `iss`, `aud = authenticated`, `exp`. NEVER dùng `SUPABASE_JWT_SECRET` HS256 |
+| Xác thực ở NestJS | `jose.createRemoteJWKSet(SUPABASE_JWKS_URL)` (mặc định `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`), kiểm `iss`, `aud = authenticated`, `exp`. NEVER HS256/JWT secret → **project phải bật JWT Signing Keys (ES256)**, nếu không JWKS rỗng và mọi token 401 |
 | Claims dùng | `sub` (user id), `session_id`, `aal`, `is_anonymous`. NEVER đưa role/permission vào JWT |
 | Guard | `AuthGuard` (global, `@Public()` mở) → `PermissionGuard` (`@RequirePermissions`) → `@RequirePhoneVerified()` theo hành động |
-| Admin API | `@supabase/supabase-js` với `SUPABASE_SERVICE_ROLE_KEY`, chỉ server: `auth.admin.deleteUser`, `signOut`, `generateLink` |
+| Admin API | `@supabase/supabase-js` với `SUPABASE_SECRET_KEY` (khoá mới `sb_secret_…`), chỉ server, sau port `SUPABASE_ADMIN`: `deleteUser`, `getUserById` |
 | Đăng xuất thiết bị | Xoá session qua Admin API; app-side `devices` chỉ giữ push token |
 | SMTP / SMS | Không cần ở MVP (không email OTP). SMS provider qua Send SMS hook chỉ khi làm liên kết SĐT gđ 2 |
 | Rate limit auth | Supabase tự giới hạn per-IP; NestJS không proxy auth endpoints |
@@ -203,7 +203,7 @@ Health cho compose: `/health/live` + `/health/ready`; không có service worker 
 | `NODE_ENV`, `PORT` (3000), `INSTANCE_ID` (mặc định hostname container), `TRUST_PROXY_HOPS` (nginx 1, ALB+nginx 2), `LOG_LEVEL` | Chuẩn |
 | `DATABASE_URL` | `postgres://c9:…@postgres:5432/c9_map` (container) / `127.0.0.1:5432` (host) |
 | `DATABASE_MIGRATE_URL` | Prod: role `c9_migrate`; local = `DATABASE_URL` |
-| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` | JWKS + Admin API; anon key chỉ cho E2E lấy token |
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_JWKS_URL?` | Admin API + JWKS; publishable key chỉ cho `scripts/dev-token.mjs` và E2E |
 | `SUPABASE_JWT_ISSUER` | `${SUPABASE_URL}/auth/v1` |
 | `REDIS_URL` | DB 0 cache; queue dùng `/1` |
 | `R2_*`, `FCM_*`, `SENTRY_DSN` | Theo giai đoạn |

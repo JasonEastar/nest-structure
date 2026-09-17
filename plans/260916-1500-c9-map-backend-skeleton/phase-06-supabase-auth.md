@@ -5,10 +5,16 @@
 - [Supabase report](../reports/researcher-260916-supabase-auth-nestjs.md) §1, §5, §8, §9 · NestJS docs [03 security](../reports/nestjs-docs-03-security-openapi.md)
 
 ## Overview
-**Ngày:** 2026-09-16 · **Ưu tiên:** P0 · **Trạng thái:** ☐ Chưa bắt đầu
+**Ngày:** 2026-09-16 · **Ưu tiên:** P0 · **Trạng thái:** ✅ Code + 29 e2e xanh 2026-09-17 (JWKS ES256 nội bộ). ⏳ E2E với Supabase project thật chờ bật JWT signing keys (project đang HS256, JWKS rỗng)
 NestJS **chỉ verify** JWT Supabase (Google) qua JWKS; profile upsert phía app ở request đầu; RBAC bằng bảng + cache Redis; admin API gán role; `GET/DELETE /me`.
 
 ## Key insights
+- **Thực tế 2026-09-17:** Supabase project của user dùng khoá mới (`sb_publishable_…`, `sb_secret_…`) → env đổi thành `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, thêm `SUPABASE_JWKS_URL` (tuỳ chọn). Project vẫn phát **HS256 legacy, JWKS rỗng** → verify JWKS đúng thiết kế trả 401; cần bật *JWT Signing Keys* (ES256) trong Dashboard. Không dùng `@supabase/server` (bên trong cũng jose+JWKS; adapter Nest chỉ peer 10/11; README ghi HS256 not supported).
+- **Bug tìm được nhờ test:** `ConfigModule.forRoot()` chụp `process.env` ngay khi `app.module.ts` được import (ESM hoisting) → `.env` phải nạp bằng side-effect module `config/load-env.ts` import ở dòng đầu `main.ts`; `ignoreEnvFile: true` để tránh file `.env` ghi đè biến môi trường thật của compose/CI. Test muốn ghi đè env phải set rồi mới `await import(app.module)`.
+- Bull Board: dùng tuỳ chọn `middleware` chính thức của `@bull-board/nestjs` (áp trước router) qua `forRootAsync` inject `SupabaseJwtService` + `AUTH_USER`; wiring ở `app.module.ts`. `consumer.apply(...)` trong AppModule KHÔNG chặn được (router của Bull Board đã trả lời trước).
+- Swagger `include` lọc theo **module**: controller admin phải nằm trong `IdentityAdminModule` riêng (import IdentityModule) → `/docs/admin` chỉ có admin, `/docs/app` chỉ có `/me`.
+- `GLOBAL_PREFIX_EXCLUDE` export từ `app.module.ts` cho main.ts và test dùng chung.
+- **Sau review:** tombstone `c9:v1:deleted:{sub}` (TTL = tuổi thọ token + 300 s) chặn profile "sống lại" bằng token còn hạn sau `DELETE /me`; ghim `algorithms: ['ES256','RS256']`; bỏ filter `deleted_at` chết (hard delete; cột dành cho ẩn danh hoá gđ sau). Bull Board `?access_token=` chấp nhận cho admin tool (token lộ trong log URL) — ghi decisions-pending.
 - **Từ phase 05:** Bull Board mount như Express middleware → guard Nest không chạy; bảo vệ `/admin/queues` bằng một middleware nhỏ trong `bull-board.ts`: verify JWT (SupabaseJwtService) + permission `queue:read` (IdentityService.getPermissions), 401/403 theo shape lỗi. Thay `if NODE_ENV !== production`.
 - JWKS `${SUPABASE_URL}/auth/v1/.well-known/jwks.json` (`jose.createRemoteJWKSet`, cache `kid`); kiểm `iss = ${SUPABASE_URL}/auth/v1`, `aud = authenticated`, `clockTolerance 5`. Hosted project phát ES256.
 - Token 3600 s. Thu hồi quyền: cache `c9:perms:{userId}` 300 s, admin đổi → `DEL`. Ban (gđ moderation) → `c9:banned:{id}` kiểm trong guard.
@@ -67,14 +73,14 @@ test/e2e/auth-me.e2e.spec.ts      # skipIf thiếu SUPABASE_*
 8. `dev-token.mjs`, `db-seed-admin.sql`; E2E `auth-me`.
 
 ## Todo
-- [ ] supabase.ts (SUPABASE_ADMIN port/adapter + JwtService JWKS)
-- [ ] decorators.ts
-- [ ] identity dto / repository / service (ensureProfile idempotent, perms cache, deleteMe)
-- [ ] auth.guard.ts + permission.guard.ts + thứ tự APP_GUARD
-- [ ] /me, DELETE /me, admin roles API
-- [ ] touchDevice `.catch(log)`
-- [ ] Bull Board guard queue:read
-- [ ] dev-token.mjs, seed admin, E2E auth-me
+- [x] supabase.ts (SUPABASE_ADMIN port/adapter + JwtService JWKS)
+- [x] decorators.ts
+- [x] identity dto / repository / service (ensureProfile idempotent, perms cache, deleteMe)
+- [x] auth.guard.ts + permission.guard.ts + thứ tự APP_GUARD
+- [x] /me, DELETE /me, admin roles API
+- [x] touchDevice `.catch(log)`
+- [x] Bull Board guard queue:read
+- [x] dev-token.mjs, seed admin, E2E auth-me
 
 ## Success criteria
 ```

@@ -9,8 +9,8 @@
 
 | Mục | Giá trị |
 |---|---|
-| Bước roadmap | 5 — Redis/cache/throttler/BullMQ/Bull Board xong; tiếp theo bước 6 Supabase Auth + RBAC |
-| Git | Nhánh `main`; e7f5f1a docs · f1476f4 phase 01 · 55d3858 phase 02 · fb5db5f phase 03 · 2f6ffc1 phase 04 · phase 05 commit kế tiếp |
+| Bước roadmap | 6 — Auth (JWKS) + RBAC + /me + admin roles + Bull Board bảo vệ; chờ bật JWT signing keys ở Supabase; tiếp theo bước 7 test/CI |
+| Git | Nhánh `main`; e7f5f1a docs · f1476f4 phase 01 · 55d3858 phase 02 · fb5db5f phase 03 · 2f6ffc1 phase 04 · 6d3a5b6 phase 05 · phase 06 commit kế tiếp |
 | Kế hoạch đang chờ duyệt | `plans/260916-1500-c9-map-backend-skeleton/` |
 
 ## 2. Cây thư mục hiện tại
@@ -34,7 +34,7 @@ c9_backend/
 └── .claude/                  # agents, commands, skills, workflows của ClaudeKit
 ```
 
-## 3. Code hiện có (phase 01–05)
+## 3. Code hiện có (phase 01–06)
 
 ```
 src/
@@ -54,7 +54,13 @@ src/
 ├── common/redis.ts                # REDIS_CACHE db0 · redisOptions() (db1 cho BullMQ) · CacheService · cacheKeys · TTL
 ├── common/queue.ts                # BullModule root (prefix c9, defaultJobOptions) · QUEUES
 ├── common/throttler.guard.ts      # RedisThrottlerStorage (Lua) · AppThrottlerModule · AppThrottlerGuard (APP_GUARD đầu)
-├── common/bull-board.ts           # /admin/queues (dev; phase 06 bảo vệ)
+├── common/bull-board.ts           # /admin/queues, middleware JWT + queue:read
+├── common/supabase.ts             # SupabaseJwtService (jose JWKS) · SUPABASE_ADMIN port/adapter
+├── common/auth.guard.ts           # AuthGuard (Bearer → JWKS → ensureProfile) · AUTH_USER port
+├── common/permission.guard.ts     # @RequirePermissions ↔ cache c9:perms
+├── common/decorators.ts           # Public · RequirePermissions · CurrentUser
+├── config/load-env.ts             # nạp .env (import đầu tiên của main.ts)
+├── modules/identity/*             # /me · /admin/roles · ensureProfile · RBAC · devices
 ├── modules/pin/pin.constants.ts   # TTL pin, rate limit, tier rep, MARKER_EXPIRE_JOB
 ├── modules/pin/pin.jobs.ts        # PinScheduler (upsertJobScheduler) · PinJobs (@Processor concurrency 2)
 ├── modules/pin/pin.module.ts
@@ -67,7 +73,7 @@ Dockerfile (targets dev · runtime) · .dockerignore · docker-compose.yml (post
 test/app.e2e-spec.ts        # supertest /health/live
 package.json · nest-cli.json · tsconfig*.json · vitest.config*.ts · oxlint.json · .prettierrc · .env.example · .editorconfig
 ```
-Scaffold `nest new` 12: ESM (`type: module`, nodenext), oxlint, Vitest 4, TypeScript 6. Lệnh: `npm run openapi:export` · `npm run db:generate` · `npm run db:migrate` · `npm run dev:infra` (postgres+redis) · `npm run dev:infra:full` (+api×2+nginx) · `npm run dev` · `npm run typecheck` · `npm run lint` · `npm run test:e2e` · `npm run build` → `dist/main.js`.
+Scaffold `nest new` 12: ESM (`type: module`, nodenext), oxlint, Vitest 4, TypeScript 6. Lệnh: `node scripts/dev-token.mjs` (token thật) · `npm run openapi:export` · `npm run db:generate` · `npm run db:migrate` · `npm run dev:infra` (postgres+redis) · `npm run dev:infra:full` (+api×2+nginx) · `npm run dev` · `npm run typecheck` · `npm run lint` · `npm run test:e2e` · `npm run build` → `dist/main.js`.
 
 ## 4. Sẽ có sau bước 2–7 (xem plan)
 

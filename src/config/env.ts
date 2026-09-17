@@ -23,6 +23,12 @@ export const envSchema = z.object({
   REDIS_CACHE_DB: z.coerce.number().int().min(0).max(15).default(0),
   REDIS_QUEUE_DB: z.coerce.number().int().min(0).max(15).default(1),
 
+  // Supabase: CHỈ auth (Google sign-in). Khoá định dạng mới: sb_publishable_… (client) và sb_secret_… (server).
+  SUPABASE_URL: z.url({ protocol: /^https?$/ }),
+  SUPABASE_JWKS_URL: z.url({ protocol: /^https?$/ }).optional(), // mặc định `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`
+  SUPABASE_PUBLISHABLE_KEY: z.string().min(20).optional(), // chỉ cần cho scripts/dev-token.mjs và E2E
+  SUPABASE_SECRET_KEY: z.string().min(20), // KHÔNG bao giờ ra client/image/log
+
   // Rate limit mặc định (đếm chung mọi instance qua Redis). Override từng route bằng @Throttle.
   THROTTLE_SHORT_LIMIT: z.coerce.number().int().min(1).default(10), // / 1 giây
   THROTTLE_LONG_LIMIT: z.coerce.number().int().min(1).default(100), // / 1 phút

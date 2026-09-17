@@ -54,4 +54,7 @@ Mỗi dòng: câu hỏi · ảnh hưởng · khuyến nghị tạm · trạng th
 | 35 | `APP_ROLE=admin` tách container ngay? | Compose, main.ts | — | ✅ Không có `APP_ROLE` nữa, all-in-one scale bằng instance — [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md) (user chốt 2026-09-16) |
 | 36 | Backup Postgres tự host: pg_dump → S3 từ staging; WAL-G hay pgBackRest cho PITR? | Vận hành | pg_dump ngay; WAL-G khi có user thật | ☐ |
 | 37 | Deploy prod: EC2 + compose (A) hay Swarm (B)? ECS Fargate không hợp vì Postgres tự host cần máy có volume | Hạ tầng, CI/CD | A trước; Swarm khi cần > 1 node | ☐ |
+| 38 | Supabase project đang HS256 legacy (JWKS rỗng): bật *JWT Signing Keys* ES256 trong Dashboard (Authentication → JWT Keys) | Auth chạy thật | Bật ngay; sau đó token mới ký ES256, code hiện tại verify được | ☐ |
+| 39 | `@supabase/server` (hướng dẫn Dashboard)? | Dependency | ❌ Không: bên trong cũng jose+JWKS, adapter chỉ Nest 10/11, HS256 not supported; mô hình `ctx.supabase` là Supabase-làm-DB | ✅ |
+| 40 | Bull Board mở bằng trình duyệt qua `?access_token=` → token lộ trong access log/history | Bảo mật admin tool | Chấp nhận (chỉ admin, permission queue:read); prod: bỏ query param, chỉ Bearer qua reverse proxy có auth | ☐ |
 | 31 | Codegen client cho mobile: `openapi-generator` (Dart) và/hoặc `orval`/`openapi-ts` (TS)? | CI | Xuất `openapi.json` trong CI; mobile repo tự chọn tool | ☐ |

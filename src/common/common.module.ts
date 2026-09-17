@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { DRIZZLE, databaseProviders } from './database.js';
 import { QueueRootModule } from './queue.js';
 import { CacheService, REDIS_CACHE, redisProviders } from './redis.js';
+import { SUPABASE_ADMIN, SupabaseJwtService, supabaseProviders } from './supabase.js';
 import { AppThrottlerModule } from './throttler.guard.js';
 
 /**
@@ -11,7 +12,7 @@ import { AppThrottlerModule } from './throttler.guard.js';
 @Global()
 @Module({
   imports: [QueueRootModule, AppThrottlerModule],
-  providers: [...databaseProviders, ...redisProviders],
-  exports: [DRIZZLE, REDIS_CACHE, CacheService, QueueRootModule, AppThrottlerModule],
+  providers: [...databaseProviders, ...redisProviders, ...supabaseProviders],
+  exports: [DRIZZLE, REDIS_CACHE, CacheService, SUPABASE_ADMIN, SupabaseJwtService, QueueRootModule, AppThrottlerModule],
 })
 export class CommonModule {}

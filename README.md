@@ -1,6 +1,6 @@
 # c9_map — backend
 
-**Cập nhật:** 2026-09-16 · **Trạng thái:** Bước 5/11 — skeleton, Docker đa instance, Drizzle + PostGIS, cross-cutting, Redis + rate limit + BullMQ
+**Cập nhật:** 2026-09-16 · **Trạng thái:** Bước 6/11 — skeleton, Docker đa instance, Drizzle + PostGIS, cross-cutting, Redis + BullMQ, Supabase Auth + RBAC
 
 C9 Map là bản đồ đời sống thời gian thực cho TP.HCM: kẹt xe, ngập, chợ đêm, sự kiện, danh lam… hiện thành pin có tuổi thọ, do người xung quanh xác nhận, tự hết hạn. Repo này là **API backend**; app mobile (Flutter hoặc React Native) là repo riêng, chỉ tiêu thụ OpenAPI.
 
@@ -34,7 +34,7 @@ Quy chuẩn viết tài liệu: [code-standards.md §6](./docs/code-standards.md
 ## Bắt đầu nhanh (sau khi có code — bước 1–2)
 
 ```bash
-# yêu cầu: Node 22+, Docker, một Supabase project (free) đã bật Google provider
+# yêu cầu: Node 22+, Docker, Supabase project (free) đã bật Google provider VÀ JWT Signing Keys (ES256)
 cp .env.example .env
 npm install
 npm run dev:infra        # postgres (postgis) + redis; trùng port? đặt PG_HOST_PORT/REDIS_HOST_PORT trong .env

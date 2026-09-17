@@ -1,42 +1,63 @@
-import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
+import { type MiddlewareConsumer, Module, type NestModule, RequestMethod } from '@nestjs/common';
 import { ConditionalModule, ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { BullBoardQueuesModule, BullBoardRootModule } from './common/bull-board.js';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { BullBoardQueuesModule, bullBoardRootOptions, createBullBoardAuth } from './common/bull-board.js';
 import { CommonModule } from './common/common.module.js';
+import { AUTH_USER, AuthGuard, type AuthUserPort } from './common/auth.guard.js';
 import { AllExceptionsFilter } from './common/exceptions.js';
+import { PermissionGuard } from './common/permission.guard.js';
 import { AppI18nModule } from './common/i18n.js';
 import { PinoLoggerModule } from './common/logger.js';
 import { RequestContextMiddleware } from './common/request-context.middleware.js';
 import { ResponseInterceptor } from './common/response.js';
+import { SupabaseJwtService } from './common/supabase.js';
 import { AppThrottlerGuard } from './common/throttler.guard.js';
 import { ValidationPipeProvider } from './common/validation.js';
 import { envSchema } from './config/env.js';
 import { HealthModule } from './health/health.controller.js';
+import { IdentityAdminModule, IdentityModule } from './modules/identity/identity.module.js';
 import { PinModule } from './modules/pin/pin.module.js';
 
-/**
- * Tài liệu OpenAPI (include tường minh — rỗng = Swagger lấy tất cả, không được phép).
- * Phase 06: app = [IdentityModule, PinModule…], admin = [IdentityAdminModule…]. Tạm dùng HealthModule để build được.
- */
-export const OPENAPI_DOCS = { app: [HealthModule, PinModule], admin: [HealthModule] };
+/** Route nằm ngoài prefix /api: health (Docker HEALTHCHECK), docs, Bull Board. main.ts và test dùng chung. */
+export const GLOBAL_PREFIX_EXCLUDE = [
+  { path: 'health/{*splat}', method: RequestMethod.GET },
+  { path: 'docs/{*splat}', method: RequestMethod.GET },
+  { path: 'admin/queues', method: RequestMethod.ALL },
+  { path: 'admin/queues/{*splat}', method: RequestMethod.ALL },
+];
 
-/** Bull Board chỉ ngoài production cho tới khi có bảo vệ bằng JWT + permission (phase 06). ConditionalModule đọc env đúng cách. */
-const notProd = (env: NodeJS.ProcessEnv) => env.NODE_ENV !== 'production';
+/** Tài liệu OpenAPI (include tường minh — rỗng = Swagger lấy tất cả, không được phép). */
+export const OPENAPI_DOCS = { app: [HealthModule, IdentityModule, PinModule], admin: [IdentityAdminModule] };
+
+/** Bull Board: bảo vệ bằng JWT + permission queue:read qua `middleware` chính thức của @bull-board/nestjs; tắt khi test. */
+const boardEnabled = (env: NodeJS.ProcessEnv) => env.NODE_ENV !== 'test';
+const BullBoardRootModule = BullBoardModule.forRootAsync({
+  imports: [IdentityModule],
+  inject: [SupabaseJwtService, AUTH_USER],
+  useFactory: (jwt: SupabaseJwtService, users: AuthUserPort) => bullBoardRootOptions(createBullBoardAuth(jwt, users)),
+});
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, cache: true, validationSchema: envSchema }),
+    // ignoreEnvFile: .env đã được nạp một lần trong main.ts/test setup (process.loadEnvFile).
+    // Nếu để ConfigModule tự đọc .env, giá trị trong FILE sẽ ghi đè biến môi trường thật (compose/CI) — hai nguồn sự thật.
+    ConfigModule.forRoot({ isGlobal: true, cache: true, ignoreEnvFile: true, validationSchema: envSchema }),
     PinoLoggerModule,
     AppI18nModule,
     CommonModule,
     HealthModule,
+    IdentityModule,
+    IdentityAdminModule,
     PinModule,
-    ConditionalModule.registerWhen(BullBoardRootModule, notProd),
-    ConditionalModule.registerWhen(BullBoardQueuesModule, notProd),
+    ConditionalModule.registerWhen(BullBoardRootModule, boardEnabled),
+    ConditionalModule.registerWhen(BullBoardQueuesModule, boardEnabled),
   ],
   providers: [
-    // Thứ tự APP_GUARD = thứ tự chạy: Throttler → Auth → Permission (phase 06)
+    // Thứ tự APP_GUARD = thứ tự chạy: Throttler (chặn sớm, chưa tốn CPU verify) → Auth → Permission
     { provide: APP_GUARD, useClass: AppThrottlerGuard },
+    { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_GUARD, useClass: PermissionGuard },
     ValidationPipeProvider,
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },

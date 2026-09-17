@@ -1,16 +1,18 @@
 import { getQueueToken } from '@nestjs/bullmq';
-import { Controller, Get, type INestApplication, Module, RequestMethod, VersioningType } from '@nestjs/common';
+import { Controller, Get, type INestApplication, Module, VersioningType } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { Queue } from 'bullmq';
 import { QueueEvents } from 'bullmq';
 import request from 'supertest';
-import { AppModule } from '../src/app.module.js';
+import { AppModule, GLOBAL_PREFIX_EXCLUDE } from '../src/app.module.js';
+import { Public } from '../src/common/decorators.js';
 import { QUEUES } from '../src/common/queue.js';
 import { CacheService, redisOptions } from '../src/common/redis.js';
 import { ConfigService } from '@nestjs/config';
 import { MARKER_EXPIRE_JOB } from '../src/modules/pin/pin.constants.js';
 
-/** Route CHỈ cho test: đi qua guard chain toàn cục (route 404 không qua guard). */
+/** Route CHỈ cho test cross-cutting/rate-limit — @Public() để không cần token (auth test riêng ở auth-rbac). */
+@Public()
 @Controller('probe')
 class ProbeController {
   @Get()
@@ -25,7 +27,7 @@ async function boot(instanceId: string): Promise<INestApplication> {
   process.env.INSTANCE_ID = instanceId;
   const moduleRef = await Test.createTestingModule({ imports: [AppModule, ProbeModule] }).compile();
   const app = moduleRef.createNestApplication();
-  app.setGlobalPrefix('api', { exclude: [{ path: 'health/{*splat}', method: RequestMethod.GET }] });
+  app.setGlobalPrefix('api', { exclude: GLOBAL_PREFIX_EXCLUDE });
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
   await app.init();
   return app;

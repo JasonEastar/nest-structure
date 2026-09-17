@@ -1,16 +1,18 @@
-import { Body, Controller, Get, type INestApplication, Module, Param, Post, Query, RequestMethod, VersioningType } from '@nestjs/common';
+import { Body, Controller, Get, type INestApplication, Module, Param, Post, Query, VersioningType } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { I18n, type I18nContext } from 'nestjs-i18n';
 import request from 'supertest';
 import { z } from 'zod';
-import { AppModule } from '../src/app.module.js';
+import { AppModule, GLOBAL_PREFIX_EXCLUDE } from '../src/app.module.js';
+import { Public } from '../src/common/decorators.js';
 import { AppException } from '../src/common/exceptions.js';
 import { withMeta } from '../src/common/response.js';
 import { zText } from '../src/common/validation.js';
 
-/** Controller CHỈ cho test: chứng minh pipe zod, envelope, filter, i18n hoạt động qua enhancer toàn cục. */
+/** Controller CHỈ cho test: pipe zod, envelope, filter, i18n qua enhancer toàn cục. @Public() vì không test auth ở đây. */
 const CreateProbeSchema = z.object({ name: zText(20), age: z.coerce.number().int().min(0) });
 
+@Public()
 @Controller('probe')
 class ProbeController {
   @Post()
@@ -49,12 +51,7 @@ describe('Cross-cutting (e2e): validation · envelope · errors · i18n · prefi
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule, ProbeModule] }).compile();
     app = moduleRef.createNestApplication();
-    app.setGlobalPrefix('api', {
-      exclude: [
-        { path: 'health/{*splat}', method: RequestMethod.GET },
-        { path: 'docs/{*splat}', method: RequestMethod.GET },
-      ],
-    });
+    app.setGlobalPrefix('api', { exclude: GLOBAL_PREFIX_EXCLUDE });
     app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
     await app.init();
   });

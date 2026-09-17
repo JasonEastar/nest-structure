@@ -34,6 +34,7 @@ export const cacheKeys = {
   viewport: (zoom: number, tile: string, types: string) => `${P}:viewport:${zoom}:${tile}:${types}`,
   marker: (id: string) => `${P}:marker:${id}`,
   profileExists: (userId: string) => `${P}:profile-exists:${userId}`,
+  deleted: (userId: string) => `${P}:deleted:${userId}`, // tombstone sau DELETE /me, sống bằng tuổi thọ token
   perms: (userId: string) => `c9:perms:${userId}`,
   count: (kind: string, id: string) => `c9:cnt:${kind}:${id}`,
   idem: (userId: string, key: string) => `c9:idem:${userId}:${key}`,
@@ -45,6 +46,7 @@ export const TTL = {
   marker: 300,
   perms: 300,
   profileExists: 3600,
+  deletedTombstone: 3600 + 300, // = access token 3600 s (Supabase mặc định) + clockTolerance dư
   idempotency: 86_400,
 } as const;
 

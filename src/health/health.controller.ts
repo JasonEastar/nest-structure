@@ -1,6 +1,7 @@
 import { Controller, Get, Module, VERSION_NEUTRAL } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HealthCheck, HealthCheckService, TerminusModule } from '@nestjs/terminus';
+import { Public } from '../common/decorators.js';
 import type { Env } from '../config/env.js';
 import { DrizzleHealthIndicator, RedisHealthIndicator } from './health.indicators.js';
 
@@ -10,6 +11,7 @@ import { DrizzleHealthIndicator, RedisHealthIndicator } from './health.indicator
  * - /health/ready: DB + Redis; 503 khi một dependency down. Terminus tự trả 503 `shutting_down` sau SIGTERM
  *   (beforeApplicationShutdown có sẵn) → nginx/compose ngừng route trong lúc job/request đang chạy được hoàn tất.
  */
+@Public()
 @Controller({ path: 'health', version: VERSION_NEUTRAL })
 export class HealthController {
   constructor(
