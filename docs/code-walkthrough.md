@@ -101,8 +101,7 @@ Mỗi phút cần quét pin hết hạn. Có 2 instance mà dùng cron trong pro
 | `dto/location.dto.ts` | Response schema, query phân trang (`PaginationQuerySchema`), query nearby. Một file cho một use case, cả request lẫn response. |
 | `location.repository.ts` | Mọi SQL: insert/returning, cursor `(created_at, id)`, `ST_DWithin` + `ST_Distance` theo mét thật. Mọi query lọc theo `userId`. |
 | `location.service.ts` | Luật: tối đa 20 địa điểm, của người khác trả `NOT_FOUND` (không lộ), map row DB sang response ở một chỗ, `pageOf()` tính `nextCursor`. |
-| `location.controller.ts` | 4 route cần token: POST, GET list, GET :id, DELETE :id. Chỉ khai route, gắn schema, gọi service. |
-| `location-public.controller.ts` | Route không cần đăng nhập: `GET /public/locations/nearby`, `@Public()` ở class, chỉ trả địa điểm `isPublic` và trường an toàn. Mẫu cho mọi API public. |
+| `location.controller.ts` | Hai nhóm route trong một file: `LocationController` cần token (POST, GET list, GET :id, DELETE :id) và `LocationPublicController` không cần đăng nhập (`GET /public/locations/nearby`, `@Public()` ở class, chỉ trả trường an toàn). Chỉ khai route, gắn schema, gọi service. |
 | `location.module.ts` | Khai controller + provider. Không import DB/Redis vì `CommonModule` là `@Global`. |
 | `test/unit/location.service.spec.ts` | Test luật với repository giả cùng interface. |
 | `test/integration/location.spec.ts` | Gọi HTTP thật qua supertest trên PostGIS thật, token ký bởi Supabase giả (`test/setup/jwks.ts`): 422, cách ly user, public nearby không token + biên 299 m / 301 m, cursor đi hết, giới hạn 20. |

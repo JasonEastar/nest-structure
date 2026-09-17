@@ -28,7 +28,7 @@ Trong Swagger bấm **Authorize**, dán token → gọi thử mọi API. Tài kh
 | Chi tiết theo id | `GET /locations/:id` | `/locations/detail?id=` |
 | Tài nguyên con | `GET /locations/:id/photos` | `/location-photos?locationId=` |
 | Truy vấn đặc biệt = path tĩnh, khai **trước** `:id` | `GET /locations/mine-count` | `/locations/:id` khai trước → `mine-count` bị hiểu là id |
-| API công khai (không đăng nhập) | `GET /public/locations/nearby` trong `<x>-public.controller.ts`, `@Public()` ở class, không `@ApiBearerAuth`, chỉ trả trường an toàn | `@Public()` rải trên từng route của controller thường |
+| API công khai (không đăng nhập) | `GET /public/locations/nearby`: class thứ hai `<X>PublicController` trong cùng `<x>.controller.ts`, `@Public()` ở class, không `@ApiBearerAuth`, chỉ trả trường an toàn | `@Public()` rải trên từng route của controller thường |
 | Hành động không phải CRUD (hiếm) | `POST /pins/:id/vote` · `POST /pins/:id/report` | `PUT /pins/:id?action=vote` |
 | API quản trị | `/admin/...` trong module riêng `<x>-admin.controller.ts` + `IdentityAdminModule` kiểu | trộn vào controller app |
 | Version | tự động `/api/v1/...` (`app.ts`), controller không ghi `v1` | `@Controller('v1/locations')` |
@@ -89,7 +89,7 @@ export class LocationController {
 | Body | `@Body({ schema: XSchema })` | Kiểu TS lấy bằng `z.infer` trong file dto |
 | User đang đăng nhập | `@CurrentUser() user: AuthUser` | `user.id` = `sub` của Supabase. Route không có `@Public()` là bắt buộc token |
 | Header | `@Headers('x-device-id') deviceId?: string` | Chỉ khi thật cần; device id đã được AuthGuard ghi nhận sẵn |
-| Route công khai | `@Public()` ở class của `<x>-public.controller.ts`, path `public/<resource>` | Không có `req.user`; dữ liệu trả về phải là thứ ai cũng được xem; rate limit vẫn áp theo thiết bị/IP |
+| Route công khai | `@Public()` ở class `<X>PublicController` (cùng file `<x>.controller.ts`), path `public/<resource>` | Không có `req.user`; dữ liệu trả về phải là thứ ai cũng được xem; rate limit vẫn áp theo thiết bị/IP |
 | Cần quyền | `@RequirePermissions(['pin:create'])` | Mã quyền phải có trong `drizzle/0002_seed_rbac.sql` |
 
 ## 5. Validate bằng zod (file dto)
