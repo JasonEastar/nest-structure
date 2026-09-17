@@ -1,4 +1,4 @@
-import { Inject, Injectable, type OnModuleDestroy, type Provider } from '@nestjs/common';
+import { Inject, Injectable, Logger, type OnModuleDestroy, type Provider } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Redis, type RedisOptions } from 'ioredis';
 import type { Env } from '../config/env.js';
@@ -115,7 +115,10 @@ export const redisProviders: Provider[] = [
     provide: REDIS_CACHE,
     inject: [ConfigService],
     useFactory: (config: ConfigService<Env, true>) =>
-      new Redis(redisOptions(config, config.get('REDIS_CACHE_DB', { infer: true }))),
+      // 'error' không có listener → Node ném uncaughtException → cả instance chết khi Redis chớp; ioredis tự reconnect.
+      new Redis(redisOptions(config, config.get('REDIS_CACHE_DB', { infer: true }))).on('error', (err: Error) =>
+        new Logger('Redis').error(`cache: ${err.message}`),
+      ),
   },
   CacheService,
   {

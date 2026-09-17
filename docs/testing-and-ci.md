@@ -1,6 +1,6 @@
 # C9 Map — Kiểm thử & CI/CD
 
-**Cập nhật:** 2026-09-16 · **Trạng thái:** Active · **Chủ sở hữu:** Tech Lead
+**Cập nhật:** 2026-09-17 · **Trạng thái:** Active · **Chủ sở hữu:** Tech Lead
 Tầng kiểm thử, kịch bản lõi, môi trường, pipeline và secrets. Quy ước code xem [code-standards.md](./code-standards.md).
 
 ---
@@ -9,10 +9,9 @@ Tầng kiểm thử, kịch bản lõi, môi trường, pipeline và secrets. Qu
 
 | Tầng | Công cụ | Phạm vi | Chạy ở |
 |---|---|---|---|
-| Unit | Vitest | Service logic thuần: rep, tier, quantize bbox, gộp thông báo, state machine pin | Mỗi commit |
-| **Integration** | Vitest + testcontainers (Postgres + PostGIS thật, Redis thật) | Mọi `*-geo.repository.ts`, outbox, BullMQ processor, cache keys | Mỗi PR |
-| E2E | Supertest | 5 luồng: Supabase JWT + profile sync · tạo pin + viewport · vote pending→live · landmark check-in · webhook thanh toán (gđ 3) / SOS fan-out (gđ 2) | Mỗi PR |
-| Đa instance | Script bash 6 test | LB round-robin, cache chung, rate limit chung, job chạy 1 lần, JWT qua 2 instance, upload presigned | Trước deploy |
+| Unit | Vitest project `unit` — `src/**/*.spec.ts` | Logic thuần, không hạ tầng: env schema, error shape, cursor, zod helper, EWKT/EWKB, PermissionGuard; sau này rep, tier, quantize bbox, state machine pin | Mỗi commit (`npm run test:unit`) |
+| **Integration + E2E** | Vitest project `integration` — `test/**/*.spec.ts`, testcontainers `postgis/postgis:16-3.4` + `redis:7-alpine` (globalSetup tự dựng + migrate), supertest qua `AppModule` thật | Geo repository, BullMQ scheduler/processor, cache/throttle, auth JWKS + RBAC (JWKS server trong test), Bull Board; `test/supabase-real.spec.ts` chạy với Supabase thật khi có khoá | Mỗi PR (`npm run test:integration`) |
+| Đa instance | `scripts/smoke-multi-instance.sh` (6 kiểm tra) trên `docker compose --profile full` | LB đến 2 instance, Redis chung, rate limit chung + `Retry-After`, cron 1 lần/phút, JWT trên cả 2 instance, `X-Request-Id` giữ/sinh | Trước deploy (`TOKEN=$(node scripts/dev-token.mjs) npm run smoke`) |
 | Load | k6 | Viewport 300 req/s p95 < 100 ms; "500 người mở app sau 1 push" | Hàng tuần |
 
 ## 2. Quy tắc
@@ -51,12 +50,16 @@ MUST   mọi job BullMQ có test "chạy 1 lần dù 2 worker"
 | `staging` | Auth: Supabase project staging. DB: Postgres container tự host | EC2 docker-compose 2 replica | Redis container | Seed hoặc ẩn danh từ prod |
 | `prod` | Auth: Supabase project prod. DB: Postgres container tự host (backup S3, PITR) | EC2 docker-compose 2 replica + nginx | Redis container | Thật |
 
-Lệnh dev: `npm run dev:infra` (= `docker compose up -d postgres redis`) rồi `nest start --watch`.
+Lệnh dev: `npm run dev:infra` (= `docker compose up -d postgres redis`) rồi `npm run dev`. Test integration không cần `dev:infra` (testcontainers tự dựng, ~10 s); đặt `TEST_REUSE_INFRA=1` để dùng Postgres/Redis trong `.env` (nhanh hơn khi lặp). Các file integration chạy tuần tự (`fileParallelism: false`) vì dùng chung Redis.
 
 ## 5. Pipeline CI
 
 ```
-lint → typecheck → test:unit → test:integration → build image → migrate (bước riêng) → deploy → smoke (6 test đa instance)
+.github/workflows/ci.yml (push main + PR)
+  check:         npm ci → lint → typecheck → test:unit → test:integration (Docker sẵn trên ubuntu-latest) → build → openapi/*.json (artifact)
+  docker:        needs check → build image target runtime (không push, cache GHA)
+  supabase-real: needs check, chỉ push + repo variable SUPABASE_REAL_TESTS=true + secrets SUPABASE_* → test/supabase-real.spec.ts
+sau này:         migrate (bước riêng) → deploy → smoke (6 test đa instance)
 ```
 
 | Bước | Ghi chú |
@@ -67,7 +70,7 @@ lint → typecheck → test:unit → test:integration → build image → migrat
 | `openapi.json` | Export tại build, upload artifact → mobile codegen (Flutter `openapi-generator dart-dio` hoặc RN `openapi-typescript`) |
 | `migrate` | `drizzle-kit migrate` chạy riêng trước deploy, có `pg_advisory_lock`; NEVER lúc boot |
 | `deploy` | Rolling: `api-2` trước, health ok, rồi `api-1` |
-| `smoke` | 6 test đa instance + chaos kill; đỏ → rollback |
+| `smoke` | `npm run smoke` 6 test đa instance (+ chaos kill sau); đỏ → rollback |
 
 Dừng ở bước đỏ. Không merge khi test đỏ.
 
@@ -75,8 +78,8 @@ Dừng ở bước đỏ. Không merge khi test đỏ.
 
 ```
 MUST   commit .env.example; NEVER commit .env
-MUST   SUPABASE_SERVICE_ROLE_KEY chỉ ở server (NestJS); NEVER gửi cho mobile/web
-MUST   mobile chỉ dùng SUPABASE_ANON_KEY + URL
+MUST   SUPABASE_SECRET_KEY (sb_secret_…) chỉ ở server (NestJS) và GitHub secrets; NEVER gửi cho mobile/web
+MUST   mobile chỉ dùng SUPABASE_PUBLISHABLE_KEY (sb_publishable_…) + URL
 MUST   prod dùng AWS Secrets Manager hoặc Docker secrets; NEVER secret trong image hoặc log
 MUST   pino redact: authorization, cookie, token, otp, phone, lat/lng chính xác của user
 ```

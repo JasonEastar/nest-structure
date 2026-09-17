@@ -4,7 +4,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import { ewkbToLatLng, latLngToEwkt, type LatLng } from '../src/common/database.js';
 
 /**
- * Kiểm chứng customType geography(Point,4326) trên PostGIS thật (cần `npm run dev:infra`):
+ * Kiểm chứng customType geography(Point,4326) trên PostGIS thật (testcontainers qua globalSetup):
  * - latLngToEwkt (toDriver) → PostGIS nhận đúng SRID/toạ độ.
  * - ewkbToLatLng (fromDriver) parse EWKB hex → lat/lng khớp.
  * - ST_DWithin theo mét dùng được với giá trị đã ghi.

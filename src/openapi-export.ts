@@ -1,3 +1,4 @@
+import './config/load-env.js'; // MUST đứng đầu: ConfigModule snapshot process.env lúc import app.module (xem main.ts)
 import { OPENAPI_DOCS } from './app.module.js';
 import { exportOpenApi } from './common/openapi.js';
 import { createApp } from './main.js';

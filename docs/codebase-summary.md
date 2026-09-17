@@ -1,6 +1,6 @@
 # Hiện trạng codebase — C9 Map
 
-**Cập nhật:** 2026-09-16 · **Trạng thái:** Active · **Chủ sở hữu:** Tech Lead
+**Cập nhật:** 2026-09-17 · **Trạng thái:** Active · **Chủ sở hữu:** Tech Lead
 Ảnh chụp repo tại thời điểm cập nhật. Cập nhật sau mỗi bước trong [project-roadmap.md](./project-roadmap.md).
 
 ---
@@ -9,9 +9,9 @@
 
 | Mục | Giá trị |
 |---|---|
-| Bước roadmap | 6 — Auth (JWKS) + RBAC + /me + admin roles + Bull Board bảo vệ, đã chạy với Supabase thật; tiếp theo bước 7 test/CI |
-| Git | Nhánh `main`; e7f5f1a docs · f1476f4 phase 01 · 55d3858 phase 02 · fb5db5f phase 03 · 2f6ffc1 phase 04 · 6d3a5b6 phase 05 · 654527c phase 06 |
-| Kế hoạch đang chờ duyệt | `plans/260916-1500-c9-map-backend-skeleton/` |
+| Bước roadmap | Skeleton 7/7 phase xong (roadmap bước 0–6 ✅): test unit/integration testcontainers, smoke đa instance, CI GitHub Actions; tiếp theo roadmap bước 7 Pin core |
+| Git | Nhánh `main`; e7f5f1a docs · f1476f4 phase 01 · 55d3858 phase 02 · fb5db5f phase 03 · 2f6ffc1 phase 04 · 6d3a5b6 phase 05 · 654527c phase 06 · 343b23f verify auth thật · phase 07 test/CI |
+| Kế hoạch | `plans/260916-1500-c9-map-backend-skeleton/` ✅ hoàn thành; plan bước 7 (pin core) chưa lập |
 
 ## 2. Cây thư mục hiện tại
 
@@ -34,7 +34,7 @@ c9_backend/
 └── .claude/                  # agents, commands, skills, workflows của ClaudeKit
 ```
 
-## 3. Code hiện có (phase 01–06)
+## 3. Code hiện có (phase 01–07)
 
 ```
 src/
@@ -70,14 +70,19 @@ src/
 └── health/health.indicators.ts    # Drizzle + Redis indicators (Terminus tự 503 khi SIGTERM, grace 5 s)
 drizzle.config.ts · drizzle/{0000_extensions,0001_identity,0002_seed_rbac}.sql
 Dockerfile (targets dev · runtime) · .dockerignore · docker-compose.yml (postgres postgis · redis · api-1 · api-2 · nginx, profile full) · nginx.conf (least_conn)
-test/app.e2e-spec.ts        # supertest /health/live
-package.json · nest-cli.json · tsconfig*.json · vitest.config*.ts · oxlint.json · .prettierrc · .env.example · .editorconfig
+src/**/*.spec.ts            # unit (22): env, exceptions, response, validation, database, permission.guard
+test/setup/containers.ts    # globalSetup: testcontainers PostGIS + Redis, migrate, provide() URL (TEST_REUSE_INFRA=1 dùng .env)
+test/setup-env.ts           # setupFiles: NODE_ENV=test, inject() DATABASE_URL/REDIS_URL
+test/*.spec.ts              # integration (33): app, cross-cutting, geography, redis-queue, auth-rbac (JWKS giả ES256), supabase-real (skip khi thiếu khoá)
+scripts/smoke-multi-instance.sh · scripts/dev-token.mjs · scripts/verify-auth.mjs
+.github/workflows/ci.yml    # check (lint→typecheck→unit→integration→build→openapi artifact) · docker · supabase-real (gated)
+package.json · nest-cli.json · tsconfig*.json · vitest.config.ts (projects unit/integration) · oxlint.json · .prettierrc · .env.example · .editorconfig
 ```
-Scaffold `nest new` 12: ESM (`type: module`, nodenext), oxlint, Vitest 4, TypeScript 6. Lệnh: `node scripts/dev-token.mjs` (token thật) · `node scripts/verify-auth.mjs` (kiểm auth thật) · `npm run openapi:export` · `npm run db:generate` · `npm run db:migrate` · `npm run dev:infra` (postgres+redis) · `npm run dev:infra:full` (+api×2+nginx) · `npm run dev` · `npm run typecheck` · `npm run lint` · `npm run test:e2e` · `npm run build` → `dist/main.js`.
+Scaffold `nest new` 12: ESM (`type: module`, nodenext), oxlint, Vitest 4, TypeScript 6. Lệnh: `node scripts/dev-token.mjs` (token thật) · `node scripts/verify-auth.mjs` (kiểm auth thật) · `npm run openapi:export` · `npm run db:generate` · `npm run db:migrate` · `npm run dev:infra` (postgres+redis) · `npm run dev:infra:full` (+api×2+nginx) · `npm run dev` · `npm run typecheck` · `npm run lint` · `npm test` (unit + integration) · `npm run test:unit` · `npm run test:integration` · `npm run smoke` · `npm run build` → `dist/main.js`.
 
-## 4. Sẽ có sau bước 2–7 (xem plan)
+## 4. Tiếp theo (roadmap bước 7 Pin core)
 
-`src/{main.ts, app.module.ts, config/, common/, health/, modules/}` (một project `nest new`, ADR-0006), `drizzle/`, `test/`, `docker-compose.yml`, `nginx.conf`, `openapi/` (xuất từ CI), `.github/workflows/ci.yml`.
+`modules/pin/{pin.schema.ts, pin-geo.repository.ts, pin.service.ts, pin.controller.ts, pin.dto.ts}`, migration `markers` + `marker_photos`, test geo biên 300 m trên PostGIS thật, presigned upload R2 (decisions-pending).
 
 ## 5. Công cụ local đã kiểm tra
 

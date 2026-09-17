@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 
-/** E2E nền: cần Postgres từ `npm run dev:infra` (DATABASE_URL trong .env). */
+/** Integration nền: AppModule thật trên PostGIS + Redis (testcontainers). */
 describe('App (e2e)', () => {
   let app: INestApplication;
 

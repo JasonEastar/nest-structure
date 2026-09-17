@@ -1,6 +1,6 @@
 # C9 Map — Lộ trình xây dựng
 
-**Cập nhật:** 2026-09-16 · **Trạng thái:** Active · **Chủ sở hữu:** Tech Lead
+**Cập nhật:** 2026-09-17 · **Trạng thái:** Active · **Chủ sở hữu:** Tech Lead
 Thứ tự dựng backend theo checkpoint, giai đoạn sản phẩm, và những gì cố ý chưa làm.
 
 ---
@@ -18,7 +18,7 @@ NEVER  nhảy bước, gộp bước, hoặc làm trước tính năng của gia
 
 | Bước | Phạm vi | Done khi | Giai đoạn | Trạng thái |
 |---|---|---|---|---|
-| 0. Phân tích | Đọc docs/, chuẩn hoá tài liệu, lập plan skeleton `plans/260916-1500-c9-map-backend-skeleton/` | Docs chuẩn hoá ✅; plan được user duyệt | — | ◐ |
+| 0. Phân tích | Đọc docs/, chuẩn hoá tài liệu, lập plan skeleton `plans/260916-1500-c9-map-backend-skeleton/` | Docs chuẩn hoá ✅; plan được user duyệt; plan skeleton 7/7 phase (test unit/integration + CI thuộc phase 07) | — | ✅ 2026-09-17 |
 | 1. Skeleton | `nest new` (project đơn, ADR-0006), `config/env.ts` (zod qua `ConfigModule.validationSchema`), `.env.example`, `/health/live` | `nest start --watch` lên, `GET /health/live` → 200 | MVP | ✅ 2026-09-16 |
 | 2. Docker & đa instance | compose `postgres` (postgis) + `redis` + `api-1/2` + nginx `least_conn`; Supabase dev project cho auth; `X-Instance-Id` | `curl :3000/health` 10 lần thấy 2 instance id | MVP | ✅ 2026-09-16 |
 | 3. Nền dữ liệu | Drizzle + Postgres/PostGIS riêng, migration đầu (postgis, unaccent, pg_trgm), `common/database.ts`, `identity.schema.ts` | `drizzle-kit migrate` chạy, `/health/ready` → 200 | MVP | ✅ 2026-09-16 |

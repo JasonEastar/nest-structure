@@ -5,10 +5,15 @@
 - NestJS docs [01 §Testing](../reports/nestjs-docs-01-overview-fundamentals.md) · stack report §12
 
 ## Overview
-**Ngày:** 2026-09-16 · **Ưu tiên:** P0 · **Trạng thái:** ☐ Chưa bắt đầu
+**Ngày:** 2026-09-16 · **Ưu tiên:** P0 · **Trạng thái:** ✅ Hoàn thành 2026-09-17 — unit 22 · integration 33 (testcontainers PostGIS + Redis, không cần dev:infra) · Supabase thật 3 (skip khi thiếu khoá) · smoke Docker 7/7 với JWT thật · ci.yml
 Thay Jest scaffold bằng Vitest; integration trên PostGIS + Redis thật (testcontainers); E2E supertest; smoke 6 test đa instance; CI xanh trước business module.
 
 ## Key insights
+- **Thực tế:** cấu trúc chốt = 2 project vitest: `unit` (`src/**/*.spec.ts`, không hạ tầng, 22 test) và `integration` (`test/**/*.spec.ts`, 33 test: app, cross-cutting, geography, redis-queue, auth-rbac, supabase-real). Không tách thêm thư mục `test/integration|e2e` (YAGNI). globalSetup `test/setup/containers.ts` dựng `postgis/postgis:16-3.4` + `redis:7-alpine`, chạy migrate qua `drizzle-orm/postgres-js/migrator`, đưa URL cho worker bằng `provide/inject` (process.env trong globalSetup không chắc lan sang worker). `TEST_REUSE_INFRA=1` dùng Postgres/Redis trong `.env` khi dev. `fileParallelism: false` vì các file dùng chung Redis (bộ đếm throttle/scheduler).
+- Test Supabase thật `test/supabase-real.spec.ts` (`describe.skipIf` thiếu khoá) gồm contract test `SUPABASE_ADMIN` trên adapter thật; bản mock in-memory chạy trong `auth-rbac`.
+- Lockfile: `vite` (vitest kéo) có peer tuỳ chọn esbuild ^0.28, drizzle-kit hoist 0.25 → `npm install` bỏ qua, `npm ci` trong Docker fail → ghim `esbuild@0.28` devDependency ở gốc. Bài học: sau mỗi `npm install` chạy `npm ls` hoặc build Docker để bắt lockfile lệch.
+- nginx: `map $http_x_request_id` giữ request id client gửi (trace xuyên hệ thống, ALB sau này), không có thì sinh.
+- Smoke 3 (rate limit) dùng `/api/v1/me` không token: guard Throttler chạy trước Auth → 401 rồi 429 sau 10 request/giây.
 - (Đã lỗi thời) `nest new` 12 scaffold **Vitest 4** sẵn (`vitest.config.ts`, `vitest.config.e2e.ts`, `vite-tsconfig-paths`), không Jest → chỉ mở rộng config (projects unit/integration/e2e), không gỡ gì. Ghi chú cũ: `test/jest-e2e.json`, `test/app.e2e-spec.ts`. `vitest.config.ts` gốc: `unplugin-swc` (decorator metadata), `projects` `unit` (`src/**/*.spec.ts`), `integration` (`test/integration/**`), `e2e` (`test/e2e/**`); không cần alias (không có `libs/`).
 - Enhancer đăng ký bằng token `APP_*` → `Test.createTestingModule({ imports:[AppModule] }).overrideProvider(...)` hoạt động; E2E `app.e2e` override `AuthGuard` bằng guard giả gắn `req.user` — không cần Supabase.
 - Integration: `@testcontainers/postgresql` image `postgis/postgis:16-3.4` + `@testcontainers/redis`; chạy `drizzle-orm/postgres-js/migrator` (không fixture `auth`). Bật `logger: true` cho Drizzle để soi N+1.
@@ -64,22 +69,21 @@ scripts/smoke-multi-instance.sh
 9. Cập nhật `docs/codebase-summary.md`, `docs/project-roadmap.md` (bước 1–6 ✅) sau khi xong.
 
 ## Todo
-- [ ] Mở rộng vitest.config.ts (integration project + testcontainers globalSetup), scripts
-- [ ] testcontainers setup + migrate + Drizzle query log
-- [ ] unit specs mẫu
-- [ ] 5 integration specs
-- [ ] app e2e (AuthGuard override)
-- [ ] contract test + mock SUPABASE_ADMIN
-- [ ] smoke script 6 test
-- [ ] ci.yml (e2e-auth gated secrets)
+- [x] Mở rộng vitest.config.ts (integration project + testcontainers globalSetup), scripts
+- [x] testcontainers setup + migrate + Drizzle query log
+- [x] unit specs mẫu
+- [x] 5 integration specs
+- [x] app e2e (AuthGuard override)
+- [x] contract test + mock SUPABASE_ADMIN
+- [x] smoke script 6 test
+- [x] ci.yml (e2e-auth gated secrets)
 
 ## Success criteria
 ```
 npm run test:unit
-npm run test:integration          # Docker, không Supabase
-npm run test:e2e                  # auth skip nếu thiếu SUPABASE_*; pass khi có
-npm run dev:infra:full && bash scripts/smoke-multi-instance.sh   # "6/6 PASS"
-gh run list --limit 1            # success
+npm run test:integration          # Docker (testcontainers); test/supabase-real.spec.ts skip nếu thiếu SUPABASE_*, pass khi có (3/3 đã chạy)
+npm run dev:infra:full && TOKEN=$(node scripts/dev-token.mjs) npm run smoke   # PASS=7 FAIL=0 (đã chạy)
+gh run list --limit 1            # success — chưa push lên GitHub, chạy sau khi có remote
 ls openapi/app.json openapi/admin.json
 ```
 

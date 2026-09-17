@@ -1,6 +1,6 @@
 # Plan — c9_map backend skeleton (cross-cutting trước business module)
 
-**Ngày:** 2026-09-16 · **Trạng thái:** ◐ Đang làm — phase 01–05 xong 2026-09-16, phase 06 xong 2026-09-17 (đã kiểm chứng Supabase thật) · **Chủ sở hữu:** Tech Lead
+**Ngày:** 2026-09-16 · **Trạng thái:** ✅ HOÀN THÀNH 2026-09-17 — 7/7 phase; skeleton sẵn sàng cho bước 7 roadmap (pin core) · **Chủ sở hữu:** Tech Lead
 Mục tiêu: một project NestJS 12 **all-in-one** (HTTP + BullMQ processor trong cùng process) chạy được trên ≥ 2 instance sau nginx, có Postgres 16 + PostGIS riêng, Redis, Supabase Auth (chỉ Auth, Google), Swagger/OpenAPI, i18n, rate limit, test + CI. **Chưa có business module** (pin thật, reputation, alert…).
 
 ---
@@ -36,7 +36,7 @@ Mục tiêu: một project NestJS 12 **all-in-one** (HTTP + BullMQ processor tro
 | 04 | `common/`: exceptions, validation, response, request-context, logger, i18n, openapi ×2 | ✅ | 100% | [phase-04](./phase-04-cross-cutting.md) |
 | 05 | Redis, cache, throttler, BullMQ + `pin.jobs.ts` scheduler, Bull Board | ✅ | 100% | [phase-05](./phase-05-redis-cache-throttle-queue.md) |
 | 06 | Supabase Auth (Google) + RBAC: JWKS guard, profile upsert, permissions, admin roles API, `/me` | ✅ | 100% | [phase-06](./phase-06-supabase-auth.md) |
-| 07 | Vitest + testcontainers + supertest, smoke script, GitHub Actions | ☐ | 0% | [phase-07](./phase-07-testing-ci.md) |
+| 07 | Vitest + testcontainers + supertest, smoke script, GitHub Actions | ✅ | 100% | [phase-07](./phase-07-testing-ci.md) |
 
 Mỗi phase = 1 checkpoint: làm xong → chạy lệnh "done" → dán kết quả → dừng chờ review. Không sang phase kế.
 
@@ -66,9 +66,8 @@ for i in $(seq 10); do curl -s -D - :3000/health/live -o /dev/null | grep X-Inst
 curl -s :3000/health/ready | jq .status          # "ok"
 open http://localhost:3000/docs/app              # Swagger UI, 2 document
 npm run openapi:export && ls openapi/            # app.json admin.json
-bash scripts/smoke-multi-instance.sh             # 6/6 PASS
-npm test                                         # unit + integration (không cần Supabase)
-npm run test:e2e                                 # auth-me pass khi có SUPABASE_* trong .env
+TOKEN=$(node scripts/dev-token.mjs) npm run smoke   # PASS=7 FAIL=0 (đã chạy 2026-09-17)
+npm test                                         # unit 22 + integration 33 (testcontainers; supabase-real skip khi thiếu khoá)
 ```
 
 ## 6. Câu hỏi chờ user

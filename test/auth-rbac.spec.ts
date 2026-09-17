@@ -9,7 +9,7 @@ import { SUPABASE_ADMIN, type SupabaseAdminPort } from '../src/common/supabase.j
 import { IdentityService } from '../src/modules/identity/identity.service.js';
 
 /**
- * Auth + RBAC trên hạ tầng thật (Postgres + Redis từ `npm run dev:infra`).
+ * Auth + RBAC trên hạ tầng thật (PostGIS + Redis từ testcontainers).
  * JWT được ký bởi một JWKS server dựng tại chỗ (ES256) — cùng cơ chế Supabase dùng khi bật asymmetric keys,
  * nên guard/JWKS/claims được kiểm thật mà không phụ thuộc mạng. Supabase Admin thay bằng in-memory (contract test riêng).
  */

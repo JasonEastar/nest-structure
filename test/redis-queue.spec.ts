@@ -34,7 +34,7 @@ async function boot(instanceId: string): Promise<INestApplication> {
 }
 
 /**
- * Cần Postgres + Redis từ `npm run dev:infra`. Hai app trong cùng process = hai instance dùng chung Redis.
+ * PostGIS + Redis từ testcontainers. Hai app trong cùng process = hai instance dùng chung Redis.
  */
 describe('Redis · throttler · BullMQ (e2e, 2 instance)', () => {
   let a: INestApplication;
