@@ -5,7 +5,22 @@
       "get": {
         "description": "Không kiểm dependency. Docker HEALTHCHECK và nginx dùng endpoint này.\n\n**Không cần đăng nhập.**",
         "operationId": "Health.live",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "required": false,
+            "description": "Ngôn ngữ của message lỗi và nội dung. Mặc định vi.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vi",
+                "en"
+              ],
+              "default": "vi"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "{ data: { status: \"ok\", instance } }"
@@ -72,7 +87,22 @@
       "get": {
         "description": "Ping Postgres và Redis. 503 khi một dependency down hoặc app đang shutdown (grace 5 s) → LB ngừng route tới instance này.\n\n**Không cần đăng nhập.**",
         "operationId": "Health.ready",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "required": false,
+            "description": "Ngôn ngữ của message lỗi và nội dung. Mặc định vi.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vi",
+                "en"
+              ],
+              "default": "vi"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "The Health Check is successful",
@@ -360,7 +390,7 @@
   },
   "info": {
     "title": "C9 Map · Health",
-    "description": "Liveness/readiness cho Docker, nginx, load balancer. Không cần đăng nhập, nằm ngoài prefix /api.\n\nThành công: `{ data, meta }` · lỗi: `{ error: { code, message, params, requestId } }`. Ngôn ngữ: `?lang=vi|en` hoặc `Accept-Language` (mặc định vi), response kèm `Content-Language`. Mọi route cần `Authorization: Bearer <access_token Supabase>` trừ route ghi \"Không cần đăng nhập\".",
+    "description": "Liveness/readiness cho Docker, nginx, load balancer. Không cần đăng nhập, nằm ngoài prefix /api.\n\nThành công: `{ data, meta }` · lỗi: `{ error: { code, message, params, requestId } }`. Ngôn ngữ: header `Accept-Language: vi | en` (mặc định vi), response kèm `Content-Language`. Mọi route cần `Authorization: Bearer <access_token Supabase>` trừ route ghi \"Không cần đăng nhập\".",
     "version": "1",
     "contact": {}
   },
@@ -401,7 +431,7 @@
               },
               "message": {
                 "type": "string",
-                "description": "Đã dịch theo ?lang / Accept-Language (vi mặc định, en)"
+                "description": "Đã dịch theo header Accept-Language (vi mặc định, en)"
               },
               "params": {
                 "type": "object",

@@ -5,7 +5,22 @@
       "get": {
         "description": "Profile được tạo tự động ở request đầu tiên sau khi đăng nhập Google (Supabase). Kèm role và permission hiệu lực.",
         "operationId": "Identity.me",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "required": false,
+            "description": "Ngôn ngữ của message lỗi và nội dung. Mặc định vi.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vi",
+                "en"
+              ],
+              "default": "vi"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -108,7 +123,22 @@
       "delete": {
         "description": "Xoá dữ liệu local (cascade) rồi xoá user trên Supabase. Token còn hạn sau đó vẫn bị từ chối (tombstone 1 giờ).",
         "operationId": "Identity.deleteMe",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "required": false,
+            "description": "Ngôn ngữ của message lỗi và nội dung. Mặc định vi.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vi",
+                "en"
+              ],
+              "default": "vi"
+            }
+          }
+        ],
         "responses": {
           "204": {
             "description": ""
@@ -179,7 +209,22 @@
       "get": {
         "description": "Mỗi role kèm danh sách permission (resource:action) được gán.\n\n**Quyền cần có:** `role:manage`",
         "operationId": "IdentityAdmin.listRoles",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "required": false,
+            "description": "Ngôn ngữ của message lỗi và nội dung. Mặc định vi.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vi",
+                "en"
+              ],
+              "default": "vi"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -296,6 +341,20 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "required": false,
+            "description": "Ngôn ngữ của message lỗi và nội dung. Mặc định vi.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vi",
+                "en"
+              ],
+              "default": "vi"
+            }
           }
         ],
         "responses": {
@@ -376,6 +435,20 @@
               "type": "string",
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "required": false,
+            "description": "Ngôn ngữ của message lỗi và nội dung. Mặc định vi.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vi",
+                "en"
+              ],
+              "default": "vi"
             }
           }
         ],
@@ -458,7 +531,7 @@
   },
   "info": {
     "title": "C9 Map · User & Auth",
-    "description": "Đăng nhập Google qua Supabase, hồ sơ /me, role và permission. Backend không phát token, chỉ xác minh JWT.\n\nThành công: `{ data, meta }` · lỗi: `{ error: { code, message, params, requestId } }`. Ngôn ngữ: `?lang=vi|en` hoặc `Accept-Language` (mặc định vi), response kèm `Content-Language`. Mọi route cần `Authorization: Bearer <access_token Supabase>` trừ route ghi \"Không cần đăng nhập\".",
+    "description": "Đăng nhập Google qua Supabase, hồ sơ /me, role và permission. Backend không phát token, chỉ xác minh JWT.\n\nThành công: `{ data, meta }` · lỗi: `{ error: { code, message, params, requestId } }`. Ngôn ngữ: header `Accept-Language: vi | en` (mặc định vi), response kèm `Content-Language`. Mọi route cần `Authorization: Bearer <access_token Supabase>` trừ route ghi \"Không cần đăng nhập\".",
     "version": "1",
     "contact": {}
   },
@@ -503,7 +576,7 @@
               },
               "message": {
                 "type": "string",
-                "description": "Đã dịch theo ?lang / Accept-Language (vi mặc định, en)"
+                "description": "Đã dịch theo header Accept-Language (vi mặc định, en)"
               },
               "params": {
                 "type": "object",

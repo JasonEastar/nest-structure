@@ -62,7 +62,7 @@ const STATUS_TO_CODE: Partial<Record<number, ErrorCode>> = {
 /**
  * Filter toàn cục (APP_FILTER): mọi lỗi → `{ error: { code, message, params, requestId } }` (ErrorEnvelope).
  * - AppException: giữ code/params/status của nó. HttpException của Nest: map status → code. Lỗi lạ: 500 INTERNAL.
- * - `message` dịch từ i18n/errors.json theo ngôn ngữ request (Accept-Language), tìm theo thứ tự
+ * - `message` dịch từ i18n/errors.json theo header Accept-Language của request, tìm theo thứ tự
  *   `CODE_<reason>` (vd CONFLICT_LIMIT_REACHED) → `CODE` → chính mã lỗi nếu chưa có câu dịch.
  * - 5xx: log stack, không lộ chi tiết ra client.
  */

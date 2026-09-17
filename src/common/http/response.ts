@@ -37,7 +37,7 @@ export class ResponseInterceptor implements NestInterceptor {
     if (SKIP_PREFIXES.some((p) => req.path.startsWith(p))) return next.handle();
 
     const requestId = requestIdOf(req);
-    // Client biết response này ở ngôn ngữ nào (cùng cách chọn với message lỗi: ?lang → Accept-Language → vi)
+    // Client biết response này ở ngôn ngữ nào (theo header Accept-Language của request, mặc định vi)
     context.switchToHttp().getResponse<Response>().setHeader('Content-Language', I18nContext.current(context)?.lang ?? DEFAULT_LOCALE);
     return next.handle().pipe(
       map((body: unknown): unknown => {

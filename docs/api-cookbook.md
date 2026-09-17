@@ -143,7 +143,7 @@ Controller `return` dữ liệu thuần, interceptor bọc thành envelope. Clie
 | Lỗi nghiệp vụ | `throw new AppException('NOT_FOUND', { resource: 'location', id })` | `{ error: { code, message, params, requestId } }` đúng HTTP status; `message` = câu trong `i18n/<lang>/errors.json` (`NOT_FOUND` + `resource.location` → "Không tìm thấy địa điểm") |
 | Lỗi mới chưa có mã | thêm vào `ErrorCodes` trong `common/http/exceptions.ts` kèm status, thêm câu cùng tên vào `i18n/vi/errors.json` và `i18n/en/errors.json` | Cần câu riêng theo tình huống: `params.reason` + key `CODE_REASON` (vd `CONFLICT_LIMIT_REACHED`) |
 
-Ngôn ngữ: client gửi `Accept-Language: en` (hoặc `?lang=en` khi test trên Swagger), mặc định vi; response luôn có header `Content-Language`. Mã lỗi hiện có: `VALIDATION_FAILED` 422 · `NOT_FOUND` 404 · `UNAUTHENTICATED` 401 · `FORBIDDEN` 403 · `RATE_LIMITED` 429 · `CONFLICT` 409 · `BAD_REQUEST` 400 · `PAYLOAD_TOO_LARGE` 413 · `SERVICE_UNAVAILABLE` 503 · `INTERNAL` 500. Lỗi 5xx bất ngờ (throw Error thường) tự thành `INTERNAL`, stack chỉ ghi log.
+Ngôn ngữ: chỉ header `Accept-Language: vi | en` (mặc định vi), không nhận qua query hay body; response luôn có header `Content-Language`. Trên Swagger mỗi operation có ô `Accept-Language` để thử. Mã lỗi hiện có: `VALIDATION_FAILED` 422 · `NOT_FOUND` 404 · `UNAUTHENTICATED` 401 · `FORBIDDEN` 403 · `RATE_LIMITED` 429 · `CONFLICT` 409 · `BAD_REQUEST` 400 · `PAYLOAD_TOO_LARGE` 413 · `SERVICE_UNAVAILABLE` 503 · `INTERNAL` 500. Lỗi 5xx bất ngờ (throw Error thường) tự thành `INTERNAL`, stack chỉ ghi log.
 
 Map row DB sang response ở **một hàm** trong service (`toResponse`), controller không tự ghép object. Dữ liệu của người khác trả `NOT_FOUND`, không trả `FORBIDDEN` (không lộ tồn tại).
 

@@ -4,7 +4,22 @@
     "/api/v1/locations": {
       "post": {
         "operationId": "Location.create",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "required": false,
+            "description": "Ngôn ngữ của message lỗi và nội dung. Mặc định vi.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vi",
+                "en"
+              ],
+              "default": "vi"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -135,6 +150,20 @@
               "minimum": 1,
               "maximum": 100
             }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "required": false,
+            "description": "Ngôn ngữ của message lỗi và nội dung. Mặc định vi.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vi",
+                "en"
+              ],
+              "default": "vi"
+            }
           }
         ],
         "responses": {
@@ -253,6 +282,20 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "required": false,
+            "description": "Ngôn ngữ của message lỗi và nội dung. Mặc định vi.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vi",
+                "en"
+              ],
+              "default": "vi"
+            }
           }
         ],
         "responses": {
@@ -366,6 +409,20 @@
               "format": "uuid",
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
             }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "required": false,
+            "description": "Ngôn ngữ của message lỗi và nội dung. Mặc định vi.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vi",
+                "en"
+              ],
+              "default": "vi"
+            }
           }
         ],
         "responses": {
@@ -467,6 +524,20 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 20000
+            }
+          },
+          {
+            "name": "Accept-Language",
+            "in": "header",
+            "required": false,
+            "description": "Ngôn ngữ của message lỗi và nội dung. Mặc định vi.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "vi",
+                "en"
+              ],
+              "default": "vi"
             }
           }
         ],
@@ -573,7 +644,7 @@
   },
   "info": {
     "title": "C9 Map · Locations",
-    "description": "Địa điểm user tự lưu (tên, toạ độ, bán kính) và truy vấn địa điểm công khai quanh một toạ độ (PostGIS).\n\nThành công: `{ data, meta }` · lỗi: `{ error: { code, message, params, requestId } }`. Ngôn ngữ: `?lang=vi|en` hoặc `Accept-Language` (mặc định vi), response kèm `Content-Language`. Mọi route cần `Authorization: Bearer <access_token Supabase>` trừ route ghi \"Không cần đăng nhập\".",
+    "description": "Địa điểm user tự lưu (tên, toạ độ, bán kính) và truy vấn địa điểm công khai quanh một toạ độ (PostGIS).\n\nThành công: `{ data, meta }` · lỗi: `{ error: { code, message, params, requestId } }`. Ngôn ngữ: header `Accept-Language: vi | en` (mặc định vi), response kèm `Content-Language`. Mọi route cần `Authorization: Bearer <access_token Supabase>` trừ route ghi \"Không cần đăng nhập\".",
     "version": "1",
     "contact": {}
   },
@@ -614,7 +685,7 @@
               },
               "message": {
                 "type": "string",
-                "description": "Đã dịch theo ?lang / Accept-Language (vi mặc định, en)"
+                "description": "Đã dịch theo header Accept-Language (vi mặc định, en)"
               },
               "params": {
                 "type": "object",

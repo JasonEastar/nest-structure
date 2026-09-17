@@ -6,6 +6,7 @@ import { DocumentBuilder, type OpenAPIObject, SwaggerModule } from '@nestjs/swag
 import { z } from 'zod';
 import { Public, RequirePermissions } from '../common/auth/decorators.js';
 import type { Env } from './env.js';
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from './i18n.js';
 
 /**
  * Tài liệu OpenAPI chia theo MODULE NGHIỆP VỤ (danh sách ở app.module.ts OPENAPI_DOCS), không chia app/admin:
@@ -32,7 +33,7 @@ const ErrorResponseSchema = z
   .object({
     error: z.object({
       code: z.string().describe('Mã lỗi SCREAMING_SNAKE, client rẽ nhánh theo mã này'),
-      message: z.string().describe('Đã dịch theo ?lang / Accept-Language (vi mặc định, en)'),
+      message: z.string().describe('Đã dịch theo header Accept-Language (vi mặc định, en)'),
       params: z.record(z.string(), z.unknown()).describe('Dữ liệu phụ: resource, retryAfter, issues…'),
       requestId: z.string().describe('Gửi kèm khi báo lỗi để tra log'),
     }),
@@ -49,9 +50,10 @@ export function envelope<T extends z.ZodType>(data: T) {
   return z.object({ data, meta: MetaSchema });
 }
 
+/** Phần mô tả chung nối vào cuối mọi định nghĩa: shape response, ngôn ngữ, cách gửi token. */
 const COMMON_DESCRIPTION =
   '\n\nThành công: `{ data, meta }` · lỗi: `{ error: { code, message, params, requestId } }`. ' +
-  'Ngôn ngữ: `?lang=vi|en` hoặc `Accept-Language` (mặc định vi), response kèm `Content-Language`. ' +
+  'Ngôn ngữ: header `Accept-Language: vi | en` (mặc định vi), response kèm `Content-Language`. ' +
   'Mọi route cần `Authorization: Bearer <access_token Supabase>` trừ route ghi "Không cần đăng nhập".';
 
 function buildOne(app: INestApplication, def: OpenApiDefinition, env: DocEnv): OpenAPIObject {
@@ -62,6 +64,14 @@ function buildOne(app: INestApplication, def: OpenApiDefinition, env: DocEnv): O
     .addServer('/', 'Máy chủ đang mở trang này') // tương đối: dev localhost, Docker/nginx, staging đều đúng
     .addServer(`http://localhost:${env.PORT}`, 'Local')
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'supabase')
+    // Mọi operation có ô Accept-Language trên Swagger UI → thử đổi ngôn ngữ message lỗi ngay trên trang
+    .addGlobalParameters({
+      name: 'Accept-Language',
+      in: 'header',
+      required: false,
+      description: 'Ngôn ngữ của message lỗi và nội dung. Mặc định vi.',
+      schema: { type: 'string', enum: [...SUPPORTED_LOCALES], default: DEFAULT_LOCALE },
+    })
     .addGlobalResponse(
       { status: 401, description: 'UNAUTHENTICATED', standardSchema: ErrorResponseSchema },
       { status: 403, description: 'FORBIDDEN', standardSchema: ErrorResponseSchema },

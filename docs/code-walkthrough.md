@@ -46,7 +46,7 @@ Chưa cần đọc ngay: `common/redis/throttler.guard.ts` (rate limit, có Lua)
 8. `identity.service.ts` hàm `getMe()`: gọi repository lấy profile, role, permission; ghép thành object đúng `MeResponseSchema`.
 9. `identity.repository.ts`: các câu `select` Drizzle trên bảng `profiles`, `user_roles`, `roles`.
 10. `common/http/response.ts`: bọc kết quả thành `{ data: {...}, meta: { requestId } }`.
-11. Nếu bước nào ném lỗi: `common/http/exceptions.ts` biến thành `{ error: { code: 'NOT_FOUND', message: 'Không tìm thấy địa điểm', params, requestId } }` với đúng HTTP status. `message` dịch theo ngôn ngữ request (`?lang=` hoặc `Accept-Language`, mặc định vi). Client rẽ nhánh theo `error.code`, hiển thị `error.message`.
+11. Nếu bước nào ném lỗi: `common/http/exceptions.ts` biến thành `{ error: { code: 'NOT_FOUND', message: 'Không tìm thấy địa điểm', params, requestId } }` với đúng HTTP status. `message` dịch theo header `Accept-Language` của request (mặc định vi). Client rẽ nhánh theo `error.code`, hiển thị `error.message`.
 
 Đăng nhập: backend **không** làm OAuth. App gọi Supabase để đăng nhập Google, nhận token, gửi token cho backend. Backend chỉ xác minh.
 
@@ -64,7 +64,7 @@ Mỗi phút cần quét pin hết hạn. Có 2 instance mà dùng cron trong pro
 | `config/env.ts` | Khai báo và validate biến môi trường | Thêm biến env |
 | `config/load-env.ts` | Nạp `.env` trước mọi thứ | Không |
 | `config/logger.ts` | Log JSON một dòng mỗi request, ẩn token | Đổi field log, thêm redact |
-| `config/i18n.ts` | Đa ngôn ngữ vi/en: cách chọn ngôn ngữ (`?lang` → `Accept-Language` → vi); câu chữ ở `i18n/<lang>/*.json` | Thêm ngôn ngữ, đổi cách chọn |
+| `config/i18n.ts` | Đa ngôn ngữ vi/en: chỉ header `Accept-Language` quyết định (mặc định vi); câu chữ ở `i18n/<lang>/*.json` | Thêm ngôn ngữ, đổi cách chọn |
 | `config/openapi.ts` | Swagger `/docs` chia theo module (dropdown), Servers, Schemas từ `.meta({ id })`, tự ghi quyền/public vào mô tả từ metadata guard, `envelope()`, xuất `openapi/<key>.json` | Đổi mô tả tài liệu, thêm server |
 | `common/common.module.ts` | Gom DB, Redis, queue, Supabase thành một module dùng chung | Thêm hạ tầng mới |
 | `common/auth/auth.guard.ts` | Token → `req.user`; định nghĩa cổng `AUTH_USER` để guard gọi được IdentityService | Đổi cách xác thực |
