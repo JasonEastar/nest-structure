@@ -66,7 +66,7 @@ export class LocationController {
 //    Vẫn bị rate limit (theo x-device-id rồi IP) và chỉ trả trường an toàn — không lộ dữ liệu của user.
 // ---------------------------------------------------------------------------------------------------------------------
 @Public()
-@ApiTags('public: locations')
+@ApiTags('locations') // cùng tag với nhóm 1 → Swagger gom chung một mục 'locations'
 @Controller('public/locations')
 export class LocationPublicController {
   constructor(private readonly locations: LocationService) {}

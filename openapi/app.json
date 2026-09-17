@@ -2706,7 +2706,7 @@
         },
         "summary": "Địa điểm công khai trong bán kính quanh một toạ độ (PostGIS ST_DWithin), không cần đăng nhập",
         "tags": [
-          "public: locations"
+          "locations"
         ]
       }
     }
