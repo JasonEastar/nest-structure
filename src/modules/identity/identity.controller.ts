@@ -1,9 +1,9 @@
 import { Controller, Delete, Get, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { AuthUser } from '../../common/auth.guard.js';
-import { CurrentUser } from '../../common/decorators.js';
-import { zodResponse } from '../../common/openapi.js';
-import { MeResponseSchema } from './identity.dto.js';
+import type { AuthUser } from '../../common/auth/auth.guard.js';
+import { CurrentUser } from '../../common/auth/decorators.js';
+import { zodResponse } from '../../config/openapi.js';
+import { MeResponseSchema } from './dto/me.dto.js';
 import { IdentityService } from './identity.service.js';
 
 @ApiTags('identity')

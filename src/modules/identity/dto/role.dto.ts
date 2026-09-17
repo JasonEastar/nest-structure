@@ -1,0 +1,19 @@
+import { z } from 'zod';
+
+/** DTO role/RBAC (zod, dùng trực tiếp trên `@Body({ schema })` — Swagger tự đọc). */
+
+export const ROLE_CODES = ['user', 'moderator', 'venue', 'admin'] as const;
+export const RoleCodeSchema = z.enum(ROLE_CODES);
+export type RoleCode = z.infer<typeof RoleCodeSchema>;
+
+export const RoleSchema = z.object({
+  code: RoleCodeSchema,
+  name: z.string(),
+  permissions: z.array(z.string()),
+});
+export type Role = z.infer<typeof RoleSchema>;
+
+export const SetUserRolesSchema = z.object({
+  roles: z.array(RoleCodeSchema).min(1).max(ROLE_CODES.length),
+});
+export type SetUserRoles = z.infer<typeof SetUserRolesSchema>;

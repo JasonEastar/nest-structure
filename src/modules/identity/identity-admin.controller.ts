@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Param, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
-import { RequirePermissions } from '../../common/decorators.js';
-import { zodResponse } from '../../common/openapi.js';
-import { RoleSchema, type SetUserRoles, SetUserRolesSchema } from './identity.dto.js';
+import { RequirePermissions } from '../../common/auth/decorators.js';
+import { zodResponse } from '../../config/openapi.js';
+import { RoleSchema, type SetUserRoles, SetUserRolesSchema } from './dto/role.dto.js';
 import { IdentityService } from './identity.service.js';
 
 /** API quản trị — chỉ xuất hiện trong /docs/admin, cần permission `role:manage`. */

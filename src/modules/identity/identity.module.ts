@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { AUTH_USER } from '../../common/auth.guard.js';
+import { AUTH_USER } from '../../common/auth/auth.guard.js';
 import { IdentityAdminController } from './identity-admin.controller.js';
 import { IdentityController } from './identity.controller.js';
 import { IdentityRepository } from './identity.repository.js';

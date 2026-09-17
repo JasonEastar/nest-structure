@@ -2,7 +2,7 @@ import { InjectQueue, OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullm
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Job, Queue } from 'bullmq';
-import { QUEUES } from '../../common/queue.js';
+import { QUEUES } from '../../common/redis/queue.js';
 import type { Env } from '../../config/env.js';
 import { MARKER_EXPIRE_JOB } from './pin.constants.js';
 

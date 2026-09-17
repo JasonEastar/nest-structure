@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { AuthUser, AuthUserPort } from '../../common/auth.guard.js';
-import { AppException } from '../../common/exceptions.js';
-import { CacheService, TTL, cacheKeys } from '../../common/redis.js';
-import { InjectSupabaseAdmin, type SupabaseAdminPort, type SupabaseClaims } from '../../common/supabase.js';
-import type { MeResponse, RoleCode } from './identity.dto.js';
+import type { AuthUser, AuthUserPort } from '../../common/auth/auth.guard.js';
+import { AppException } from '../../common/http/exceptions.js';
+import { CacheService, TTL, cacheKeys } from '../../common/redis/cache.js';
+import { InjectSupabaseAdmin, type SupabaseAdminPort, type SupabaseClaims } from '../../common/auth/supabase.js';
+import type { MeResponse } from './dto/me.dto.js';
+import type { RoleCode } from './dto/role.dto.js';
 import { IdentityRepository } from './identity.repository.js';
 
 /** Ghi `devices.last_seen_at` tối đa 1 lần/5 phút/thiết bị (tránh mỗi request một UPDATE). */

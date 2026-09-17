@@ -9,8 +9,8 @@ Tầng kiểm thử, kịch bản lõi, môi trường, pipeline và secrets. Qu
 
 | Tầng | Công cụ | Phạm vi | Chạy ở |
 |---|---|---|---|
-| Unit | Vitest project `unit` — `src/**/*.spec.ts` | Logic thuần, không hạ tầng: env schema, error shape, cursor, zod helper, EWKT/EWKB, PermissionGuard; sau này rep, tier, quantize bbox, state machine pin | Mỗi commit (`npm run test:unit`) |
-| **Integration + E2E** | Vitest project `integration` — `test/**/*.spec.ts`, testcontainers `postgis/postgis:16-3.4` + `redis:7-alpine` (globalSetup tự dựng + migrate), supertest qua `AppModule` thật | Geo repository, BullMQ scheduler/processor, cache/throttle, auth JWKS + RBAC (JWKS server trong test), Bull Board; `test/supabase-real.spec.ts` chạy với Supabase thật khi có khoá | Mỗi PR (`npm run test:integration`) |
+| Unit | Vitest project `unit` — `test/unit/*.spec.ts` | Logic thuần, không hạ tầng: env schema, error shape, cursor, zod helper, EWKT/EWKB, PermissionGuard; sau này rep, tier, quantize bbox, state machine pin | Mỗi commit (`npm run test:unit`) |
+| **Integration + E2E** | Vitest project `integration` — `test/integration/*.spec.ts`, testcontainers `postgis/postgis:16-3.4` + `redis:7-alpine` (globalSetup tự dựng + migrate), supertest qua `AppModule` thật | Geo repository, BullMQ scheduler/processor, cache/throttle, auth JWKS + RBAC (JWKS server trong test), Bull Board; `test/integration/supabase-real.spec.ts` chạy với Supabase thật khi có khoá | Mỗi PR (`npm run test:integration`) |
 | Đa instance | `scripts/smoke-multi-instance.sh` (6 kiểm tra) trên `docker compose --profile full` | LB đến 2 instance, Redis chung, rate limit chung + `Retry-After`, cron 1 lần/phút, JWT trên cả 2 instance, `X-Request-Id` giữ/sinh | Trước deploy (`TOKEN=$(node scripts/dev-token.mjs) npm run smoke`) |
 | Load | k6 | Viewport 300 req/s p95 < 100 ms; "500 người mở app sau 1 push" | Hàng tuần |
 
@@ -58,7 +58,7 @@ Lệnh dev: `npm run dev:infra` (= `docker compose up -d postgres redis`) rồi 
 .github/workflows/ci.yml (push main + PR)
   check:         npm ci → lint → typecheck → test:unit → test:integration (Docker sẵn trên ubuntu-latest) → build → openapi/*.json (artifact)
   docker:        needs check → build image target runtime (không push, cache GHA)
-  supabase-real: needs check, chỉ push + repo variable SUPABASE_REAL_TESTS=true + secrets SUPABASE_* → test/supabase-real.spec.ts
+  supabase-real: needs check, chỉ push + repo variable SUPABASE_REAL_TESTS=true + secrets SUPABASE_* → test/integration/supabase-real.spec.ts
 sau này:         migrate (bước riêng) → deploy → smoke (6 test đa instance)
 ```
 

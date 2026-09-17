@@ -7,7 +7,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import { Logger as PinoLogger } from 'nestjs-pino';
 import { AppModule, GLOBAL_PREFIX_EXCLUDE, OPENAPI_DOCS } from './app.module.js';
-import { setupOpenApi } from './common/openapi.js';
+import { setupOpenApi } from './config/openapi.js';
 import { loadEnv } from './config/env.js';
 
 const logger = new Logger('Bootstrap');

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { eq, inArray } from 'drizzle-orm';
-import { type Db, InjectDb } from '../../common/database.js';
-import type { SupabaseClaims } from '../../common/supabase.js';
-import { devices, permissions, profiles, rolePermissions, roles, userRoles } from './identity.schema.js';
-import type { RoleCode } from './identity.dto.js';
+import { type Db, InjectDb } from '../../common/database/drizzle.js';
+import type { SupabaseClaims } from '../../common/auth/supabase.js';
+import { devices, permissions, profiles, rolePermissions, roles, userRoles } from './schema/identity.schema.js';
+import type { RoleCode } from './dto/role.dto.js';
 
 /** Mọi SQL của identity nằm ở đây; service chỉ có logic (code-standards §5). */
 @Injectable()

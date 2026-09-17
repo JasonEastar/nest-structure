@@ -1,77 +1,74 @@
 # Cấu trúc & luồng đi — C9 Map backend (NestJS 12, all-in-one)
 
-**Cập nhật:** 2026-09-16 · **Trạng thái:** Active · **Chủ sở hữu:** Tech Lead
+**Cập nhật:** 2026-09-17 · **Trạng thái:** Active · **Chủ sở hữu:** Tech Lead
 Bản vẽ cây thư mục theo [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md) (một project, không `APP_ROLE`, scale bằng số instance), lý do từng file, và 5 luồng cơ chế. Cấu hình từng tầng: [system-architecture.md](./system-architecture.md); thứ tự dựng: [setup-strategy.md](./setup-strategy.md).
 
 ---
 
-## 1. Cây thư mục — 6 thư mục trong `src/`
+## 1. Cây thư mục
 
 ```
 c9_map/
 ├── src/
-│   ├── main.ts                       # bootstrap duy nhất: env → app → helmet, prefix /api, v1, swagger ×2, keepAlive 65s, shutdown hooks, listen
-│   ├── app.module.ts                 # imports CommonModule + IdentityModule + PinModule + HealthModule
-│   │                                 # providers: APP_GUARD Throttler → Auth → Permission · APP_PIPE · APP_FILTER · APP_INTERCEPTOR
-│   │                                 # configure(): RequestContextMiddleware forRoutes('*')
-│   ├── config/
-│   │   └── env.ts                    # zod schema → `env` có kiểu, parse 1 lần lúc boot, fail-fast
-│   ├── common/                       # hạ tầng dùng chung — phẳng, 1 file = 1 việc, KHÔNG import modules/
-│   │   ├── common.module.ts          # @Global: gom provider DRIZZLE, REDIS_CACHE, REDIS_QUEUE, CacheService, SUPABASE_ADMIN, SupabaseJwtService
-│   │   ├── database.ts               # postgres.js + drizzle, geography customType, uuidv7()
-│   │   ├── redis.ts                  # ioredis db0 (cache) · db1 (queue, maxRetriesPerRequest:null) · CacheService · cacheKeys
-│   │   ├── queue.ts                  # BullModule.forRoot (db1, prefix c9, defaultJobOptions) · QUEUE names
-│   │   ├── supabase.ts               # SUPABASE_ADMIN port + adapter (service_role) · SupabaseJwtService (jose + JWKS)
-│   │   ├── auth.guard.ts             # Bearer → verify → ensureProfile → req.user · bỏ qua @Public()
-│   │   ├── permission.guard.ts       # @RequirePermissions ↔ c9:perms:{id} (300 s) → DB khi miss
-│   │   ├── throttler.guard.ts        # tracker u:{id} → d:{device} → ip: · storage Redis · skip health/docs
-│   │   ├── decorators.ts             # Public · RequirePermissions · CurrentUser (Reflector.createDecorator)
-│   │   ├── exceptions.ts             # ErrorCodes · AppException · AllExceptionsFilter → { error: { code, params, requestId } }
-│   │   ├── validation.ts             # APP_PIPE = StandardSchemaValidationPipe({ exceptionFactory → VALIDATION_FAILED })
-│   │   ├── response.ts               # ResponseInterceptor { data, meta } · envelope schema · cursor pagination
-│   │   ├── request-context.middleware.ts  # X-Instance-Id (INSTANCE_ID) · X-Request-Id (nginx hoặc uuidv7)
-│   │   ├── logger.ts                 # nestjs-pino: genReqId · redact · customProps instance/userId · bỏ log /health
-│   │   ├── i18n.ts                   # nestjs-i18n: vi mặc định · resolver user.locale → Accept-Language
-│   │   └── openapi.ts                # 2 DocumentBuilder (app, admin) · include: · jsonDocumentUrl · exportOpenApi()
-│   ├── health/
-│   │   ├── health.controller.ts      # GET /health/live · GET /health/ready (ngoài prefix /api, @Public, @SkipThrottle)
-│   │   └── health.indicators.ts      # DrizzleHealthIndicator · RedisHealthIndicator (HealthIndicatorService v12)
-│   └── modules/                      # nghiệp vụ — mỗi module 1 thư mục, file luôn bắt đầu bằng tên module
+│   ├── main.ts                       # bootstrap duy nhất: load-env → helmet, prefix /api, v1, swagger ×2, shutdown hooks, listen
+│   ├── app.module.ts                 # imports ConfigModule + CommonModule + modules; providers APP_GUARD Throttler → Auth → Permission · APP_PIPE · APP_FILTER · APP_INTERCEPTOR
+│   ├── openapi-export.ts             # `npm run openapi:export` → openapi/{app,admin}.json
+│   ├── config/                       # cấu hình app — không nghiệp vụ, không hạ tầng
+│   │   ├── env.ts                    # zod schema → `env` có kiểu, fail-fast lúc boot
+│   │   ├── load-env.ts               # nạp .env (import đầu tiên của main.ts / openapi-export.ts)
+│   │   ├── logger.ts                 # nestjs-pino: genReqId · redact · bỏ log /health
+│   │   ├── i18n.ts                   # nestjs-i18n vi/en, resolver Accept-Language
+│   │   └── openapi.ts                # 2 DocumentBuilder (app, admin) · exportOpenApi()
+│   ├── common/                       # hạ tầng dùng chung, gom theo mối quan tâm — KHÔNG import modules/
+│   │   ├── common.module.ts          # @Global: DRIZZLE · REDIS_CACHE · CacheService · SUPABASE_ADMIN · SupabaseJwtService; imports QueueRoot, Throttler
+│   │   ├── auth/
+│   │   │   ├── auth.guard.ts         # Bearer → JWKS → ensureProfile → req.user · bỏ qua @Public() · AUTH_USER port
+│   │   │   ├── permission.guard.ts   # @RequirePermissions ↔ cache c9:perms:{id}
+│   │   │   ├── supabase.ts           # SupabaseJwtService (jose + JWKS, ES256/RS256) · SUPABASE_ADMIN port + adapter
+│   │   │   └── decorators.ts         # Public · RequirePermissions · CurrentUser
+│   │   ├── database/
+│   │   │   ├── drizzle.ts            # postgres.js + drizzle · geographyPoint customType · latLngToEwkt/ewkbToLatLng · DatabaseLifecycle
+│   │   │   └── schema.ts             # barrel gom *.schema.ts của mọi module
+│   │   ├── redis/
+│   │   │   ├── cache.ts              # REDIS_CACHE db0 · redisOptions() · cacheKeys · TTL · CacheService
+│   │   │   ├── queue.ts              # BullModule.forRoot (db1, prefix c9) · QUEUES
+│   │   │   ├── throttler.guard.ts    # RedisThrottlerStorage (Lua) · AppThrottlerGuard tracker u:/d:/ip:
+│   │   │   └── bull-board.ts         # /admin/queues + middleware JWT + queue:read
+│   │   └── http/
+│   │       ├── exceptions.ts         # ErrorCodes · AppException · AllExceptionsFilter → { error: { code, params, requestId } }
+│   │       ├── response.ts           # ResponseInterceptor { data, meta } · withMeta · cursor pagination
+│   │       ├── validation.ts         # APP_PIPE StandardSchemaValidationPipe · zText · zLatLng
+│   │       ├── request-context.middleware.ts  # X-Instance-Id · X-Request-Id
+│   │       └── express.d.ts          # req.user
+│   └── modules/                      # nghiệp vụ — mỗi module 1 thư mục; file chính ở gốc, chỉ 2 thư mục con dto/ và schema/
+│       ├── health/
+│       │   ├── health.module.ts · health.controller.ts (GET /health/live · /health/ready) · health.indicators.ts
 │       ├── identity/
 │       │   ├── identity.module.ts
 │       │   ├── identity.controller.ts        # GET/DELETE /api/v1/me
-│       │   ├── identity-admin.controller.ts  # GET /admin/roles · GET/PUT /admin/users/:id/roles (@RequirePermissions('role:manage'))
+│       │   ├── identity-admin.controller.ts  # /admin/roles · /admin/users/:id/roles (@RequirePermissions('role:manage'))
 │       │   ├── identity.service.ts           # ensureProfile · getMe · deleteMe · touchDevice · getPermissions · setUserRoles
 │       │   ├── identity.repository.ts        # mọi SQL của identity (Drizzle)
-│       │   ├── identity.schema.ts            # profiles · roles · permissions · role_permissions · user_roles · devices
-│       │   └── identity.dto.ts               # MeResponseSchema · SetUserRolesSchema (zod)
+│       │   ├── dto/                          # zod request/response — Swagger đọc tự động
+│       │   │   ├── me.dto.ts                 # MeResponseSchema
+│       │   │   └── role.dto.ts               # ROLE_CODES · RoleSchema · SetUserRolesSchema
+│       │   └── schema/
+│       │       └── identity.schema.ts        # profiles · roles · permissions · role_permissions · user_roles · devices
 │       └── pin/
-│           ├── pin.module.ts                 # BullModule.registerQueue(MARKER_MAINTENANCE) · providers PinJobs
-│           ├── pin.schema.ts                 # markers (gđ sau) — phase skeleton chỉ có queue
-│           ├── pin.constants.ts              # tuổi thọ mặc định, rate limit, tier rep (hằng số nghiệp vụ)
-│           └── pin.jobs.ts                   # @Processor(MARKER_MAINTENANCE) + onApplicationBootstrap → upsertJobScheduler
-├── drizzle/
-│   ├── 0000_extensions.sql               # CREATE EXTENSION postgis, unaccent, pg_trgm
-│   ├── 0001_identity.sql                 # drizzle-kit generate
-│   └── 0002_seed_rbac.sql                # roles / permissions / role_permissions — idempotent
-├── drizzle.config.ts                     # schema: 'src/**/*.schema.ts' · out: drizzle/
+│           ├── pin.module.ts · pin.constants.ts · pin.jobs.ts   # bước 7 thêm controller/service/repository/dto/schema
+├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac (SQL)
+├── drizzle.config.ts                 # schema: 'src/**/*.schema.ts'
 ├── test/
-│   ├── setup/{containers.ts, migrate.ts} # testcontainers PostGIS 16-3.4 + Redis 7 → migrate
-│   ├── contracts/supabase-admin.contract.ts   # cùng bộ test cho adapter thật và mock
-│   ├── mocks/in-memory-supabase-admin.ts
-│   ├── integration/*.int.spec.ts         # database · identity · cache · throttle · scheduler
-│   └── e2e/*.e2e.spec.ts                 # app (AuthGuard override) · auth-me (skip nếu thiếu SUPABASE_*)
-├── scripts/{smoke-multi-instance.sh, dev-token.mjs}
-├── i18n/{vi,en}/common.json
-├── openapi/{app.json, admin.json}        # CI sinh → mobile codegen
-├── Dockerfile                            # multi-stage node:22-alpine · nest build → dist/main.js · USER node · HEALTHCHECK
-├── docker-compose.yml                    # postgres (postgis/postgis:16-3.4) · redis:7 · api-1 · api-2 · nginx
-├── nginx.conf                            # least_conn · keepalive 32 · X-Request-Id · X-Forwarded-For
-├── vitest.config.ts · .env.example · .github/workflows/ci.yml
-└── package.json · tsconfig.json · nest-cli.json (mặc định `nest new`)
+│   ├── unit/*.spec.ts                # logic thuần, không hạ tầng
+│   ├── integration/*.spec.ts         # AppModule thật trên testcontainers (app · cross-cutting · geography · redis-queue · auth-rbac · supabase-real)
+│   └── setup/{containers.ts, env.ts} # globalSetup testcontainers + migrate · setupFiles inject URL
+├── scripts/                          # smoke-multi-instance.sh · dev-token.mjs · verify-auth.mjs
+├── i18n/{vi,en}/*.json · openapi/{app,admin}.json
+├── Dockerfile · docker-compose.yml · nginx.conf · vitest.config.ts · .env.example · .github/workflows/ci.yml
+└── package.json · tsconfig.json · nest-cli.json
 ```
 
-Unit test `*.spec.ts` nằm cạnh file được test. Module mới = copy cấu trúc `identity/`.
+Module mới = copy cấu trúc `identity/` (`nest g resource <x> modules` sinh đúng bố cục này, chỉ đổi `entities/` → `schema/`).
 
 ## 2. File — có gì, chặn lỗi gì
 
@@ -80,10 +77,10 @@ Unit test `*.spec.ts` nằm cạnh file được test. Module mới = copy cấu
 | `config/env.ts` | zod schema, `env` parse 1 lần, `ConfigModule.forRoot({ validationSchema })` | Thiếu/sai biến → thoát lúc boot với tên biến; mọi nơi đọc `env.X` có kiểu, không `process.env` rải rác |
 | `app.module.ts` | Import modules + **toàn bộ** enhancer toàn cục theo thứ tự | Thứ tự guard nhìn thấy một chỗ; test `overrideProvider` được vì dùng token `APP_*`, không `app.useGlobal*` |
 | `common/common.module.ts` | `@Global()` gom provider hạ tầng | Feature module không phải import 6 module hạ tầng; chỉ 1 chỗ được `@Global` |
-| `common/redis.ts` | 2 connection db0/db1 | Eviction cache không được đụng job BullMQ |
-| `common/exceptions.ts` | `ErrorCodes` + filter | Mọi lỗi cùng shape, client dịch mã; không câu tiếng Việt từ server |
-| `common/validation.ts` | pipe zod có sẵn Nest 12 | Không class-validator, không nestjs-zod; schema đặt trên `@Body({ schema })` |
-| `common/openapi.ts` | 2 document qua `include:` | Admin API không lộ cho app; `openapi/*.json` cho mobile |
+| `common/redis/cache.ts` | 2 connection db0/db1 | Eviction cache không được đụng job BullMQ |
+| `common/http/exceptions.ts` | `ErrorCodes` + filter | Mọi lỗi cùng shape, client dịch mã; không câu tiếng Việt từ server |
+| `common/http/validation.ts` | pipe zod có sẵn Nest 12 | Không class-validator, không nestjs-zod; schema đặt trên `@Body({ schema })` |
+| `config/openapi.ts` | 2 document qua `include:` | Admin API không lộ cho app; `openapi/*.json` cho mobile |
 | `modules/<x>/<x>.schema.ts` | Bảng Drizzle của module | Mở thư mục module thấy đủ bảng + DTO + logic; `drizzle-kit` gom bằng glob |
 | `modules/<x>/<x>.jobs.ts` | Processor + scheduler | Cùng process với API (all-in-one); `upsertJobScheduler` id cố định → N instance chỉ 1 lịch |
 | `drizzle/*.sql` | Migration | Chạy bằng `npm run db:migrate` **trước** deploy, không lúc boot (N instance sẽ đua) |
@@ -137,7 +134,7 @@ sequenceDiagram
   P-->>M: 403 FORBIDDEN
   P->>V: ok
   V-->>F: AppException VALIDATION_FAILED { issues }
-  V->>C: dto đã coerce (schema từ identity.dto.ts)
+  V->>C: dto đã coerce (schema từ dto/*.dto.ts)
   C->>S: gọi service
   S->>R: Drizzle tx
   R-->>S: rows

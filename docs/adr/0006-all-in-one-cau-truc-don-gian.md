@@ -75,3 +75,18 @@ c9_map/
 - Số thư mục ở `src/` giảm từ ~25 xuống 6 (`config`, `common`, `health`, `modules/identity`, `modules/pin`).
 - Mọi instance chạy cả cron/queue: scheduler `upsertJobScheduler` id cố định vẫn đảm bảo chạy một lần; tải push lớn sẽ cạnh tranh CPU với API — chấp nhận ở gđ 1, theo dõi p95.
 - Muốn chia sẻ zod với admin web sau này: `nest g library contracts` lúc đó, không phải bây giờ.
+
+---
+
+## Sửa đổi 2026-09-17 — gom `common/` theo nhóm, module có `dto/` + `schema/`
+
+**Lý do:** sau 7 phase, `common/` có 21 file phẳng (kể cả spec) và `identity/` 7 file cùng tiền tố → khó đọc cho người mới (đặc biệt dev FE). Quy tắc cũ "không thư mục con cho tới khi vượt 200 dòng" (mục 4) không còn phù hợp.
+
+**Quyết định (thay mục 4 ở trên):**
+- Theo quy ước Nest CLI `nest g resource` và rule `arch-feature-modules` (skill nestjs-best-practices): file chính của module ở gốc, chỉ 2 thư mục con `dto/` và `schema/` (Drizzle, thay `entities/`). **Không** tách `controllers/ services/ repositories/` kiểu một-file-một-thư-mục.
+- `common/` gom theo mối quan tâm: `auth/ database/ redis/ http/`. `logger/i18n/openapi` là cấu hình module → `config/`. `health/` là module → `modules/health/`.
+- Test rời khỏi `src/`: `test/unit/` · `test/integration/` · `test/setup/`.
+- Đổi tên 2 file cho khỏi lặp thư mục: `database.ts` → `database/drizzle.ts`, `redis.ts` → `redis/cache.ts`. Không đổi tên export, không đổi logic.
+
+Cây đầy đủ: [code-standards.md §3](../code-standards.md). Kiểm chứng: 55/55 test, build, openapi export xanh sau khi di chuyển.
+
