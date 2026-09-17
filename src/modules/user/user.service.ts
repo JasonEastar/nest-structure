@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { AuthUser, AuthUserPort } from '../../common/auth/auth.guard.js';
 import { AppException } from '../../common/http/exceptions.js';
-import { CacheService, TTL, cacheKeys } from '../../common/redis/cache.js';
+import { CACHE, CacheService } from '../../common/redis/cache.js';
 import { InjectSupabaseAdmin, type SupabaseAdminPort, type SupabaseClaims } from '../../common/auth/supabase.js';
 import { type MeResponse, toMeResponse } from './dto/me.dto.js';
 import type { RoleCode } from './dto/role.dto.js';
@@ -27,31 +27,31 @@ export class UserService implements AuthUserPort {
    */
   async ensureProfile(claims: SupabaseClaims): Promise<AuthUser> {
     // Token còn hạn sau DELETE /me không được làm profile "sống lại" (Supabase JWT stateless, không thu hồi được).
-    if (await this.cache.has(cacheKeys.deleted(claims.sub))) throw new AppException('UNAUTHENTICATED');
-    const flagKey = cacheKeys.profileExists(claims.sub);
+    if (await this.cache.has(CACHE.deleted.key(claims.sub))) throw new AppException('UNAUTHENTICATED');
+    const flagKey = CACHE.profileExists.key(claims.sub);
     if (!(await this.cache.has(flagKey))) {
       await this.repo.insertProfileIfMissing(claims);
-      await this.cache.flag(flagKey, TTL.profileExists);
+      await this.cache.flag(flagKey, CACHE.profileExists.ttl);
     }
     return { id: claims.sub, email: claims.email ?? null };
   }
 
   /** Quyền hiệu lực: cache 5 phút; admin đổi role → DEL ngay (thu hồi không đợi token hết hạn). */
   async getPermissions(userId: string): Promise<string[]> {
-    const key = cacheKeys.perms(userId);
+    const key = CACHE.perms.key(userId);
     const cached = await this.cache.getJson<string[]>(key);
     if (cached) return cached;
     const codes = await this.repo.findPermissionCodes(userId);
-    await this.cache.setJson(key, codes, TTL.perms);
+    await this.cache.setJson(key, codes, CACHE.perms.ttl);
     return codes;
   }
 
   /** Ghi `devices.last_seen_at` tối đa 1 lần / 5 phút / thiết bị (không UPDATE mỗi request). */
   async touchDevice(userId: string, deviceId: string): Promise<void> {
-    const key = cacheKeys.deviceSeen(userId, deviceId);
+    const key = CACHE.deviceSeen.key(userId, deviceId);
     if (await this.cache.has(key)) return;
     await this.repo.upsertDevice(userId, deviceId);
-    await this.cache.flag(key, TTL.deviceSeen);
+    await this.cache.flag(key, CACHE.deviceSeen.ttl);
   }
 
   /** Hồ sơ /me: profile + role + permission hiệu lực. */
@@ -81,7 +81,7 @@ export class UserService implements AuthUserPort {
       throw new AppException('NOT_FOUND', { resource: 'profile', id: userId });
     }
     await this.repo.replaceUserRoles(userId, codes);
-    await this.cache.del(cacheKeys.perms(userId));
+    await this.cache.del(CACHE.perms.key(userId));
     return { id: userId, roles: await this.repo.findRoleCodes(userId) };
   }
 
@@ -90,8 +90,8 @@ export class UserService implements AuthUserPort {
    */
   async deleteMe(userId: string): Promise<void> {
     await this.repo.deleteProfile(userId);
-    await this.cache.del(cacheKeys.perms(userId), cacheKeys.profileExists(userId));
-    await this.cache.flag(cacheKeys.deleted(userId), TTL.deletedTombstone);
+    await this.cache.del(CACHE.perms.key(userId), CACHE.profileExists.key(userId));
+    await this.cache.flag(CACHE.deleted.key(userId), CACHE.deleted.ttl);
     try {
       await this.supabaseAdmin.deleteUser(userId);
     } catch (error) {

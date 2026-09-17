@@ -3,7 +3,7 @@ import { HealthIndicatorService, type HealthIndicatorResult } from '@nestjs/term
 import { sql } from 'drizzle-orm';
 import type { Redis } from 'ioredis';
 import { type Db, InjectDb } from '../../common/database/drizzle.js';
-import { InjectRedisCache } from '../../common/redis/cache.js';
+import { InjectRedisCache } from '../../common/redis/redis.provider.js';
 
 /** Terminus 12: inject HealthIndicatorService, trả indicator.up()/down() (API cũ HealthIndicator đã bị gỡ). */
 @Injectable()

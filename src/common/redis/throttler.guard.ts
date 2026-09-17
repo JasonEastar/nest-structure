@@ -5,7 +5,7 @@ import type { Request, Response } from 'express';
 import type { Redis } from 'ioredis';
 import type { Env } from '../../config/env.js';
 import { AppException } from '../http/exceptions.js';
-import { REDIS_CACHE } from './cache.js';
+import { REDIS_CACHE } from './redis.provider.js';
 
 /**
  * Rate limit đếm chung mọi instance (storage Redis). Hai tầng mặc định: short 10/s, long 100/phút.

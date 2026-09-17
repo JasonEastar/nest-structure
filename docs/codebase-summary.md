@@ -61,7 +61,8 @@ c9_map/
 │   │   │   ├── columns.ts            # cột dùng chung cho *.schema.ts: timestamps · uuidV7Pk · geographyPoint (lat/lng ↔ EWKT/EWKB)
 │   │   │   └── schema.ts             # barrel gom *.schema.ts của mọi module
 │   │   ├── redis/
-│   │   │   ├── cache.ts              # REDIS_CACHE db0 · redisOptions() · cacheKeys/TTL đang dùng · CacheService (5 thao tác)
+│   │   │   ├── redis.provider.ts     # kết nối db0 (REDIS_CACHE) · redisOptions() · đóng khi tắt
+│   │   │   ├── cache.ts              # CACHE (key + ttl từng mục) · CacheService (5 thao tác)
 │   │   │   ├── queue.ts              # BullModule.forRoot (db1, prefix c9) · QUEUES
 │   │   │   └── throttler.guard.ts    # RedisThrottlerStorage (Lua) · AppThrottlerGuard tracker u:/d:/ip:
 │   │   └── http/

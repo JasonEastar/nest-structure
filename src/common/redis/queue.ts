@@ -2,7 +2,7 @@ import { BullModule } from '@nestjs/bullmq';
 import type { ConnectionOptions } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../../config/env.js';
-import { redisOptions } from './cache.js';
+import { redisOptions } from './redis.provider.js';
 
 /**
  * BullMQ root (system-architecture §8). Processor sống trong module nghiệp vụ (`<x>.jobs.ts`) và chạy trên MỌI instance.
