@@ -1,15 +1,9 @@
-import { getQueueToken } from '@nestjs/bullmq';
 import { Controller, Get, type INestApplication, Module, VersioningType } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import type { Queue } from 'bullmq';
-import { QueueEvents } from 'bullmq';
 import request from 'supertest';
 import { AppModule, GLOBAL_PREFIX_EXCLUDE } from '../../src/app.module.js';
 import { Public } from '../../src/common/auth/decorators.js';
-import { QUEUES } from '../../src/common/redis/queue.js';
-import { CacheService, redisOptions } from '../../src/common/redis/cache.js';
-import { ConfigService } from '@nestjs/config';
-import { MARKER_EXPIRE_JOB } from '../../src/modules/pin/pin.constants.js';
+import { CacheService } from '../../src/common/redis/cache.js';
 
 /** Route CHỈ cho test cross-cutting/rate-limit — @Public() để không cần token (auth test riêng ở auth-rbac). */
 @Public()
@@ -36,7 +30,7 @@ async function boot(instanceId: string): Promise<INestApplication> {
 /**
  * PostGIS + Redis từ testcontainers. Hai app trong cùng process = hai instance dùng chung Redis.
  */
-describe('Redis · throttler · BullMQ (e2e, 2 instance)', () => {
+describe('Redis · throttler (e2e, 2 instance)', () => {
   let a: INestApplication;
   let b: INestApplication;
 
@@ -71,28 +65,5 @@ describe('Redis · throttler · BullMQ (e2e, 2 instance)', () => {
 
   it('health/docs không bị rate limit', async () => {
     for (let i = 0; i < 15; i++) await request(a.getHttpServer()).get('/health/live').expect(200);
-  });
-
-  it('scheduler: 2 instance cùng upsert → đúng 1 job scheduler', async () => {
-    const queue = a.get<Queue>(getQueueToken(QUEUES.MARKER_MAINTENANCE));
-    const schedulers = await queue.getJobSchedulers();
-    const ours = schedulers.filter((s) => s.key === MARKER_EXPIRE_JOB.schedulerId); // BullMQ 6: id nằm ở `key`
-    expect(ours).toHaveLength(1);
-    expect(ours[0]?.pattern).toBe(MARKER_EXPIRE_JOB.pattern);
-    expect(ours[0]?.tz).toBe(MARKER_EXPIRE_JOB.tz);
-  });
-
-  it('processor: job "expire" được một worker nhận và hoàn thành', async () => {
-    const queue = a.get<Queue>(getQueueToken(QUEUES.MARKER_MAINTENANCE));
-    const config = a.get(ConfigService);
-    const events = new QueueEvents(queue.name, { connection: redisOptions(config, 1, true) as never, prefix: 'c9' });
-    await events.waitUntilReady();
-    try {
-      const job = await queue.add(MARKER_EXPIRE_JOB.jobName, { manual: true });
-      await job.waitUntilFinished(events, 10_000);
-      expect(await job.getState()).toBe('completed');
-    } finally {
-      await events.close();
-    }
   });
 });

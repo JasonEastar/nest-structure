@@ -59,8 +59,6 @@ c9_map/
 │       │   ├── location.module.ts · location.controller.ts · location.service.ts · location.repository.ts · location.constants.ts
 │       │   ├── dto/create-location.dto.ts · dto/location.dto.ts     # 1 file / use case, chứa cả request + response
 │       │   └── schema/location.schema.ts                          # saved_locations (geography + GIST)
-│       ├── pin/
-│       │   ├── pin.module.ts · pin.constants.ts · pin.jobs.ts   # bước 7 thêm controller/service/repository/dto/schema theo mẫu location
 │       └── queue-board/
 │           └── queue-board.module.ts # /admin/queues (Bull Board) + middleware JWT + queue:read; tắt khi test
 ├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac · 0003_location (SQL)
@@ -104,8 +102,7 @@ flowchart TD
   B -->|env sai| X[["exit 1 — tên biến thiếu"]]
   B -->|ok| C["NestFactory.create(AppModule, { rawBody: true })"]
   C --> D["CommonModule @Global khởi tạo<br/>Drizzle pool · Redis db0/db1 · BullMQ · JWKS client"]
-  D --> E["PinModule: @Processor bắt đầu nhận job<br/>onApplicationBootstrap → upsertJobScheduler (id cố định)"]
-  E --> F["main.ts: helmet · trust proxy · setGlobalPrefix 'api' (exclude health, docs)<br/>enableVersioning v1 · SwaggerModule.setup ×2 · keepAliveTimeout 65s · enableShutdownHooks"]
+  D --> F["main.ts: helmet · trust proxy · setGlobalPrefix 'api' (exclude health, docs)<br/>enableVersioning v1 · SwaggerModule.setup ×2 · keepAliveTimeout 65s · enableShutdownHooks"]
   F --> G["listen :3000 — HTTP + worker trong cùng process"]
 ```
 
@@ -180,11 +177,11 @@ Backend không tham gia OAuth. Không trigger DB (Postgres và Supabase là hai 
 flowchart LR
   subgraph api1 ["api-1"]
     H1["HTTP handlers"]
-    J1["pin.jobs.ts<br/>@Processor · scheduler"]
+    J1["<x>.jobs.ts<br/>@Processor · scheduler (khi có)"]
   end
   subgraph api2 ["api-2"]
     H2["HTTP handlers"]
-    J2["pin.jobs.ts<br/>@Processor · scheduler"]
+    J2["<x>.jobs.ts<br/>@Processor · scheduler (khi có)"]
   end
   Q[("Redis db1<br/>bull:c9:marker-maintenance")]
   DB[("Postgres + PostGIS")]

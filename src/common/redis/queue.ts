@@ -10,9 +10,9 @@ import { redisOptions } from './cache.js';
  * Tên queue là hằng ở đây để module và Bull Board dùng chung.
  */
 export const QUEUES = {
-  MARKER_MAINTENANCE: 'marker-maintenance',
+  // Chưa có queue nào. Module cần job nền: thêm `TEN: 'ten-queue'` ở đây, `BullModule.registerQueue({ name })` trong module,
+  // `@Processor(QUEUES.TEN)` trong `<x>.jobs.ts`; cron dùng `queue.upsertJobScheduler(id cố định)`.
 } as const;
-export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
 
 export const QueueRootModule = BullModule.forRootAsync({
   inject: [ConfigService],

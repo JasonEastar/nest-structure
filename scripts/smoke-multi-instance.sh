@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Smoke đa instance trên Docker (docs/testing-and-ci.md §1): chạy sau `npm run dev:infra:full`.
-#   npm run smoke                     # 6 kiểm tra, JWT SKIP nếu không có TOKEN
+#   npm run smoke                     # 5 kiểm tra, JWT SKIP nếu không có TOKEN
 #   TOKEN=$(node scripts/dev-token.mjs) npm run smoke
-# Kiểm: LB chia 2 instance · cache chung · rate limit chung · cron 1 lần/phút · JWT verify trên cả 2 · X-Request-Id echo.
+# Kiểm: LB chia 2 instance · cache chung · rate limit chung · JWT verify trên cả 2 · X-Request-Id echo.
 set -uo pipefail
 
 NGINX=${NGINX_URL:-http://localhost:${NGINX_HOST_PORT:-3000}}
@@ -35,12 +35,6 @@ if echo "$codes" | grep -q 429; then ok "3 rate limit đếm chung: $codes"; els
 retry=$(hdr Retry-After "$NGINX/api/v1/me")
 [ -n "$retry" ] && ok "3b Retry-After=$retry giây" || bad "3b Retry-After" "thiếu header"
 sleep 1.2
-
-# 4. cron 1 lần/phút, không nhân đôi: đếm 'expire tick' trong 70 s trên cả 2 container
-echo "      (chờ 70 s để đếm expire tick trên 2 container…)"
-sleep 70
-ticks=$(docker compose --profile full logs --no-color --since 75s api-1 api-2 2>/dev/null | grep -c "expire tick" || true)
-if [ "$ticks" -ge 1 ] && [ "$ticks" -le 2 ]; then ok "4 cron: $ticks tick trong 70 s (1/phút, không nhân theo replica)"; else bad "4 cron" "$ticks tick trong 70 s"; fi
 
 # 5. JWT verify trên cả 2 instance (JWKS cache độc lập mỗi instance)
 if [ -n "${TOKEN:-}" ]; then

@@ -16,7 +16,6 @@ import type { OpenApiDefinition } from './config/openapi.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { UserModule } from './modules/user/user.module.js';
 import { LocationModule } from './modules/location/location.module.js';
-import { PinModule } from './modules/pin/pin.module.js';
 import { QueueBoardModule } from './modules/queue-board/queue-board.module.js';
 
 /** Route nằm ngoài prefix /api: health (Docker HEALTHCHECK), Swagger UI, Bull Board. app.ts và test dùng chung. */
@@ -34,6 +33,13 @@ export const GLOBAL_PREFIX_EXCLUDE = [
  */
 export const OPENAPI_DOCS: OpenApiDefinition[] = [
   {
+    key: 'health',
+    title: 'Health',
+    description: 'Liveness/readiness cho Docker, nginx, load balancer. Không cần đăng nhập, nằm ngoài prefix /api.',
+    tags: [{ name: 'Health', description: 'Trạng thái process và dependency (Postgres, Redis)' }],
+    modules: [HealthModule],
+  },
+  {
     key: 'users',
     title: 'User & Auth',
     description: 'Đăng nhập Google qua Supabase, hồ sơ /me, role và permission. Backend không phát token, chỉ xác minh JWT.',
@@ -49,13 +55,6 @@ export const OPENAPI_DOCS: OpenApiDefinition[] = [
     description: 'Địa điểm user tự lưu (tên, toạ độ, bán kính) và truy vấn địa điểm công khai quanh một toạ độ (PostGIS).',
     tags: [{ name: 'Locations', description: 'Địa điểm đã lưu, công khai hoặc riêng tư' }],
     modules: [LocationModule],
-  },
-  {
-    key: 'health',
-    title: 'Health',
-    description: 'Liveness/readiness cho Docker, nginx, load balancer. Không cần đăng nhập, nằm ngoài prefix /api.',
-    tags: [{ name: 'Health', description: 'Trạng thái process và dependency (Postgres, Redis)' }],
-    modules: [HealthModule],
   },
 ];
 
@@ -75,7 +74,6 @@ export const OPENAPI_DOCS: OpenApiDefinition[] = [
     HealthModule,
     UserModule,
     LocationModule,
-    PinModule,
     QueueBoardModule,
   ],
   providers: [

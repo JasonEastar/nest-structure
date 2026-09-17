@@ -68,9 +68,11 @@ const root = BullBoardModule.forRootAsync({
     middleware: queueBoardAuth(jwt, users),
   }),
 });
-const queues = BullBoardModule.forFeature(...Object.values(QUEUES).map((name) => ({ name, adapter: BullMQAdapter })));
+const queueNames = Object.values(QUEUES) as string[];
+const queues = BullBoardModule.forFeature(...queueNames.map((name) => ({ name, adapter: BullMQAdapter })));
 
 @Module({
-  imports: [ConditionalModule.registerWhen(root, enabled), ConditionalModule.registerWhen(queues, enabled)],
+  // Chưa có queue → chỉ mount trang trống; có queue thì forFeature đăng ký để hiện trên board
+  imports: [ConditionalModule.registerWhen(root, enabled), ...(queueNames.length ? [ConditionalModule.registerWhen(queues, enabled)] : [])],
 })
 export class QueueBoardModule {}

@@ -11,7 +11,7 @@ Tầng kiểm thử, kịch bản lõi, môi trường, pipeline và secrets. Qu
 |---|---|---|---|
 | Unit | Vitest project `unit` — `test/unit/*.spec.ts` | Logic thuần, không hạ tầng: env schema, error shape, cursor, zod helper, EWKT/EWKB, PermissionGuard; sau này rep, tier, quantize bbox, state machine pin | Mỗi commit (`npm run test:unit`) |
 | **Integration + E2E** | Vitest project `integration` — `test/integration/*.spec.ts`, testcontainers `postgis/postgis:16-3.4` + `redis:7-alpine` (globalSetup tự dựng + migrate), supertest qua `AppModule` thật | Geo repository, BullMQ scheduler/processor, cache/throttle, auth JWKS + RBAC (JWKS server trong test), Bull Board; `test/integration/supabase-real.spec.ts` chạy với Supabase thật khi có khoá | Mỗi PR (`npm run test:integration`) |
-| Đa instance | `scripts/smoke-multi-instance.sh` (6 kiểm tra) trên `docker compose --profile full` | LB đến 2 instance, Redis chung, rate limit chung + `Retry-After`, cron 1 lần/phút, JWT trên cả 2 instance, `X-Request-Id` giữ/sinh | Trước deploy (`TOKEN=$(node scripts/dev-token.mjs) npm run smoke`) |
+| Đa instance | `scripts/smoke-multi-instance.sh` (5 kiểm tra) trên `docker compose --profile full` | LB đến 2 instance, Redis chung, rate limit chung + `Retry-After`, JWT trên cả 2 instance, `X-Request-Id` giữ/sinh | Trước deploy (`TOKEN=$(node scripts/dev-token.mjs) npm run smoke`) |
 | Load | k6 | Viewport 300 req/s p95 < 100 ms; "500 người mở app sau 1 push" | Hàng tuần |
 
 ## 2. Quy tắc
@@ -59,7 +59,7 @@ Lệnh dev: `npm run dev:infra` (= `docker compose up -d postgres redis`) rồi 
   check:         npm ci → lint → typecheck → test:unit → test:integration (Docker sẵn trên ubuntu-latest) → build → openapi/*.json (artifact)
   docker:        needs check → build image target runtime (không push, cache GHA)
   supabase-real: needs check, chỉ push + repo variable SUPABASE_REAL_TESTS=true + secrets SUPABASE_* → test/integration/supabase-real.spec.ts
-sau này:         migrate (bước riêng) → deploy → smoke (6 test đa instance)
+sau này:         migrate (bước riêng) → deploy → smoke (5 test đa instance)
 ```
 
 | Bước | Ghi chú |
@@ -70,7 +70,7 @@ sau này:         migrate (bước riêng) → deploy → smoke (6 test đa inst
 | `openapi.json` | Export tại build, upload artifact → mobile codegen (Flutter `openapi-generator dart-dio` hoặc RN `openapi-typescript`) |
 | `migrate` | `drizzle-kit migrate` chạy riêng trước deploy, có `pg_advisory_lock`; NEVER lúc boot |
 | `deploy` | Rolling: `api-2` trước, health ok, rồi `api-1` |
-| `smoke` | `npm run smoke` 6 test đa instance (+ chaos kill sau); đỏ → rollback |
+| `smoke` | `npm run smoke` 5 test đa instance (+ chaos kill sau); đỏ → rollback |
 
 Dừng ở bước đỏ. Không merge khi test đỏ.
 
@@ -92,5 +92,5 @@ MUST   pino redact: authorization, cookie, token, otp, phone, lat/lng chính xá
 | Coverage `*-geo.repository.ts` (integration) | 100 % hàm có test biên |
 | Viewport p95 | < 100 ms @ 300 req/s (k6, staging) |
 | SOS fan-out (gđ 2) | < 5 s tới 500 recipients |
-| Đa instance smoke | 6/6 pass trước mỗi deploy |
+| Đa instance smoke | 5/5 pass trước mỗi deploy |
 | Build | 0 lỗi typecheck, 0 lỗi lint blocking |

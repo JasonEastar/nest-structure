@@ -50,9 +50,9 @@ Chưa cần đọc ngay: `common/redis/throttler.guard.ts` (rate limit, có Lua)
 
 Đăng nhập: backend **không** làm OAuth. App gọi Supabase để đăng nhập Google, nhận token, gửi token cho backend. Backend chỉ xác minh.
 
-## 4. Job nền: vì sao có `pin.jobs.ts`
+## 4. Job nền (BullMQ) khi cần
 
-Mỗi phút cần quét pin hết hạn. Có 2 instance mà dùng cron trong process thì chạy 2 lần. Nên dùng BullMQ (hàng đợi trên Redis): cả 2 instance cùng đăng ký một lịch **cùng id**, Redis giữ đúng một lịch, mỗi phút sinh một job, một instance nhận. `pin.jobs.ts` có 2 class: `PinScheduler` đăng ký lịch lúc boot, `PinJobs` xử lý job.
+Chưa có module nào dùng. Khi cần việc chạy nền hoặc theo lịch (ví dụ quét pin hết hạn mỗi phút): có 2 instance mà dùng cron trong process thì chạy 2 lần, nên dùng BullMQ (hàng đợi trên Redis db1, đã cấu hình sẵn ở `common/redis/queue.ts`). Cách làm: thêm tên queue vào `QUEUES`, `BullModule.registerQueue` trong module, `@Processor` trong `<x>.jobs.ts`; lịch thì `queue.upsertJobScheduler(id cố định)` lúc boot, cả 2 instance cùng đăng ký nhưng Redis chỉ giữ một lịch, mỗi lần chỉ một worker nhận. Xem hàng đợi ở `/admin/queues`.
 
 ## 5. Từng file làm gì, khi nào mở
 
@@ -86,8 +86,6 @@ Mỗi phút cần quét pin hết hạn. Có 2 instance mà dùng cron trong pro
 | `modules/health/*` | `/health/live` (process sống), `/health/ready` (DB + Redis ok) | Thêm dependency cần check |
 | `modules/user/*` | `/me`, RBAC, admin gán role | Mọi thứ về user |
 | `modules/location/*` | Module mẫu: địa điểm đã lưu, đủ mọi loại file | Khi tạo module mới |
-| `modules/pin/pin.constants.ts` | Hằng số nghiệp vụ pin: tuổi thọ, rate limit, tier rep | Đổi luật chơi |
-| `modules/pin/pin.jobs.ts` | Lịch + worker hết hạn pin | Bước 9 |
 | `modules/queue-board/*` | Trang `/admin/queues` xem hàng đợi, cần quyền `queue:read` | Ops |
 
 ## 6. Thêm một API mới: copy module mẫu `modules/location/`
@@ -109,7 +107,7 @@ Mỗi phút cần quét pin hết hạn. Có 2 instance mà dùng cron trong pro
 Các bước khi làm module `pin`:
 1. Tạo `modules/pin/` với đúng bộ file trên, đổi tên `location` → `pin`.
 2. Schema → `npm run db:generate` → sửa SQL → `npm run db:migrate`. Thêm `export *` vào `common/database/schema.ts`.
-3. Đăng ký `PinModule` trong `app.module.ts` (đã có) và thêm một mục `OPENAPI_DOCS` (key `pins`, title `Pins`) để Swagger hiện.
+3. Đăng ký `PinModule` trong `app.module.ts` và thêm một mục `OPENAPI_DOCS` (key `pins`, title `Pins`) để Swagger hiện.
 4. Cần quyền → `@RequirePermissions(['pin:create'])` trên route; permission phải có trong seed `drizzle/0002_seed_rbac.sql`.
 5. Viết test unit cho luật, integration cho SQL và HTTP. Chạy `npm test`.
 

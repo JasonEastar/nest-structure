@@ -88,8 +88,6 @@ c9_map/
 │       │   ├── location.module.ts · location.controller.ts · location.service.ts · location.repository.ts · location.constants.ts
 │       │   ├── dto/create-location.dto.ts · dto/location.dto.ts     # 1 file / use case, chứa cả request + response
 │       │   └── schema/location.schema.ts                          # saved_locations (geography + GIST)
-│       ├── pin/
-│       │   ├── pin.module.ts · pin.constants.ts · pin.jobs.ts   # bước 7 thêm controller/service/repository/dto/schema theo mẫu location
 │       └── queue-board/
 │           └── queue-board.module.ts # /admin/queues (Bull Board) + middleware JWT + queue:read; tắt khi test
 ├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac · 0003_location (SQL)
@@ -107,7 +105,7 @@ Scaffold `nest new` 12: ESM (`type: module`, nodenext), oxlint, Vitest 4, TypeSc
 
 ## 4. Tiếp theo (roadmap bước 7 Pin core)
 
-`modules/pin/{pin.schema.ts, pin-geo.repository.ts, pin.service.ts, pin.controller.ts, pin.dto.ts}`, migration `markers` + `marker_photos`, test geo biên 300 m trên PostGIS thật, presigned upload R2 (decisions-pending).
+`modules/pin/` theo mẫu `location/` (schema, repository geo, service, controller, dto/), migration `markers` + `marker_photos`, test geo biên 300 m trên PostGIS thật, presigned upload R2 (decisions-pending).
 
 ## 5. Công cụ local đã kiểm tra
 
