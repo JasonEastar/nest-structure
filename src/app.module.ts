@@ -1,6 +1,6 @@
 import { type MiddlewareConsumer, Module, type NestModule, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, DiscoveryModule } from '@nestjs/core';
 import { CommonModule } from './common/common.module.js';
 import { AuthGuard } from './common/auth/auth.guard.js';
 import { AllExceptionsFilter } from './common/http/exceptions.js';
@@ -70,6 +70,7 @@ export const OPENAPI_DOCS: OpenApiDefinition[] = [
     ConfigModule.forRoot({ isGlobal: true, cache: true, ignoreEnvFile: true, validationSchema: envSchema }),
     PinoLoggerModule,
     AppI18nModule,
+    DiscoveryModule, // DiscoveryService cho config/openapi.ts (đọc metadata guard để ghi quyền vào Swagger)
     CommonModule,
     HealthModule,
     UserModule,
