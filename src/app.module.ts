@@ -89,6 +89,7 @@ export const OPENAPI_DOCS: OpenApiDefinition[] = [
   ],
 })
 export class AppModule implements NestModule {
+  /** Middleware chạy trước mọi guard: gắn X-Request-Id / X-Instance-Id cho mọi route. */
   configure(consumer: MiddlewareConsumer): void {
     consumer.apply(RequestContextMiddleware).forRoutes('{*splat}');
   }

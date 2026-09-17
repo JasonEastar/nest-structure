@@ -8,14 +8,9 @@ import { Public, RequirePermissions } from '../common/auth/decorators.js';
 import type { Env } from './env.js';
 
 /**
- * Tài liệu OpenAPI chia theo MODULE NGHIỆP VỤ (danh sách ở app.module.ts OPENAPI_DOCS), không chia app/admin:
- * - /docs            : Swagger UI, dropdown "Select a definition" chuyển giữa các module
- * - /docs/<key>-json : JSON từng định nghĩa · `npm run openapi:export` → openapi/<key>.json (mobile codegen)
- * Mỗi operation được tự động ghi thêm vào mô tả: "Quyền cần có: …" (từ @RequirePermissions) hoặc
- * "Không cần đăng nhập" (từ @Public) — lấy từ metadata guard nên không bao giờ lệch với code.
- *
- * Schema: Swagger 12 đọc zod trực tiếp. Schema body/response đặt `.meta({ id: 'Tên' })` → mục Schemas + $ref.
- * Request: `@Body({ schema })` tự đọc. Response: `@ApiOkResponse({ standardSchema: envelope(Schema) })`.
+ * Swagger chia theo module nghiệp vụ (OPENAPI_DOCS ở app.module.ts): UI /docs có dropdown, JSON /docs/<key>-json,
+ * `npm run openapi:export` → openapi/<key>.json cho mobile codegen.
+ * Quyền/public tự ghi vào mô tả từ metadata guard (annotateAccess). Schema có `.meta({ id })` → mục Schemas.
  */
 export interface OpenApiDefinition {
   key: string; // đường dẫn: /docs/<key>-json, openapi/<key>.json
@@ -115,6 +110,7 @@ function annotateAccess(app: INestApplication, document: OpenAPIObject): void {
   }
 }
 
+/** Dựng document cho từng định nghĩa; chặn định nghĩa rỗng hoặc trùng key. */
 export function buildOpenApiDocuments(app: INestApplication, defs: OpenApiDefinition[], env: DocEnv): Map<string, OpenAPIObject> {
   const out = new Map<string, OpenAPIObject>();
   for (const def of defs) {

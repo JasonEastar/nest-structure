@@ -26,6 +26,7 @@ export interface SupabaseAdminPort {
   getUserById(userId: string): Promise<{ id: string; email?: string; phoneConfirmedAt?: string | null } | null>;
 }
 export const SUPABASE_ADMIN = Symbol('SUPABASE_ADMIN');
+/** `@InjectSupabaseAdmin() admin: SupabaseAdminPort` trong service. */
 export const InjectSupabaseAdmin = () => Inject(SUPABASE_ADMIN);
 
 @Injectable()
@@ -84,12 +85,14 @@ export class SupabaseAdminAdapter implements SupabaseAdminPort {
     );
   }
 
+  /** Xoá user trên Supabase Auth. Đã xoá trước đó (404) → coi như thành công. */
   async deleteUser(userId: string): Promise<void> {
     const { error } = await this.client.auth.admin.deleteUser(userId);
     // User đã bị xoá trước đó → coi như thành công (idempotent).
     if (error && error.status !== 404) throw error;
   }
 
+  /** Đọc user từ Supabase Auth; null nếu không tồn tại. */
   async getUserById(userId: string) {
     const { data, error } = await this.client.auth.admin.getUserById(userId);
     if (error) {

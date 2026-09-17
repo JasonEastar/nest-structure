@@ -18,6 +18,7 @@ export const PaginationQuerySchema = z.object({
 }); // không meta id: query phải inline để Swagger tách thành tham số
 export type PaginationQuery = z.infer<typeof PaginationQuerySchema>;
 
+/** (createdAt, id) → chuỗi base64url gửi cho client làm `nextCursor`. */
 export function encodeCursor(cursor: Cursor): string {
   return Buffer.from(JSON.stringify(cursor)).toString('base64url');
 }

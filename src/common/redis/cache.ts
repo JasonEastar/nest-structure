@@ -4,15 +4,14 @@ import { Redis, type RedisOptions } from 'ioredis';
 import type { Env } from '../../config/env.js';
 
 /**
- * Redis tách theo vai trò (system-architecture §7):
- * - REDIS_CACHE (db0, provider ở đây): cache, rate limit, đếm — được phép mất (allkeys-lru ở prod).
- * - db1: BullMQ tự mở kết nối riêng từ `redisOptions(..., forQueue=true)` (common/queue.ts) — KHÔNG eviction,
- *   `maxRetriesPerRequest: null` bắt buộc cho worker blocking. Không có provider riêng vì không ai dùng ngoài BullMQ.
- * Prod chạy 2 Redis instance vì eviction policy không đặt theo db.
+ * Redis db0 = cache, rate limit (được phép mất). db1 = BullMQ, kết nối riêng mở ở queue.ts (không được mất).
+ * Prod chạy 2 Redis instance vì eviction policy không đặt theo db (system-architecture §7).
  */
 export const REDIS_CACHE = Symbol('REDIS_CACHE');
+/** `@InjectRedisCache() redis: Redis` khi cần ioredis thô (throttler, health). Nghiệp vụ dùng CacheService. */
 export const InjectRedisCache = () => Inject(REDIS_CACHE);
 
+/** REDIS_URL → options ioredis. `forQueue`: BullMQ bắt buộc maxRetriesPerRequest = null. */
 export function redisOptions(config: ConfigService<Env, true>, db: number, forQueue = false): RedisOptions {
   const url = new URL(config.get('REDIS_URL', { infer: true }));
   return {
@@ -62,6 +61,7 @@ export class CacheService {
     return raw === null ? null : (JSON.parse(raw) as T);
   }
 
+  /** Ghi object dạng JSON, luôn có TTL (không có key sống mãi). */
   async setJson(key: string, value: unknown, ttlSeconds: number): Promise<void> {
     await this.redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
   }
@@ -71,10 +71,12 @@ export class CacheService {
     await this.redis.set(key, '1', 'EX', ttlSeconds);
   }
 
+  /** Key có tồn tại không (dùng cho cờ). */
   async has(key: string): Promise<boolean> {
     return (await this.redis.exists(key)) === 1;
   }
 
+  /** Xoá nhiều key một lần (vô hiệu cache khi dữ liệu đổi). */
   async del(...keys: string[]): Promise<void> {
     if (keys.length) await this.redis.del(...keys);
   }
@@ -84,6 +86,7 @@ export class CacheService {
 @Injectable()
 export class RedisLifecycle implements OnModuleDestroy {
   constructor(private readonly client: Redis) {}
+  /** QUIT khi app tắt; lỗi thì ngắt thẳng. */
   async onModuleDestroy(): Promise<void> {
     await this.client.quit().catch(() => this.client.disconnect());
   }

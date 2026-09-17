@@ -17,6 +17,7 @@ export class PinScheduler implements OnApplicationBootstrap {
 
   constructor(@InjectQueue(QUEUES.MARKER_MAINTENANCE) private readonly queue: Queue) {}
 
+  /** Chạy lúc boot trên mọi instance; cùng id nên Redis chỉ giữ một lịch. */
   async onApplicationBootstrap(): Promise<void> {
     const { schedulerId, jobName, pattern, tz } = MARKER_EXPIRE_JOB;
     await this.queue.upsertJobScheduler(schedulerId, { pattern, tz }, { name: jobName, data: {} });
@@ -34,6 +35,7 @@ export class PinJobs extends WorkerHost {
     this.instance = config.get('INSTANCE_ID', { infer: true });
   }
 
+  /** Worker nhận job từ queue; rẽ nhánh theo job.name. */
   async process(job: Job): Promise<void> {
     switch (job.name) {
       case MARKER_EXPIRE_JOB.jobName:
@@ -46,6 +48,7 @@ export class PinJobs extends WorkerHost {
   }
 
   @OnWorkerEvent('failed')
+  /** Job hết số lần thử → log để Bull Board và ops thấy. */
   onFailed(job: Job | undefined, error: Error): void {
     this.logger.error(`job failed name=${job?.name} id=${job?.id} attempts=${job?.attemptsMade}`, error.stack);
   }

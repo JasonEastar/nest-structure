@@ -10,11 +10,13 @@ import { type SavedLocationRow, savedLocations } from './schema/location.schema.
 export class LocationRepository {
   constructor(@InjectDb() private readonly db: Db) {}
 
+  /** Tạo địa điểm, trả về dòng vừa ghi (có id, created_at do DB/app sinh). */
   async insert(userId: string, data: { name: string; point: LatLng; radiusMeters: number; isPublic: boolean }): Promise<SavedLocationRow> {
     const [row] = await this.db.insert(savedLocations).values({ userId, ...data }).returning();
     return row!;
   }
 
+  /** Số địa điểm user đang có (kiểm giới hạn maxPerUser). */
   async countByUser(userId: string): Promise<number> {
     const [row] = await this.db.select({ n: count() }).from(savedLocations).where(eq(savedLocations.userId, userId));
     return row?.n ?? 0;
@@ -36,6 +38,7 @@ export class LocationRepository {
       .limit(limit);
   }
 
+  /** Một địa điểm của đúng user đó; của người khác → null. */
   async findById(userId: string, id: string): Promise<SavedLocationRow | null> {
     const [row] = await this.db
       .select()

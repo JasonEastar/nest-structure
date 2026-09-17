@@ -12,6 +12,7 @@ import type { SavedLocationRow } from './schema/location.schema.js';
 export class LocationService {
   constructor(private readonly repo: LocationRepository) {}
 
+  /** Tạo địa điểm; vượt 20 → CONFLICT LIMIT_REACHED. */
   async create(userId: string, input: CreateLocation): Promise<LocationResponse> {
     if ((await this.repo.countByUser(userId)) >= LOCATION_LIMITS.maxPerUser) {
       throw new AppException('CONFLICT', { reason: 'LIMIT_REACHED', max: LOCATION_LIMITS.maxPerUser });
@@ -25,17 +26,20 @@ export class LocationService {
     return toResponse(row);
   }
 
+  /** Trang địa điểm của user, mới nhất trước, kèm nextCursor. */
   async list(userId: string, query: ListLocationsQuery) {
     const rows = await this.repo.findPage(userId, query.limit + 1, decodeCursor(query.cursor));
     return pageOf(rows.map(toResponse), query.limit, (r) => ({ createdAt: r.createdAt, id: r.id }));
   }
 
+  /** Chi tiết; không có hoặc của người khác → NOT_FOUND. */
   async get(userId: string, id: string): Promise<LocationResponse> {
     const row = await this.repo.findById(userId, id);
     if (!row) throw new AppException('NOT_FOUND', { resource: 'location', id }); // của người khác cũng là NOT_FOUND (không lộ)
     return toResponse(row);
   }
 
+  /** Xoá; không có hoặc của người khác → NOT_FOUND. */
   async remove(userId: string, id: string): Promise<void> {
     if (!(await this.repo.deleteById(userId, id))) throw new AppException('NOT_FOUND', { resource: 'location', id });
   }

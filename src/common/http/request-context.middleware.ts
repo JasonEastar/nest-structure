@@ -31,6 +31,7 @@ export function resolveRequestId(req: RequestWithId): string {
 export class RequestContextMiddleware implements NestMiddleware {
   constructor(private readonly config: ConfigService<Env, true>) {}
 
+  /** Gắn request id lên req và trả 2 header cho client/nginx. */
   use(req: Request, res: Response, next: NextFunction): void {
     const requestId = resolveRequestId(req);
     res.setHeader('X-Request-Id', requestId);

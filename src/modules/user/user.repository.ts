@@ -36,6 +36,7 @@ export class UserRepository {
     });
   }
 
+  /** Profile theo id (= sub Supabase); null nếu chưa có. */
   async findProfile(userId: string) {
     const [row] = await this.db
       .select({
@@ -54,6 +55,7 @@ export class UserRepository {
     return row ?? null;
   }
 
+  /** Mã role của user (user, moderator, ...). */
   async findRoleCodes(userId: string): Promise<RoleCode[]> {
     const rows = await this.db
       .select({ code: roles.code })
@@ -74,6 +76,7 @@ export class UserRepository {
     return rows.map((r) => r.code);
   }
 
+  /** Mọi role kèm danh sách permission, gom từ join role_permissions. */
   async listRoles() {
     const rows = await this.db
       .select({ code: roles.code, name: roles.name, permission: permissions.code })
@@ -100,6 +103,7 @@ export class UserRepository {
     });
   }
 
+  /** Ghi nhận thiết bị: lần đầu insert, lần sau chỉ cập nhật last_seen_at. */
   async upsertDevice(userId: string, deviceId: string): Promise<void> {
     await this.db
       .insert(devices)
@@ -115,6 +119,7 @@ export class UserRepository {
     await this.db.delete(profiles).where(eq(profiles.id, userId));
   }
 
+  /** Có profile không (kiểm trước khi gán role). */
   async profileExists(userId: string): Promise<boolean> {
     const [row] = await this.db.select({ id: profiles.id }).from(profiles).where(eq(profiles.id, userId)).limit(1);
     return Boolean(row);

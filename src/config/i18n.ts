@@ -2,12 +2,9 @@ import { join } from 'node:path';
 import { AcceptLanguageResolver, I18nModule } from 'nestjs-i18n';
 
 /**
- * Đa ngôn ngữ (nestjs-i18n). File dịch ở `i18n/<lang>/<namespace>.json` (gốc repo, Dockerfile COPY sẵn):
- * - errors.json : câu `message` trong body lỗi (AllExceptionsFilter dịch theo mã lỗi + params).
- * - common.json : câu dùng chung, template push notification (bước 11).
- * Ngôn ngữ của một request: CHỈ header `Accept-Language` (vi | en), không có thì vi. Không nhận qua query/body
- * để toàn hệ thống một cách duy nhất.
- * Trong code: `I18nContext.current(host)?.lang` lấy ngôn ngữ; `I18nService.t('errors.NOT_FOUND', { lang, args })` dịch.
+ * Đa ngôn ngữ vi/en (nestjs-i18n). Câu chữ ở `i18n/<lang>/*.json`: errors.json (message lỗi), common.json (push, dùng chung).
+ * Ngôn ngữ của request lấy DUY NHẤT từ header `Accept-Language`, không có thì vi.
+ * Dùng: `I18nContext.current(host)?.lang` lấy ngôn ngữ; `I18nService.t('errors.NOT_FOUND', { lang, args })` dịch.
  */
 export const SUPPORTED_LOCALES = ['vi', 'en'] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];

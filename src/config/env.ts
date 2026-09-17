@@ -37,6 +37,7 @@ export const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
+/** Parse + validate env; sai → throw liệt kê từng biến (app không boot với cấu hình thiếu). */
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   const result = envSchema.safeParse(source);
   if (!result.success) {

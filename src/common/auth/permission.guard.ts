@@ -17,6 +17,7 @@ export class PermissionGuard implements CanActivate {
     @Inject(AUTH_USER) private readonly users: AuthUserPort,
   ) {}
 
+  /** Không có @RequirePermissions → cho qua. Có → so quyền của user (cache) với danh sách yêu cầu; thiếu → 403. */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const required = this.reflector.getAllAndOverride(RequirePermissions, [
       context.getHandler(),

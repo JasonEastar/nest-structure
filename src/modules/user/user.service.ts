@@ -54,6 +54,7 @@ export class UserService implements AuthUserPort {
     await this.cache.flag(key, TTL.deviceSeen);
   }
 
+  /** Hồ sơ /me: profile + role + permission hiệu lực. */
   async getMe(userId: string): Promise<MeResponse> {
     const profile = await this.repo.findProfile(userId);
     if (!profile) throw new AppException('NOT_FOUND', { resource: 'profile' });
@@ -75,10 +76,12 @@ export class UserService implements AuthUserPort {
     };
   }
 
+  /** Danh sách role cho admin. */
   async listRoles() {
     return this.repo.listRoles();
   }
 
+  /** Role hiện tại của một user. */
   async listUserRoles(userId: string): Promise<RoleCode[]> {
     return this.repo.findRoleCodes(userId);
   }

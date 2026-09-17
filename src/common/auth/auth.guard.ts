@@ -41,6 +41,7 @@ export class AuthGuard implements CanActivate {
     @Inject(AUTH_USER) private readonly users: AuthUserPort,
   ) {}
 
+  /** Route @Public → cho qua. Còn lại: Bearer → verify JWKS → ensureProfile → req.user; sai → 401. */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     if (context.getType() !== 'http') return true;
     const isPublic = this.reflector.getAllAndOverride(Public, [context.getHandler(), context.getClass()]);

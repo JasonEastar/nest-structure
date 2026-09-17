@@ -12,12 +12,14 @@ import * as schema from './schema.js';
 export type Db = PostgresJsDatabase<typeof schema>;
 
 export const DRIZZLE = Symbol('DRIZZLE');
+/** `@InjectDb() db: Db` trong repository. */
 export const InjectDb = () => Inject(DRIZZLE);
 
 /** Giữ kết nối postgres.js để đóng pool khi shutdown (worker BullMQ kịp xong job trước). */
 @Injectable()
 export class DatabaseLifecycle implements OnModuleDestroy {
   constructor(private readonly sql: Sql) {}
+  /** Đóng pool khi app tắt, đợi tối đa 5 s cho query đang chạy. */
   async onModuleDestroy(): Promise<void> {
     await this.sql.end({ timeout: 5 });
   }

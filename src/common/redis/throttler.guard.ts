@@ -34,6 +34,7 @@ return { hits, ttl, blockTtl }
 export class RedisThrottlerStorage implements ThrottlerStorage {
   constructor(private readonly redis: Redis) {}
 
+  /** Một lần đếm cho tracker: chạy Lua nguyên tử, trả số hit và thời gian còn lại để guard quyết 429. */
   async increment(
     key: string,
     ttl: number,

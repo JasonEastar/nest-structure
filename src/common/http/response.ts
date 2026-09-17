@@ -30,6 +30,7 @@ const SKIP_PREFIXES = ['/health', '/docs', '/admin/queues'];
 
 @Injectable()
 export class ResponseInterceptor implements NestInterceptor {
+  /** Bỏ qua route trong SKIP_PREFIXES; còn lại bọc kết quả handler thành envelope. */
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const req = context.switchToHttp().getRequest<Request>();
     if (SKIP_PREFIXES.some((p) => req.path.startsWith(p))) return next.handle();

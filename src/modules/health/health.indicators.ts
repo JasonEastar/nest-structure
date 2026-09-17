@@ -13,6 +13,7 @@ export class DrizzleHealthIndicator {
     @InjectDb() private readonly db: Db,
   ) {}
 
+  /** `select 1` qua pool hiện tại; lỗi → down kèm message. */
   async isHealthy(key = 'db'): Promise<HealthIndicatorResult> {
     const indicator = this.indicators.check(key);
     try {
@@ -31,6 +32,7 @@ export class RedisHealthIndicator {
     @InjectRedisCache() private readonly redis: Redis,
   ) {}
 
+  /** PING Redis cache; không PONG → down. */
   async isHealthy(key = 'redis'): Promise<HealthIndicatorResult> {
     const indicator = this.indicators.check(key);
     try {
