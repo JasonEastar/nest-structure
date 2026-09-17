@@ -60,6 +60,18 @@ services:
       timeout: 3s
       retries: 10
 
+  # UI xem Redis: npm run dev:tools → http://localhost:5540 → Add database: host `redis`, port 6379 (db0 cache, db1 BullMQ)
+  redis-insight:
+    image: redis/redisinsight:latest
+    ports:
+      - "127.0.0.1:${REDIS_INSIGHT_HOST_PORT:-5540}:5540"
+    volumes:
+      - redis-insight-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    profiles: ["tools"]
+
   api-1:
     <<: *api
     environment:
@@ -90,3 +102,4 @@ services:
 volumes:
   pg-data:
   redis-data:
+  redis-insight-data:

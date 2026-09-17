@@ -11,6 +11,7 @@ Cách bắt đầu code, đặt tên API, nhận input, validate, trả response
 cp .env.example .env            # điền SUPABASE_URL, SUPABASE_SECRET_KEY, SUPABASE_PUBLISHABLE_KEY (Dashboard → API keys)
 npm install
 npm run dev:infra               # Postgres + PostGIS, Redis (Docker). Port host: PG_HOST_PORT / REDIS_HOST_PORT trong .env
+npm run dev:tools               # (tuỳ chọn) RedisInsight http://localhost:5540 để xem key Redis; Postgres: npm run db:studio
 npm run db:migrate              # tạo bảng + seed role/permission
 npm run dev                     # http://localhost:3000, sửa file là tự reload
 open http://localhost:3000/docs              # Swagger UI, dropdown 'Select a definition' chọn module
