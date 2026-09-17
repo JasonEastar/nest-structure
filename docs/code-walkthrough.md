@@ -120,3 +120,34 @@ Không viết trước cái chưa dùng. Khi bước tương ứng tới thì th
 - Cache viewport trong Redis (bước 7, khi có endpoint viewport của pin).
 - Gọi `i18n.t()` (bước 11, push notification). Module i18n đã nối sẵn vì đã có test và thư mục `i18n/`.
 - Tách worker khỏi HTTP bằng biến env (chỉ khi push fan-out làm API chậm, xem ADR-0006).
+
+## 8. Module lớn lên và hai module nối với nhau
+
+### 8.1 Thêm bảng phụ cho một module (ví dụ ảnh của địa điểm)
+
+Bảng phụ vẫn thuộc module đó. Thứ tự mở rộng, mỗi bước chỉ chạm một loại file:
+
+1. **Bảng:** thêm `schema/location-photo.schema.ts`, FK về `saved_locations` (import từ `location.schema.ts`), `npm run db:generate`, thêm `export *` vào `common/database/schema.ts`.
+2. **SQL:** thêm hàm vào `location.repository.ts`. Bảng phụ có nhiều query → `location-photo.repository.ts` (một repository một bảng chính). Join viết bằng `innerJoin`, không dùng `relations()`/`db.query` ở MVP.
+3. **Luật:** thêm hàm vào `location.service.ts`; vượt ~150 dòng → `location-photo.service.ts`.
+4. **Route:** thêm vào `location.controller.ts`; nhóm route phụ rõ (`/locations/:id/photos`) → `location-photo.controller.ts`.
+5. **Module phình:** gốc module vượt ~10 file → phần phụ thành module riêng (ảnh dùng chung cho pin nữa → `modules/media/`). Không bao giờ tách thư mục theo loại.
+
+Không có "entity": kiểu một dòng là `typeof table.$inferSelect` (ví dụ `SavedLocationRow`), Drizzle sinh sẵn. Luật nghiệp vụ nằm trong service, dữ liệu là object thuần (không DDD, theo PDR).
+
+### 8.2 Hai module nối với nhau (ví dụ `post` gắn với `location`)
+
+Nguyên tắc duy nhất: **phụ thuộc đi một chiều.** `post` biết `location`, `location` không biết `post`. Ba tầng nối:
+
+| Tầng | Cách làm | Ví dụ |
+|---|---|---|
+| DB | FK trong schema của module phụ thuộc, import bảng của module kia. Chọn hành vi xoá ngay lúc khai: `cascade` (xoá địa điểm thì xoá post) hoặc `set null` (post còn, mất liên kết) | `post.schema.ts`: `locationId: uuid('location_id').references(() => savedLocations.id, { onDelete: 'set null' })` |
+| Đọc | Repository của `post` được **join** bảng `saved_locations` để trả tên/toạ độ kèm post (tránh N+1). Không copy tên địa điểm vào bảng post: đổi tên ở location là post thấy ngay, không phải "đồng bộ" gì | `postRepository.findPage()` join `savedLocations` lấy `name`, `point` |
+| Ghi / luật | `PostModule` import `LocationModule`; `PostService` inject `LocationService` (đã export) để kiểm luật trước khi ghi. **Không** inject `LocationRepository` của module khác, không ghi thẳng vào bảng của module khác | tạo post: `await this.locations.get(userId, dto.locationId)` → NOT_FOUND nếu không phải của user |
+
+Ghi hai bảng của hai module trong **một transaction** (hiếm): repository của module chủ (`post`) mở `db.transaction` và insert cả hai bảng, import schema của module kia chỉ cho bước ghi đó. Ghi chú lý do ngay trên hàm.
+
+Chiều ngược (location cần biết post, ví dụ đếm số post hoặc xoá địa điểm phải dọn post): **không** gọi ngược từ location sang post. Dùng FK `cascade`/`set null` để DB tự dọn, hoặc đếm bằng query join phía post khi cần hiển thị. Nếu sau này thật sự cần "location xảy ra X thì post làm Y" thì thêm event (`@nestjs/event-emitter`) — thêm dependency phải hỏi, chưa cần ở MVP.
+
+Vòng phụ thuộc (`post` → `location` → `post`) là lỗi thiết kế: Nest báo lỗi lúc boot hoặc phải dùng `forwardRef`. Gặp tình huống đó thì tách phần chung ra module thứ ba, không dùng `forwardRef`.
+
