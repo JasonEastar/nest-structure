@@ -1,6 +1,6 @@
 import { boolean, index, integer, pgTable, text, uuid } from 'drizzle-orm/pg-core';
 import { geographyPoint, timestamps, uuidV7Pk } from '../../../common/database/columns.js';
-import { profiles } from '../../identity/schema/identity.schema.js';
+import { profiles } from '../../user/schema/user.schema.js';
 
 /**
  * Bảng của module location. Quy tắc (ADR-0006 §6): chỉ import drizzle-orm, common/database/columns.ts và *.schema.ts khác.

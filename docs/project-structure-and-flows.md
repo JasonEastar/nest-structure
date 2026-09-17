@@ -45,16 +45,16 @@ c9_map/
 │   └── modules/                      # nghiệp vụ — mỗi module 1 thư mục; file chính ở gốc, chỉ 2 thư mục con dto/ và schema/
 │       ├── health/
 │       │   ├── health.module.ts · health.controller.ts (GET /health/live · /health/ready) · health.indicators.ts
-│       ├── identity/
-│       │   ├── identity.module.ts
-│       │   ├── identity.controller.ts        # IdentityController GET/DELETE /me · IdentityAdminController /admin/roles (@RequirePermissions)
-│       │   ├── identity.service.ts           # ensureProfile · getMe · deleteMe · touchDevice · getPermissions · setUserRoles
-│       │   ├── identity.repository.ts        # mọi SQL của identity (Drizzle)
+│       ├── user/
+│       │   ├── user.module.ts
+│       │   ├── user.controller.ts        # UserController GET/DELETE /me · UserAdminController /admin/roles (@RequirePermissions)
+│       │   ├── user.service.ts           # ensureProfile · getMe · deleteMe · touchDevice · getPermissions · setUserRoles
+│       │   ├── user.repository.ts        # mọi SQL của user (Drizzle)
 │       │   ├── dto/                          # zod request/response — Swagger đọc tự động
 │       │   │   ├── me.dto.ts                 # MeResponseSchema
 │       │   │   └── role.dto.ts               # ROLE_CODES · RoleSchema · SetUserRolesSchema
 │       │   └── schema/
-│       │       └── identity.schema.ts        # profiles · roles · permissions · role_permissions · user_roles · devices
+│       │       └── user.schema.ts        # profiles · roles · permissions · role_permissions · user_roles · devices
 │       ├── location/                 # MODULE MẪU — copy cấu trúc này cho module mới
 │       │   ├── location.module.ts · location.controller.ts · location.service.ts · location.repository.ts · location.constants.ts
 │       │   ├── dto/create-location.dto.ts · dto/location.dto.ts     # 1 file / use case, chứa cả request + response
@@ -75,7 +75,7 @@ c9_map/
 └── package.json · tsconfig.json · nest-cli.json
 ```
 
-Người mới đọc [code-walkthrough.md](./code-walkthrough.md) trước. Module mới = copy cấu trúc `identity/` (`nest g resource <x> modules` sinh đúng bố cục này, chỉ đổi `entities/` → `schema/`).
+Người mới đọc [code-walkthrough.md](./code-walkthrough.md) trước. Module mới = copy cấu trúc `user/` (`nest g resource <x> modules` sinh đúng bố cục này, chỉ đổi `entities/` → `schema/`).
 
 ## 2. File — có gì, chặn lỗi gì
 
@@ -123,9 +123,9 @@ sequenceDiagram
   participant A as auth.guard
   participant P as permission.guard
   participant V as validation (zod pipe)
-  participant C as identity.controller
-  participant S as identity.service
-  participant R as identity.repository
+  participant C as user.controller
+  participant S as user.service
+  participant R as user.repository
   participant I as response interceptor
   participant F as exceptions filter
   M->>N: POST /api/v1/… · Bearer JWT
@@ -205,7 +205,7 @@ flowchart TB
   APP["app.module.ts<br/>APP_GUARD ×3 · APP_PIPE · APP_FILTER · APP_INTERCEPTOR"]
   CM["common/common.module.ts @Global<br/>DRIZZLE · REDIS · CacheService · BullMQ root · SUPABASE_ADMIN · JwtService · Logger · I18n"]
   ENV["config/env.ts"]
-  ID["modules/identity<br/>schema · dto · repository · service · controllers"]
+  ID["modules/user<br/>schema · dto · repository · service · controllers"]
   PIN["modules/pin<br/>schema · constants · jobs"]
   HL["health"]
   ENV --> CM
@@ -217,10 +217,10 @@ flowchart TB
   ID --> CM
   PIN --> CM
   HL --> CM
-  APP -. "auth.guard gọi IdentityService.ensureProfile" .-> ID
+  APP -. "auth.guard gọi UserService.ensureProfile" .-> ID
 ```
 
-Một chiều: `modules/` và `health/` dùng `common/`; `common/` không biết `modules/`. `auth.guard.ts` cần `ensureProfile` → guard nhận `IdentityService` qua DI từ `AppModule` (IdentityModule export service), không import file trong `modules/` từ `common/`.
+Một chiều: `modules/` và `health/` dùng `common/`; `common/` không biết `modules/`. `auth.guard.ts` cần `ensureProfile` → guard nhận `UserService` qua DI từ `AppModule` (UserModule export service), không import file trong `modules/` từ `common/`.
 
 ## 8. Luồng 6 — Hạ tầng
 

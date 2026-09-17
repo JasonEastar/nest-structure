@@ -9,7 +9,7 @@ import { SupabaseJwtService } from '../../common/auth/supabase.js';
 import { ErrorCodes } from '../../common/http/exceptions.js';
 import { requestIdOf } from '../../common/http/request-context.middleware.js';
 import { QUEUES } from '../../common/redis/queue.js';
-import { IdentityModule } from '../identity/identity.module.js';
+import { UserModule } from '../user/user.module.js';
 
 /**
  * Giao diện xem hàng đợi BullMQ (queue depth, job lỗi, retry) tại /admin/queues — công cụ vận hành, không phải API app.
@@ -59,7 +59,7 @@ export function queueBoardAuth(jwt: SupabaseJwtService, users: AuthUserPort) {
 }
 
 const root = BullBoardModule.forRootAsync({
-  imports: [IdentityModule],
+  imports: [UserModule],
   inject: [SupabaseJwtService, AUTH_USER],
   useFactory: (jwt: SupabaseJwtService, users: AuthUserPort) => ({
     route: QUEUE_BOARD_ROUTE,

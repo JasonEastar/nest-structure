@@ -60,7 +60,7 @@ MUST   bảng user_locations: một dòng mỗi user, UPSERT — NEVER bảng l�
 MUST   notifications partition theo tháng
 MUST   migration là bước riêng trong deploy — NEVER chạy lúc boot (drizzle migrate() không có lock, N instance sẽ đua)
 MUST   *.schema.ts chỉ import drizzle-orm, util npm thuần (uuidv7) và *.schema.ts khác — NEVER import common/database/drizzle.ts hay service (cột dùng chung lấy từ common/database/columns.ts)
-MUST   FK liên module một chiều (pin → identity); MVP dùng db.select() + join — NEVER relations()/db.query
+MUST   FK liên module một chiều (pin → user); MVP dùng db.select() + join — NEVER relations()/db.query
 MUST   options upsertJobScheduler là hằng số trong <x>.constants.ts — NEVER tính từ env/runtime
 NEVER  ghi vào schema auth.* — chỉ đọc qua Supabase Admin API
 MUST   public.profiles.id = sub của Supabase, KHÔNG FK (khác database) — tạo bằng upsert phía app, xoá qua Admin API + tx local
@@ -165,16 +165,16 @@ c9_map/
 │   └── modules/                      # nghiệp vụ — mỗi module 1 thư mục; file chính ở gốc, chỉ 2 thư mục con dto/ và schema/
 │       ├── health/
 │       │   ├── health.module.ts · health.controller.ts (GET /health/live · /health/ready) · health.indicators.ts
-│       ├── identity/
-│       │   ├── identity.module.ts
-│       │   ├── identity.controller.ts        # IdentityController GET/DELETE /me · IdentityAdminController /admin/roles (@RequirePermissions)
-│       │   ├── identity.service.ts           # ensureProfile · getMe · deleteMe · touchDevice · getPermissions · setUserRoles
-│       │   ├── identity.repository.ts        # mọi SQL của identity (Drizzle)
+│       ├── user/
+│       │   ├── user.module.ts
+│       │   ├── user.controller.ts        # UserController GET/DELETE /me · UserAdminController /admin/roles (@RequirePermissions)
+│       │   ├── user.service.ts           # ensureProfile · getMe · deleteMe · touchDevice · getPermissions · setUserRoles
+│       │   ├── user.repository.ts        # mọi SQL của user (Drizzle)
 │       │   ├── dto/                          # zod request/response — Swagger đọc tự động
 │       │   │   ├── me.dto.ts                 # MeResponseSchema
 │       │   │   └── role.dto.ts               # ROLE_CODES · RoleSchema · SetUserRolesSchema
 │       │   └── schema/
-│       │       └── identity.schema.ts        # profiles · roles · permissions · role_permissions · user_roles · devices
+│       │       └── user.schema.ts        # profiles · roles · permissions · role_permissions · user_roles · devices
 │       ├── location/                 # MODULE MẪU — copy cấu trúc này cho module mới
 │       │   ├── location.module.ts · location.controller.ts · location.service.ts · location.repository.ts · location.constants.ts
 │       │   ├── dto/create-location.dto.ts · dto/location.dto.ts     # 1 file / use case, chứa cả request + response
@@ -212,7 +212,7 @@ Nguồn: [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md) (sửa đổi 20
 | Loại | Quy ước | Ví dụ |
 |---|---|---|
 | File | kebab-case + hậu tố | `pin-geo.repository.ts` |
-| Bảng Drizzle | `schema/<module>.schema.ts` | `schema/identity.schema.ts` |
+| Bảng Drizzle | `schema/<module>.schema.ts` | `schema/user.schema.ts` |
 | Zod DTO | `<module>.dto.ts` | `pin.dto.ts` |
 | Processor + scheduler | `<module>.jobs.ts` | `pin.jobs.ts` |
 | Class | PascalCase | `PinGeoRepository` |

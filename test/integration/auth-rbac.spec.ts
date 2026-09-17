@@ -5,7 +5,7 @@ import request from 'supertest';
 import { Public, RequirePermissions } from '../../src/common/auth/decorators.js';
 import { CacheService, cacheKeys } from '../../src/common/redis/cache.js';
 import { SUPABASE_ADMIN, type SupabaseAdminPort } from '../../src/common/auth/supabase.js';
-import { IdentityService } from '../../src/modules/identity/identity.service.js';
+import { UserService } from '../../src/modules/user/user.service.js';
 import { type FakeSupabase, startFakeSupabase } from '../setup/jwks.js';
 
 /**
@@ -58,7 +58,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
   let supabase: FakeSupabase;
   let signToken: FakeSupabase['signToken'];
   let admin: InMemorySupabaseAdmin;
-  let identity: IdentityService;
+  let users: UserService;
   let cache: CacheService;
   let issuer: string;
 
@@ -81,7 +81,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
     app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
     await app.init();
 
-    identity = app.get(IdentityService);
+    users = app.get(UserService);
     cache = app.get(CacheService);
   });
 
@@ -162,8 +162,8 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
     const sub = newUser();
     const claims = { sub, email: `race${Date.now()}@c9map.test`, isAnonymous: false };
     await cache.del(cacheKeys.profileExists(sub));
-    await Promise.all([identity.ensureProfile(claims), identity.ensureProfile(claims)]);
-    const me = await identity.getMe(sub);
+    await Promise.all([users.ensureProfile(claims), users.ensureProfile(claims)]);
+    const me = await users.getMe(sub);
     expect(me.roles).toEqual(['user']);
   });
 
@@ -179,7 +179,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
       .expect(403);
     expect(denied.body.error).toMatchObject({ code: 'FORBIDDEN', params: { missing: ['report:review'] } });
 
-    await identity.setUserRoles(sub, ['moderator']);
+    await users.setUserRoles(sub, ['moderator']);
     await request(app.getHttpServer())
       .get('/api/v1/probe/needs-perm')
       .set('authorization', `Bearer ${token}`)
@@ -201,7 +201,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
 
     await request(app.getHttpServer()).get('/api/v1/admin/roles').set('authorization', `Bearer ${userToken}`).expect(403);
 
-    await identity.setUserRoles(adminSub, ['admin']);
+    await users.setUserRoles(adminSub, ['admin']);
     const roles = await request(app.getHttpServer())
       .get('/api/v1/admin/roles')
       .set('authorization', `Bearer ${adminToken}`)
@@ -228,7 +228,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
     const adminToken = await signToken({ sub: adminSub });
     admin.seed(adminSub);
     await request(app.getHttpServer()).get('/api/v1/me').set('authorization', `Bearer ${adminToken}`).expect(200);
-    await identity.setUserRoles(adminSub, ['admin']);
+    await users.setUserRoles(adminSub, ['admin']);
 
     await request(app.getHttpServer())
       .put(`/api/v1/admin/users/${newUser()}/roles`)
@@ -272,7 +272,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
     // Token còn hạn KHÔNG được làm profile sống lại: tombstone → 401, và không có dòng profile mới
     const after = await request(app.getHttpServer()).get('/api/v1/me').set('authorization', `Bearer ${token}`).expect(401);
     expect(after.body.error.code).toBe('UNAUTHENTICATED');
-    await expect(identity.getMe(sub)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(users.getMe(sub)).rejects.toMatchObject({ code: 'NOT_FOUND' });
     expect(await cache.has(cacheKeys.deleted(sub))).toBe(true);
   });
 
@@ -304,7 +304,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
       .expect(403);
     expect(denied.body.error.code).toBe('FORBIDDEN');
 
-    await identity.setUserRoles(sub, ['admin']); // admin có queue:read
+    await users.setUserRoles(sub, ['admin']); // admin có queue:read
     const ok = await request(app.getHttpServer())
       .get('/admin/queues/api/queues')
       .set('authorization', `Bearer ${token}`)

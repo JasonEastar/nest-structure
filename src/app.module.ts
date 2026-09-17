@@ -14,7 +14,7 @@ import { ValidationPipeProvider } from './common/http/validation.js';
 import { envSchema } from './config/env.js';
 import type { OpenApiDefinition } from './config/openapi.js';
 import { HealthModule } from './modules/health/health.module.js';
-import { IdentityModule } from './modules/identity/identity.module.js';
+import { UserModule } from './modules/user/user.module.js';
 import { LocationModule } from './modules/location/location.module.js';
 import { PinModule } from './modules/pin/pin.module.js';
 import { QueueBoardModule } from './modules/queue-board/queue-board.module.js';
@@ -41,7 +41,7 @@ export const OPENAPI_DOCS: OpenApiDefinition[] = [
       { name: 'Me', description: 'Hồ sơ của user đang đăng nhập' },
       { name: 'Roles', description: 'Quản trị role/permission (cần quyền)' },
     ],
-    modules: [IdentityModule],
+    modules: [UserModule],
   },
   {
     key: 'locations',
@@ -73,7 +73,7 @@ export const OPENAPI_DOCS: OpenApiDefinition[] = [
     AppI18nModule,
     CommonModule,
     HealthModule,
-    IdentityModule,
+    UserModule,
     LocationModule,
     PinModule,
     QueueBoardModule,

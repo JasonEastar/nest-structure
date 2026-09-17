@@ -74,16 +74,16 @@ c9_map/
 │   └── modules/                      # nghiệp vụ — mỗi module 1 thư mục; file chính ở gốc, chỉ 2 thư mục con dto/ và schema/
 │       ├── health/
 │       │   ├── health.module.ts · health.controller.ts (GET /health/live · /health/ready) · health.indicators.ts
-│       ├── identity/
-│       │   ├── identity.module.ts
-│       │   ├── identity.controller.ts        # IdentityController GET/DELETE /me · IdentityAdminController /admin/roles (@RequirePermissions)
-│       │   ├── identity.service.ts           # ensureProfile · getMe · deleteMe · touchDevice · getPermissions · setUserRoles
-│       │   ├── identity.repository.ts        # mọi SQL của identity (Drizzle)
+│       ├── user/
+│       │   ├── user.module.ts
+│       │   ├── user.controller.ts        # UserController GET/DELETE /me · UserAdminController /admin/roles (@RequirePermissions)
+│       │   ├── user.service.ts           # ensureProfile · getMe · deleteMe · touchDevice · getPermissions · setUserRoles
+│       │   ├── user.repository.ts        # mọi SQL của user (Drizzle)
 │       │   ├── dto/                          # zod request/response — Swagger đọc tự động
 │       │   │   ├── me.dto.ts                 # MeResponseSchema
 │       │   │   └── role.dto.ts               # ROLE_CODES · RoleSchema · SetUserRolesSchema
 │       │   └── schema/
-│       │       └── identity.schema.ts        # profiles · roles · permissions · role_permissions · user_roles · devices
+│       │       └── user.schema.ts        # profiles · roles · permissions · role_permissions · user_roles · devices
 │       ├── location/                 # MODULE MẪU — copy cấu trúc này cho module mới
 │       │   ├── location.module.ts · location.controller.ts · location.service.ts · location.repository.ts · location.constants.ts
 │       │   ├── dto/create-location.dto.ts · dto/location.dto.ts     # 1 file / use case, chứa cả request + response

@@ -2,7 +2,7 @@ import { index, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from '
 import { timestamps, uuidV7Pk } from '../../../common/database/columns.js';
 
 /**
- * Bảng của module identity. Quy tắc (ADR-0006 §6): *.schema.ts chỉ import drizzle-orm, common/database/columns.ts
+ * Bảng của module user. Quy tắc (ADR-0006 §6): *.schema.ts chỉ import drizzle-orm, common/database/columns.ts
  * và *.schema.ts khác — không import common/database/drizzle.ts (tránh vòng).
  */
 

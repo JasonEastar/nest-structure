@@ -6,12 +6,12 @@ import { CurrentUser, RequirePermissions } from '../../common/auth/decorators.js
 import { envelope } from '../../config/openapi.js';
 import { MeResponseSchema } from './dto/me.dto.js';
 import { RoleSchema, type SetUserRoles, SetUserRolesSchema } from './dto/role.dto.js';
-import { IdentityService } from './identity.service.js';
+import { UserService } from './user.service.js';
 
 /**
- * Mọi route HTTP của module identity, một file, hai nhóm:
- *   1. IdentityController       /api/v1/me            hồ sơ của user đang đăng nhập
- *   2. IdentityAdminController  /api/v1/admin/...     quản trị role, cần permission (ghi chú quyền tự sinh lên Swagger)
+ * Mọi route HTTP của module user, một file, hai nhóm:
+ *   1. UserController       /api/v1/me            hồ sơ của user đang đăng nhập
+ *   2. UserAdminController  /api/v1/admin/...     quản trị role, cần permission (ghi chú quyền tự sinh lên Swagger)
  */
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -20,8 +20,8 @@ import { IdentityService } from './identity.service.js';
 @ApiTags('Me')
 @ApiBearerAuth('supabase')
 @Controller('me')
-export class IdentityController {
-  constructor(private readonly identity: IdentityService) {}
+export class UserController {
+  constructor(private readonly users: UserService) {}
 
   @Get()
   @ApiOperation({
@@ -30,7 +30,7 @@ export class IdentityController {
   })
   @ApiOkResponse({ standardSchema: envelope(MeResponseSchema) })
   me(@CurrentUser() user: AuthUser) {
-    return this.identity.getMe(user.id);
+    return this.users.getMe(user.id);
   }
 
   @Delete()
@@ -40,7 +40,7 @@ export class IdentityController {
     description: 'Xoá dữ liệu local (cascade) rồi xoá user trên Supabase. Token còn hạn sau đó vẫn bị từ chối (tombstone 1 giờ).',
   })
   async deleteMe(@CurrentUser() user: AuthUser): Promise<void> {
-    await this.identity.deleteMe(user.id);
+    await this.users.deleteMe(user.id);
   }
 }
 
@@ -51,20 +51,20 @@ export class IdentityController {
 @ApiBearerAuth('supabase')
 @Controller('admin')
 @RequirePermissions(['role:manage'])
-export class IdentityAdminController {
-  constructor(private readonly identity: IdentityService) {}
+export class UserAdminController {
+  constructor(private readonly users: UserService) {}
 
   @Get('roles')
   @ApiOperation({ summary: 'Danh sách role', description: 'Mỗi role kèm danh sách permission (resource:action) được gán.' })
   @ApiOkResponse({ standardSchema: envelope(z.array(RoleSchema)) })
   listRoles() {
-    return this.identity.listRoles();
+    return this.users.listRoles();
   }
 
   @Get('users/:id/roles')
   @ApiOperation({ summary: 'Role hiện tại của một user' })
   async getUserRoles(@Param('id', { schema: z.uuid() }) id: string) {
-    return { id, roles: await this.identity.listUserRoles(id) };
+    return { id, roles: await this.users.listUserRoles(id) };
   }
 
   @Put('users/:id/roles')
@@ -73,6 +73,6 @@ export class IdentityAdminController {
     description: 'Thay toàn bộ role. Hiệu lực ngay trên mọi instance vì cache permission của user bị xoá.',
   })
   setUserRoles(@Param('id', { schema: z.uuid() }) id: string, @Body({ schema: SetUserRolesSchema }) body: SetUserRoles) {
-    return this.identity.setUserRoles(id, body.roles);
+    return this.users.setUserRoles(id, body.roles);
   }
 }

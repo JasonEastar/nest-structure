@@ -2,12 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { eq, inArray } from 'drizzle-orm';
 import { type Db, InjectDb } from '../../common/database/drizzle.js';
 import type { SupabaseClaims } from '../../common/auth/supabase.js';
-import { devices, permissions, profiles, rolePermissions, roles, userRoles } from './schema/identity.schema.js';
+import { devices, permissions, profiles, rolePermissions, roles, userRoles } from './schema/user.schema.js';
 import type { RoleCode } from './dto/role.dto.js';
 
-/** Mọi SQL của identity nằm ở đây; service chỉ có logic (code-standards §5). */
+/** Mọi SQL của user nằm ở đây; service chỉ có logic (code-standards §5). */
 @Injectable()
-export class IdentityRepository {
+export class UserRepository {
   constructor(@InjectDb() private readonly db: Db) {}
 
   /**

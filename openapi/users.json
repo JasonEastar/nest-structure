@@ -4,7 +4,7 @@
     "/api/v1/me": {
       "get": {
         "description": "Profile được tạo tự động ở request đầu tiên sau khi đăng nhập Google (Supabase). Kèm role và permission hiệu lực.",
-        "operationId": "Identity.me",
+        "operationId": "User.me",
         "parameters": [],
         "responses": {
           "200": {
@@ -107,7 +107,7 @@
       },
       "delete": {
         "description": "Xoá dữ liệu local (cascade) rồi xoá user trên Supabase. Token còn hạn sau đó vẫn bị từ chối (tombstone 1 giờ).",
-        "operationId": "Identity.deleteMe",
+        "operationId": "User.deleteMe",
         "parameters": [],
         "responses": {
           "204": {
@@ -178,7 +178,7 @@
     "/api/v1/admin/roles": {
       "get": {
         "description": "Mỗi role kèm danh sách permission (resource:action) được gán.\n\n**Quyền cần có:** `role:manage`",
-        "operationId": "IdentityAdmin.listRoles",
+        "operationId": "UserAdmin.listRoles",
         "parameters": [],
         "responses": {
           "200": {
@@ -285,7 +285,7 @@
     },
     "/api/v1/admin/users/{id}/roles": {
       "get": {
-        "operationId": "IdentityAdmin.getUserRoles",
+        "operationId": "UserAdmin.getUserRoles",
         "parameters": [
           {
             "name": "id",
@@ -366,7 +366,7 @@
       },
       "put": {
         "description": "Thay toàn bộ role. Hiệu lực ngay trên mọi instance vì cache permission của user bị xoá.\n\n**Quyền cần có:** `role:manage`",
-        "operationId": "IdentityAdmin.setUserRoles",
+        "operationId": "UserAdmin.setUserRoles",
         "parameters": [
           {
             "name": "id",

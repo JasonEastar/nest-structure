@@ -102,7 +102,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 | Pool | `DB_POOL_MAX` 10 mỗi instance (all-in-one); tổng instance × 10 < `max_connections` |
 | Role DB | local: `c9` (owner, tạo extension). prod: `c9_migrate` (DDL) và `c9_app` (DML, không DDL) |
 | Không có schema `auth` | Mọi dữ liệu user nghiệp vụ nằm ở `public.profiles`; Supabase chỉ được gọi qua Admin API |
-| Sync user (app-side) | `AuthGuard` → `IdentityService.ensureProfile(claims)`: flag Redis `c9:v1:profile-exists:{id}` TTL 1h; miss → tx `INSERT profiles … ON CONFLICT DO NOTHING` + `user_roles(user)`. Claims: `sub`, `email`, `user_metadata.full_name`, `user_metadata.avatar_url` |
+| Sync user (app-side) | `AuthGuard` → `UserService.ensureProfile(claims)`: flag Redis `c9:v1:profile-exists:{id}` TTL 1h; miss → tx `INSERT profiles … ON CONFLICT DO NOTHING` + `user_roles(user)`. Claims: `sub`, `email`, `user_metadata.full_name`, `user_metadata.avatar_url` |
 | `profiles.id` | = `sub` Supabase (uuid v4), **không FK** (khác database) |
 | Xoá tài khoản | Tx local (ẩn danh hoá pin/thread, xoá profile/devices) → `auth.admin.deleteUser`; idempotent |
 | RLS | Không (NestJS là client duy nhất) |

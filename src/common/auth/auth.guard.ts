@@ -7,8 +7,8 @@ import type { SupabaseClaims } from './supabase.js';
 import { SupabaseJwtService } from './supabase.js';
 
 /**
- * Cổng tới module identity — common KHÔNG import modules/ (code-standards §2.2).
- * IdentityModule cung cấp `{ provide: AUTH_USER, useExisting: IdentityService }`.
+ * Cổng tới module user — common KHÔNG import modules/ (code-standards §2.2).
+ * UserModule cung cấp `{ provide: AUTH_USER, useExisting: UserService }`.
  */
 export interface AuthUser {
   id: string;

@@ -23,7 +23,7 @@ c9_map/
 │   ├── config/env.ts         # zod schema + typed env (1 file)
 │   ├── common/               # hạ tầng phẳng, 1 file/1 việc: database, redis, queue, supabase, guards, exceptions, validation, response, logger, i18n, openapi
 │   ├── health/               # health.controller + health.indicators
-│   └── modules/              # identity/ pin/ … mỗi module: module · controller · service · repository · schema · dto · constants · jobs
+│   └── modules/              # user/ pin/ … mỗi module: module · controller · service · repository · schema · dto · constants · jobs
 ├── drizzle/ · drizzle.config.ts   # migration SQL; schema glob src/**/*.schema.ts
 ├── test/                     # integration (testcontainers) + e2e
 ├── docker-compose.yml        # postgres(postgis) · redis · api-1 · api-2 · nginx
@@ -66,7 +66,7 @@ Cây đầy đủ: [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md).
 |---|---|---|---|
 | 1 | `nest new` + `config/env.ts` (zod) + `/health/live` | Mọi thứ sau cần chỗ đặt; env fail-fast phải có trước khi thêm dịch vụ nào | `nest start --watch` lên |
 | 2 | Docker 2 replica + nginx + postgres(postgis) + redis | Bắt lỗi "state trong RAM" **trước** khi có business code; `select postgis_version()` chứng minh geo sẵn sàng | 10 curl thấy 2 `X-Instance-Id` |
-| 3 | Drizzle + migration 0000 (postgis, unaccent, pg_trgm) + schema identity/RBAC + `/health/ready` | Bảng `profiles`/roles là nền cho auth; extension phải có trước schema geo | `drizzle-kit migrate` ok, ready 200 |
+| 3 | Drizzle + migration 0000 (postgis, unaccent, pg_trgm) + schema user/RBAC + `/health/ready` | Bảng `profiles`/roles là nền cho auth; extension phải có trước schema geo | `drizzle-kit migrate` ok, ready 200 |
 | 4 | `common/`: exceptions + validation + response + pino + versioning + Swagger + i18n | Shape lỗi/response phải chốt trước khi viết endpoint đầu tiên, nếu không mobile phải sửa lại | `/docs/app` mở, lỗi đúng shape |
 | 5 | Redis + throttler + BullMQ scheduler + Bull Board | Guard chain cần throttler; auth cần cache permission | rate limit đếm chung 2 instance; job 1 dòng/phút |
 | 6 | Supabase JWKS guard + profile upsert + RBAC guard + admin roles API | Tới đây mới có "user" thật để gắn vào pin | E2E `/me`, 403 đúng, gán role tức thì |

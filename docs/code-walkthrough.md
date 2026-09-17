@@ -9,17 +9,17 @@ Tài liệu cho người mới mở repo lần đầu (kể cả dev React chưa
 
 | NestJS | Nghĩ như trong React/FE | Ở dự án này |
 |---|---|---|
-| Module | Một feature folder, khai báo nó chứa gì và cho ai dùng | `modules/identity/identity.module.ts` |
-| Controller | Bảng route: URL nào → hàm nào. Chỉ nhận request, gọi service, trả kết quả | `identity.controller.ts` |
-| Service | Logic nghiệp vụ, không biết gì về HTTP | `identity.service.ts` |
-| Repository | Mọi câu SQL. Service không viết SQL | `identity.repository.ts` |
-| Provider + inject | Giống Context + hook: khai báo một lần, chỗ nào cần thì "xin" qua constructor | `constructor(private readonly repo: IdentityRepository)` |
+| Module | Một feature folder, khai báo nó chứa gì và cho ai dùng | `modules/user/user.module.ts` |
+| Controller | Bảng route: URL nào → hàm nào. Chỉ nhận request, gọi service, trả kết quả | `user.controller.ts` |
+| Service | Logic nghiệp vụ, không biết gì về HTTP | `user.service.ts` |
+| Repository | Mọi câu SQL. Service không viết SQL | `user.repository.ts` |
+| Provider + inject | Giống Context + hook: khai báo một lần, chỗ nào cần thì "xin" qua constructor | `constructor(private readonly repo: UserRepository)` |
 | Guard | Route protection: cho vào hay chặn (401/403/429) | `common/auth/*.guard.ts`, `common/redis/throttler.guard.ts` |
 | Pipe | Validate form: body/query/param sai → 422 trước khi tới handler | `common/http/validation.ts` |
 | Interceptor | Giống axios interceptor phía server: bọc response chung một shape | `common/http/response.ts` |
 | Filter | Error boundary: mọi lỗi ném ra đều thành `{ error: { code } }` | `common/http/exceptions.ts` |
-| DTO | Kiểu dữ liệu vào/ra, ở đây viết bằng zod và Swagger tự đọc | `modules/identity/dto/*.dto.ts` |
-| Schema (Drizzle) | Định nghĩa bảng DB bằng TypeScript, sinh migration SQL | `modules/identity/schema/identity.schema.ts` |
+| DTO | Kiểu dữ liệu vào/ra, ở đây viết bằng zod và Swagger tự đọc | `modules/user/dto/*.dto.ts` |
+| Schema (Drizzle) | Định nghĩa bảng DB bằng TypeScript, sinh migration SQL | `modules/user/schema/user.schema.ts` |
 
 Thứ tự chạy cho **mọi** request: middleware → guard → pipe → controller → service → repository → interceptor. Lỗi ở bất kỳ đâu → filter.
 
@@ -39,12 +39,12 @@ Chưa cần đọc ngay: `common/redis/throttler.guard.ts` (rate limit, có Lua)
 1. **nginx** chia request cho `api-1` hoặc `api-2`, gắn header `X-Request-Id`.
 2. `common/http/request-context.middleware.ts`: ghi lại request id, trả thêm header `X-Instance-Id` để biết instance nào phục vụ.
 3. `common/redis/throttler.guard.ts`: đếm số request của user/thiết bị/IP trong Redis. Quá 10 lần/giây → **429**, dừng ở đây.
-4. `common/auth/auth.guard.ts`: lấy `Authorization: Bearer <token>`, xác minh chữ ký với khoá công khai của Supabase (`common/auth/supabase.ts`). Sai → **401**. Đúng → gọi `IdentityService.ensureProfile` để chắc chắn user đã có dòng trong bảng `profiles` (lần đầu thì tạo), rồi gắn `req.user`.
+4. `common/auth/auth.guard.ts`: lấy `Authorization: Bearer <token>`, xác minh chữ ký với khoá công khai của Supabase (`common/auth/supabase.ts`). Sai → **401**. Đúng → gọi `UserService.ensureProfile` để chắc chắn user đã có dòng trong bảng `profiles` (lần đầu thì tạo), rồi gắn `req.user`.
 5. `common/auth/permission.guard.ts`: route có `@RequirePermissions([...])` không? `/me` không có → cho qua. Route admin có → tra quyền từ DB (cache Redis 5 phút), thiếu → **403**.
 6. `common/http/validation.ts`: `/me` không có body nên bỏ qua. Route có `@Body({ schema })` thì zod kiểm, sai → **422**.
-7. `identity.controller.ts` hàm `me()`: gọi `identity.getMe(user.id)`.
-8. `identity.service.ts` hàm `getMe()`: gọi repository lấy profile, role, permission; ghép thành object đúng `MeResponseSchema`.
-9. `identity.repository.ts`: các câu `select` Drizzle trên bảng `profiles`, `user_roles`, `roles`.
+7. `user.controller.ts` hàm `me()`: gọi `users.getMe(user.id)`.
+8. `user.service.ts` hàm `getMe()`: gọi repository lấy profile, role, permission; ghép thành object đúng `MeResponseSchema`.
+9. `user.repository.ts`: các câu `select` Drizzle trên bảng `profiles`, `user_roles`, `roles`.
 10. `common/http/response.ts`: bọc kết quả thành `{ data: {...}, meta: { requestId } }`.
 11. Nếu bước nào ném lỗi: `common/http/exceptions.ts` biến thành `{ error: { code: 'NOT_FOUND', message: 'Không tìm thấy địa điểm', params, requestId } }` với đúng HTTP status. `message` dịch theo header `Accept-Language` của request (mặc định vi). Client rẽ nhánh theo `error.code`, hiển thị `error.message`.
 
@@ -67,7 +67,7 @@ Mỗi phút cần quét pin hết hạn. Có 2 instance mà dùng cron trong pro
 | `config/i18n.ts` | Đa ngôn ngữ vi/en: chỉ header `Accept-Language` quyết định (mặc định vi); câu chữ ở `i18n/<lang>/*.json` | Thêm ngôn ngữ, đổi cách chọn |
 | `config/openapi.ts` | Swagger `/docs` chia theo module (dropdown), Servers, Schemas từ `.meta({ id })`, tự ghi quyền/public vào mô tả từ metadata guard, `envelope()`, xuất `openapi/<key>.json` | Đổi mô tả tài liệu, thêm server |
 | `common/common.module.ts` | Gom DB, Redis, queue, Supabase thành một module dùng chung | Thêm hạ tầng mới |
-| `common/auth/auth.guard.ts` | Token → `req.user`; định nghĩa cổng `AUTH_USER` để guard gọi được IdentityService | Đổi cách xác thực |
+| `common/auth/auth.guard.ts` | Token → `req.user`; định nghĩa cổng `AUTH_USER` để guard gọi được UserService | Đổi cách xác thực |
 | `common/auth/permission.guard.ts` | Kiểm `@RequirePermissions` | Hiếm |
 | `common/auth/supabase.ts` | Xác minh JWT bằng JWKS; gọi Supabase Admin API (xoá user) | Đổi issuer, thuật toán |
 | `common/auth/decorators.ts` | `@Public()`, `@RequirePermissions()`, `@CurrentUser()` | Thêm decorator |
@@ -84,7 +84,7 @@ Mỗi phút cần quét pin hết hạn. Có 2 instance mà dùng cron trong pro
 | `common/http/request-context.middleware.ts` | `X-Request-Id`, `X-Instance-Id` | Hiếm |
 | `common/http/express.d.ts` | Khai `req.user` cho TypeScript | Thêm field vào `req.user` |
 | `modules/health/*` | `/health/live` (process sống), `/health/ready` (DB + Redis ok) | Thêm dependency cần check |
-| `modules/identity/*` | `/me`, RBAC, admin gán role | Mọi thứ về user |
+| `modules/user/*` | `/me`, RBAC, admin gán role | Mọi thứ về user |
 | `modules/location/*` | Module mẫu: địa điểm đã lưu, đủ mọi loại file | Khi tạo module mới |
 | `modules/pin/pin.constants.ts` | Hằng số nghiệp vụ pin: tuổi thọ, rate limit, tier rep | Đổi luật chơi |
 | `modules/pin/pin.jobs.ts` | Lịch + worker hết hạn pin | Bước 9 |
