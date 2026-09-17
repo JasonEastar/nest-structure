@@ -73,7 +73,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 |---|---|
 | Phương thức | **Chỉ Google sign-in** (Supabase provider `google`) ở MVP. Apple thêm khi lên App Store (bắt buộc nếu có social login). Phone OTP **không dùng để đăng nhập**; gđ 2 chỉ dùng để *liên kết* SĐT (`updateUser({phone})` + `verifyOtp`) cho SOS |
 | Token | Supabase phát hành JWT **ES256**; access token **3600 s (mặc định, user chốt)**; refresh rotation bật. Thu hồi quyền không phụ thuộc token vì permission đọc từ DB/Redis |
-| Xác thực ở NestJS | `jose.createRemoteJWKSet(SUPABASE_JWKS_URL)` (mặc định `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`), kiểm `iss`, `aud = authenticated`, `exp`. NEVER HS256/JWT secret → **project phải bật JWT Signing Keys (ES256)**, nếu không JWKS rỗng và mọi token 401 |
+| Xác thực ở NestJS | `jose.createRemoteJWKSet(SUPABASE_JWKS_URL)` (mặc định `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`), kiểm `iss`, `aud = authenticated`, `exp`. NEVER HS256/JWT secret → **project phải bật JWT Signing Keys (ES256) VÀ Rotate** để khoá ES256 là current (chỉ bật = standby, token vẫn HS256 → 401) |
 | Claims dùng | `sub` (user id), `session_id`, `aal`, `is_anonymous`. NEVER đưa role/permission vào JWT |
 | Guard | `AuthGuard` (global, `@Public()` mở) → `PermissionGuard` (`@RequirePermissions`) → `@RequirePhoneVerified()` theo hành động |
 | Admin API | `@supabase/supabase-js` với `SUPABASE_SECRET_KEY` (khoá mới `sb_secret_…`), chỉ server, sau port `SUPABASE_ADMIN`: `deleteUser`, `getUserById` |

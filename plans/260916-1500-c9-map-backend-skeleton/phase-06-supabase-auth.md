@@ -5,11 +5,11 @@
 - [Supabase report](../reports/researcher-260916-supabase-auth-nestjs.md) §1, §5, §8, §9 · NestJS docs [03 security](../reports/nestjs-docs-03-security-openapi.md)
 
 ## Overview
-**Ngày:** 2026-09-16 · **Ưu tiên:** P0 · **Trạng thái:** ✅ Code + 29 e2e xanh 2026-09-17 (JWKS ES256 nội bộ). ⏳ E2E với Supabase project thật chờ bật JWT signing keys (project đang HS256, JWKS rỗng)
+**Ngày:** 2026-09-16 · **Ưu tiên:** P0 · **Trạng thái:** ✅ Hoàn thành 2026-09-17 — 30 e2e xanh (JWKS ES256 nội bộ) + kiểm chứng Supabase THẬT sau khi bật & rotate JWT Signing Keys (`scripts/verify-auth.mjs`: /me 200, 403→admin→Bull Board 200, devices, DELETE 204, sau xoá 401)
 NestJS **chỉ verify** JWT Supabase (Google) qua JWKS; profile upsert phía app ở request đầu; RBAC bằng bảng + cache Redis; admin API gán role; `GET/DELETE /me`.
 
 ## Key insights
-- **Thực tế 2026-09-17:** Supabase project của user dùng khoá mới (`sb_publishable_…`, `sb_secret_…`) → env đổi thành `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, thêm `SUPABASE_JWKS_URL` (tuỳ chọn). Project vẫn phát **HS256 legacy, JWKS rỗng** → verify JWKS đúng thiết kế trả 401; cần bật *JWT Signing Keys* (ES256) trong Dashboard. Không dùng `@supabase/server` (bên trong cũng jose+JWKS; adapter Nest chỉ peer 10/11; README ghi HS256 not supported).
+- **Thực tế 2026-09-17:** Supabase project của user dùng khoá mới (`sb_publishable_…`, `sb_secret_…`) → env đổi thành `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, thêm `SUPABASE_JWKS_URL` (tuỳ chọn). Ban đầu project phát **HS256 legacy, JWKS rỗng** → 401 đúng thiết kế. Bật *JWT Signing Keys* chỉ thêm khoá ES256 ở trạng thái standby; phải **Rotate** để token mới ký ES256 (đã làm 2026-09-17, kid `fab33603…`). Nên Revoke khoá HS256 sau khi token cũ hết hạn. Không dùng `@supabase/server` (bên trong cũng jose+JWKS; adapter Nest chỉ peer 10/11; README ghi HS256 not supported).
 - **Bug tìm được nhờ test:** `ConfigModule.forRoot()` chụp `process.env` ngay khi `app.module.ts` được import (ESM hoisting) → `.env` phải nạp bằng side-effect module `config/load-env.ts` import ở dòng đầu `main.ts`; `ignoreEnvFile: true` để tránh file `.env` ghi đè biến môi trường thật của compose/CI. Test muốn ghi đè env phải set rồi mới `await import(app.module)`.
 - Bull Board: dùng tuỳ chọn `middleware` chính thức của `@bull-board/nestjs` (áp trước router) qua `forRootAsync` inject `SupabaseJwtService` + `AUTH_USER`; wiring ở `app.module.ts`. `consumer.apply(...)` trong AppModule KHÔNG chặn được (router của Bull Board đã trả lời trước).
 - Swagger `include` lọc theo **module**: controller admin phải nằm trong `IdentityAdminModule` riêng (import IdentityModule) → `/docs/admin` chỉ có admin, `/docs/app` chỉ có `/me`.

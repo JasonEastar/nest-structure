@@ -1,6 +1,6 @@
 # Plan — c9_map backend skeleton (cross-cutting trước business module)
 
-**Ngày:** 2026-09-16 · **Trạng thái:** ◐ Đang làm — phase 01–05 xong 2026-09-16, phase 06 xong 2026-09-17 (chờ bật JWT signing keys để E2E thật) · **Chủ sở hữu:** Tech Lead
+**Ngày:** 2026-09-16 · **Trạng thái:** ◐ Đang làm — phase 01–05 xong 2026-09-16, phase 06 xong 2026-09-17 (đã kiểm chứng Supabase thật) · **Chủ sở hữu:** Tech Lead
 Mục tiêu: một project NestJS 12 **all-in-one** (HTTP + BullMQ processor trong cùng process) chạy được trên ≥ 2 instance sau nginx, có Postgres 16 + PostGIS riêng, Redis, Supabase Auth (chỉ Auth, Google), Swagger/OpenAPI, i18n, rate limit, test + CI. **Chưa có business module** (pin thật, reputation, alert…).
 
 ---
@@ -35,7 +35,7 @@ Mục tiêu: một project NestJS 12 **all-in-one** (HTTP + BullMQ processor tro
 | 03 | Drizzle + PostGIS, `identity.schema.ts` + seed RBAC, `/health/ready` | ✅ | 100% | [phase-03](./phase-03-database-drizzle-postgis.md) |
 | 04 | `common/`: exceptions, validation, response, request-context, logger, i18n, openapi ×2 | ✅ | 100% | [phase-04](./phase-04-cross-cutting.md) |
 | 05 | Redis, cache, throttler, BullMQ + `pin.jobs.ts` scheduler, Bull Board | ✅ | 100% | [phase-05](./phase-05-redis-cache-throttle-queue.md) |
-| 06 | Supabase Auth (Google) + RBAC: JWKS guard, profile upsert, permissions, admin roles API, `/me` | ✅ code · ⏳ bật JWT keys | 95% | [phase-06](./phase-06-supabase-auth.md) |
+| 06 | Supabase Auth (Google) + RBAC: JWKS guard, profile upsert, permissions, admin roles API, `/me` | ✅ | 100% | [phase-06](./phase-06-supabase-auth.md) |
 | 07 | Vitest + testcontainers + supertest, smoke script, GitHub Actions | ☐ | 0% | [phase-07](./phase-07-testing-ci.md) |
 
 Mỗi phase = 1 checkpoint: làm xong → chạy lệnh "done" → dán kết quả → dừng chờ review. Không sang phase kế.

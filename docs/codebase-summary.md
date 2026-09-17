@@ -9,8 +9,8 @@
 
 | Mục | Giá trị |
 |---|---|
-| Bước roadmap | 6 — Auth (JWKS) + RBAC + /me + admin roles + Bull Board bảo vệ; chờ bật JWT signing keys ở Supabase; tiếp theo bước 7 test/CI |
-| Git | Nhánh `main`; e7f5f1a docs · f1476f4 phase 01 · 55d3858 phase 02 · fb5db5f phase 03 · 2f6ffc1 phase 04 · 6d3a5b6 phase 05 · phase 06 commit kế tiếp |
+| Bước roadmap | 6 — Auth (JWKS) + RBAC + /me + admin roles + Bull Board bảo vệ, đã chạy với Supabase thật; tiếp theo bước 7 test/CI |
+| Git | Nhánh `main`; e7f5f1a docs · f1476f4 phase 01 · 55d3858 phase 02 · fb5db5f phase 03 · 2f6ffc1 phase 04 · 6d3a5b6 phase 05 · 654527c phase 06 |
 | Kế hoạch đang chờ duyệt | `plans/260916-1500-c9-map-backend-skeleton/` |
 
 ## 2. Cây thư mục hiện tại
@@ -73,7 +73,7 @@ Dockerfile (targets dev · runtime) · .dockerignore · docker-compose.yml (post
 test/app.e2e-spec.ts        # supertest /health/live
 package.json · nest-cli.json · tsconfig*.json · vitest.config*.ts · oxlint.json · .prettierrc · .env.example · .editorconfig
 ```
-Scaffold `nest new` 12: ESM (`type: module`, nodenext), oxlint, Vitest 4, TypeScript 6. Lệnh: `node scripts/dev-token.mjs` (token thật) · `npm run openapi:export` · `npm run db:generate` · `npm run db:migrate` · `npm run dev:infra` (postgres+redis) · `npm run dev:infra:full` (+api×2+nginx) · `npm run dev` · `npm run typecheck` · `npm run lint` · `npm run test:e2e` · `npm run build` → `dist/main.js`.
+Scaffold `nest new` 12: ESM (`type: module`, nodenext), oxlint, Vitest 4, TypeScript 6. Lệnh: `node scripts/dev-token.mjs` (token thật) · `node scripts/verify-auth.mjs` (kiểm auth thật) · `npm run openapi:export` · `npm run db:generate` · `npm run db:migrate` · `npm run dev:infra` (postgres+redis) · `npm run dev:infra:full` (+api×2+nginx) · `npm run dev` · `npm run typecheck` · `npm run lint` · `npm run test:e2e` · `npm run build` → `dist/main.js`.
 
 ## 4. Sẽ có sau bước 2–7 (xem plan)
 
