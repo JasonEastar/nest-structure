@@ -714,10 +714,6 @@
                       "properties": {
                         "requestId": {
                           "type": "string"
-                        },
-                        "nextCursor": {
-                          "type": "string",
-                          "nullable": true
                         }
                       }
                     }

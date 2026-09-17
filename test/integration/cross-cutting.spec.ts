@@ -6,11 +6,9 @@ import { z } from 'zod';
 import { AppModule, GLOBAL_PREFIX_EXCLUDE } from '../../src/app.module.js';
 import { Public } from '../../src/common/auth/decorators.js';
 import { AppException } from '../../src/common/http/exceptions.js';
-import { withMeta } from '../../src/common/http/response.js';
-import { zText } from '../../src/common/http/validation.js';
 
 /** Controller CHỈ cho test: pipe zod, envelope, filter, i18n qua enhancer toàn cục. @Public() vì không test auth ở đây. */
-const CreateProbeSchema = z.object({ name: zText(20), age: z.coerce.number().int().min(0) });
+const CreateProbeSchema = z.object({ name: z.string().trim().min(1).max(20), age: z.coerce.number().int().min(0) });
 
 @Public()
 @Controller('probe')
@@ -22,7 +20,7 @@ class ProbeController {
 
   @Get('list')
   list(@Query({ schema: z.object({ limit: z.coerce.number().default(20) }) }) q: { limit: number }) {
-    return withMeta([1, 2, 3].slice(0, q.limit), { nextCursor: null });
+    return [1, 2, 3].slice(0, q.limit);
   }
 
   @Get('boom')
@@ -63,10 +61,10 @@ describe('Cross-cutting (e2e): validation · envelope · errors · i18n · prefi
     await request(app.getHttpServer()).get('/probe/list').expect(404);
   });
 
-  it('body hợp lệ → envelope { data, meta.requestId }, text bị strip HTML, số bị coerce', async () => {
+  it('body hợp lệ → envelope { data, meta.requestId }, text trim, số bị coerce', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/probe')
-      .send({ name: '  <b>Minh</b> ', age: '7' })
+      .send({ name: '  Minh ', age: '7' })
       .expect(201);
     expect(res.body.data).toEqual({ name: 'Minh', age: 7 });
     expect(res.body.meta.requestId).toMatch(/^[0-9a-f-]{36}$/);
@@ -81,10 +79,10 @@ describe('Cross-cutting (e2e): validation · envelope · errors · i18n · prefi
     expect(res.body.error.requestId).toBeTruthy();
   });
 
-  it('withMeta → meta gộp nextCursor + requestId', async () => {
+  it('query coerce + envelope: mảng trả về nằm trong data, meta chỉ có requestId', async () => {
     const res = await request(app.getHttpServer()).get('/api/v1/probe/list?limit=2').expect(200);
     expect(res.body.data).toEqual([1, 2]);
-    expect(res.body.meta).toEqual({ requestId: expect.any(String), nextCursor: null });
+    expect(res.body.meta).toEqual({ requestId: expect.any(String) });
   });
 
   it('param không phải uuid → 422; AppException → 404 NOT_FOUND kèm params', async () => {

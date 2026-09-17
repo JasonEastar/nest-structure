@@ -7,9 +7,6 @@ import type { MeResponse } from './dto/me.dto.js';
 import type { RoleCode } from './dto/role.dto.js';
 import { IdentityRepository } from './identity.repository.js';
 
-/** Ghi `devices.last_seen_at` tối đa 1 lần/5 phút/thiết bị (tránh mỗi request một UPDATE). */
-const DEVICE_TOUCH_TTL = 300;
-
 @Injectable()
 export class IdentityService implements AuthUserPort {
   private readonly logger = new Logger(IdentityService.name);
@@ -45,11 +42,12 @@ export class IdentityService implements AuthUserPort {
     return codes;
   }
 
+  /** Ghi `devices.last_seen_at` tối đa 1 lần / 5 phút / thiết bị (không UPDATE mỗi request). */
   async touchDevice(userId: string, deviceId: string): Promise<void> {
-    const key = `c9:v1:device-seen:${userId}:${deviceId}`;
+    const key = cacheKeys.deviceSeen(userId, deviceId);
     if (await this.cache.has(key)) return;
     await this.repo.upsertDevice(userId, deviceId);
-    await this.cache.flag(key, DEVICE_TOUCH_TTL);
+    await this.cache.flag(key, TTL.deviceSeen);
   }
 
   async getMe(userId: string): Promise<MeResponse> {

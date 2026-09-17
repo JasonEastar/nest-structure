@@ -10,7 +10,7 @@
 | Mục | Giá trị |
 |---|---|
 | Bước roadmap | Skeleton 7/7 phase xong (roadmap bước 0–6 ✅): test unit/integration testcontainers, smoke đa instance, CI GitHub Actions; tiếp theo roadmap bước 7 Pin core |
-| Git | Nhánh `main`; e7f5f1a docs · f1476f4 phase 01 · 55d3858 phase 02 · fb5db5f phase 03 · 2f6ffc1 phase 04 · 6d3a5b6 phase 05 · 654527c phase 06 · 343b23f verify auth thật · 7469607 phase 07 test/CI · sắp xếp lại cấu trúc (2026-09-17) |
+| Git | Nhánh `main`; e7f5f1a docs · f1476f4 phase 01 · 55d3858 phase 02 · fb5db5f phase 03 · 2f6ffc1 phase 04 · 6d3a5b6 phase 05 · 654527c phase 06 · 343b23f verify auth thật · 7469607 phase 07 test/CI · 9e00612 sắp xếp lại cấu trúc · tinh giản YAGNI + docs/code-walkthrough.md (2026-09-17) |
 | Kế hoạch | `plans/260916-1500-c9-map-backend-skeleton/` ✅ hoàn thành; plan bước 7 (pin core) chưa lập |
 
 ## 2. Cây thư mục hiện tại
@@ -39,7 +39,8 @@ c9_backend/
 ```
 c9_map/
 ├── src/
-│   ├── main.ts                       # bootstrap duy nhất: load-env → helmet, prefix /api, v1, swagger ×2, shutdown hooks, listen
+│   ├── main.ts                       # điểm vào server: load-env → createApp → Swagger UI → listen
+│   ├── app.ts                        # createApp(): helmet · trust proxy · prefix /api · version v1 · shutdown hooks (dùng chung với openapi-export)
 │   ├── app.module.ts                 # imports ConfigModule + CommonModule + modules; providers APP_GUARD Throttler → Auth → Permission · APP_PIPE · APP_FILTER · APP_INTERCEPTOR
 │   ├── openapi-export.ts             # `npm run openapi:export` → openapi/{app,admin}.json
 │   ├── config/                       # cấu hình app — không nghiệp vụ, không hạ tầng
@@ -59,14 +60,13 @@ c9_map/
 │   │   │   ├── drizzle.ts            # postgres.js + drizzle · geographyPoint customType · latLngToEwkt/ewkbToLatLng · DatabaseLifecycle
 │   │   │   └── schema.ts             # barrel gom *.schema.ts của mọi module
 │   │   ├── redis/
-│   │   │   ├── cache.ts              # REDIS_CACHE db0 · redisOptions() · cacheKeys · TTL · CacheService
+│   │   │   ├── cache.ts              # REDIS_CACHE db0 · redisOptions() · cacheKeys/TTL đang dùng · CacheService (5 thao tác)
 │   │   │   ├── queue.ts              # BullModule.forRoot (db1, prefix c9) · QUEUES
-│   │   │   ├── throttler.guard.ts    # RedisThrottlerStorage (Lua) · AppThrottlerGuard tracker u:/d:/ip:
-│   │   │   └── bull-board.ts         # /admin/queues + middleware JWT + queue:read
+│   │   │   └── throttler.guard.ts    # RedisThrottlerStorage (Lua) · AppThrottlerGuard tracker u:/d:/ip:
 │   │   └── http/
 │   │       ├── exceptions.ts         # ErrorCodes · AppException · AllExceptionsFilter → { error: { code, params, requestId } }
-│   │       ├── response.ts           # ResponseInterceptor { data, meta } · withMeta · cursor pagination
-│   │       ├── validation.ts         # APP_PIPE StandardSchemaValidationPipe · zText · zLatLng
+│   │       ├── response.ts           # ResponseInterceptor { data, meta: { requestId } }
+│   │       ├── validation.ts         # APP_PIPE StandardSchemaValidationPipe (zod) → 422 VALIDATION_FAILED
 │   │       ├── request-context.middleware.ts  # X-Instance-Id · X-Request-Id
 │   │       └── express.d.ts          # req.user
 │   └── modules/                      # nghiệp vụ — mỗi module 1 thư mục; file chính ở gốc, chỉ 2 thư mục con dto/ và schema/
@@ -83,12 +83,14 @@ c9_map/
 │       │   │   └── role.dto.ts               # ROLE_CODES · RoleSchema · SetUserRolesSchema
 │       │   └── schema/
 │       │       └── identity.schema.ts        # profiles · roles · permissions · role_permissions · user_roles · devices
-│       └── pin/
-│           ├── pin.module.ts · pin.constants.ts · pin.jobs.ts   # bước 7 thêm controller/service/repository/dto/schema
+│       ├── pin/
+│       │   ├── pin.module.ts · pin.constants.ts · pin.jobs.ts   # bước 7 thêm controller/service/repository/dto/schema
+│       └── queue-board/
+│           └── queue-board.module.ts # /admin/queues (Bull Board) + middleware JWT + queue:read; tắt khi test
 ├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac (SQL)
 ├── drizzle.config.ts                 # schema: 'src/**/*.schema.ts'
 ├── test/
-│   ├── unit/*.spec.ts                # logic thuần, không hạ tầng
+│   ├── unit/*.spec.ts                # logic thuần, không hạ tầng (env · exceptions · drizzle · permission.guard)
 │   ├── integration/*.spec.ts         # AppModule thật trên testcontainers (app · cross-cutting · geography · redis-queue · auth-rbac · supabase-real)
 │   └── setup/{containers.ts, env.ts} # globalSetup testcontainers + migrate · setupFiles inject URL
 ├── scripts/                          # smoke-multi-instance.sh · dev-token.mjs · verify-auth.mjs

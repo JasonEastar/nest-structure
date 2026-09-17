@@ -28,30 +28,29 @@ export function redisOptions(config: ConfigService<Env, true>, db: number, forQu
   };
 }
 
-/** Prefix + version: đổi `v1` → `v2` để vô hiệu toàn bộ cache khi đổi shape (system-architecture §7). */
+/**
+ * Key cache đang dùng. Prefix `c9:v1` — đổi `v1` → `v2` khi đổi shape để vô hiệu toàn bộ cache cũ.
+ * Thêm key mới ở đây khi module mới cần (không viết chuỗi key rải rác trong service).
+ */
 const P = 'c9:v1';
 export const cacheKeys = {
-  viewport: (zoom: number, tile: string, types: string) => `${P}:viewport:${zoom}:${tile}:${types}`,
-  marker: (id: string) => `${P}:marker:${id}`,
-  profileExists: (userId: string) => `${P}:profile-exists:${userId}`,
-  deleted: (userId: string) => `${P}:deleted:${userId}`, // tombstone sau DELETE /me, sống bằng tuổi thọ token
-  perms: (userId: string) => `c9:perms:${userId}`,
-  count: (kind: string, id: string) => `c9:cnt:${kind}:${id}`,
-  idem: (userId: string, key: string) => `c9:idem:${userId}:${key}`,
+  profileExists: (userId: string) => `${P}:profile-exists:${userId}`, // đã có profile → request sau không chạm DB
+  deleted: (userId: string) => `${P}:deleted:${userId}`, // tombstone sau DELETE /me (token còn hạn không "sống lại")
+  perms: (userId: string) => `${P}:perms:${userId}`, // quyền hiệu lực (RBAC), xoá khi admin đổi role
+  deviceSeen: (userId: string, deviceId: string) => `${P}:device-seen:${userId}:${deviceId}`, // throttle ghi last_seen
 } as const;
 
+/** TTL (giây) đi kèm từng key ở trên. */
 export const TTL = {
-  viewportLive: 10,
-  viewportPlaces: 30,
-  marker: 300,
-  perms: 300,
   profileExists: 3600,
-  deletedTombstone: 3600 + 300, // = access token 3600 s (Supabase mặc định) + clockTolerance dư
-  idempotency: 86_400,
+  deletedTombstone: 3600 + 300, // = tuổi thọ access token Supabase (3600 s) + clockTolerance
+  perms: 300,
+  deviceSeen: 300,
 } as const;
 
 /**
- * Cache mỏng trên ioredis: dùng đúng cấu trúc Redis (INCR/SADD/ZADD), NEVER đọc JSON → sửa → ghi lại (race).
+ * Cache mỏng trên ioredis, chỉ 5 thao tác đang cần. Cần INCR/SADD/... thì thêm method đúng cấu trúc Redis,
+ * NEVER đọc JSON → sửa → ghi lại (race giữa 2 instance).
  * Không dùng @nestjs/cache-manager (CacheInterceptor cache theo URL, không hợp dữ liệu theo user).
  */
 @Injectable()
@@ -67,7 +66,7 @@ export class CacheService {
     await this.redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
   }
 
-  /** Flag rẻ (vd profile-exists): tồn tại = true. */
+  /** Cờ rẻ: tồn tại = true. */
   async flag(key: string, ttlSeconds: number): Promise<void> {
     await this.redis.set(key, '1', 'EX', ttlSeconds);
   }
@@ -78,26 +77,6 @@ export class CacheService {
 
   async del(...keys: string[]): Promise<void> {
     if (keys.length) await this.redis.del(...keys);
-  }
-
-  async incr(key: string, by = 1): Promise<number> {
-    return this.redis.incrby(key, by);
-  }
-
-  async sadd(key: string, ...members: string[]): Promise<number> {
-    return this.redis.sadd(key, ...members);
-  }
-
-  async smembers(key: string): Promise<string[]> {
-    return this.redis.smembers(key);
-  }
-
-  async expire(key: string, ttlSeconds: number): Promise<void> {
-    await this.redis.expire(key, ttlSeconds);
-  }
-
-  async ping(): Promise<string> {
-    return this.redis.ping();
   }
 }
 

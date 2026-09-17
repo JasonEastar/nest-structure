@@ -1,7 +1,6 @@
 import { type Provider, StandardSchemaValidationPipe } from '@nestjs/common';
 import { APP_PIPE } from '@nestjs/core';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
-import { z } from 'zod';
 import { AppException } from './exceptions.js';
 
 /**
@@ -25,18 +24,3 @@ export const ValidationPipeProvider: Provider = {
         }),
     }),
 };
-
-/** Text người dùng nhập: trim, bỏ thẻ HTML, giới hạn độ dài (skill security-sanitize-output). */
-const HTML_TAG = /<[^>]*>/g;
-export const zText = (max: number, min = 1) =>
-  z
-    .string()
-    .trim()
-    .transform((s) => s.replace(HTML_TAG, ''))
-    .pipe(z.string().min(min).max(max));
-
-/** Toạ độ WGS84. */
-export const zLatLng = z.object({
-  lat: z.number().min(-90).max(90),
-  lng: z.number().min(-180).max(180),
-});

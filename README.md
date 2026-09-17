@@ -18,7 +18,8 @@ Chi tiết và lý do: [docs/system-architecture.md](./docs/system-architecture.
 | 3 | [docs/code-standards.md](./docs/code-standards.md) | Nguyên tắc bất biến (MUST/NEVER), cấu trúc thư mục, đặt tên, quy chuẩn tài liệu |
 | 3b | [docs/nestjs-guide.md](./docs/nestjs-guide.md) | Toàn bộ docs.nestjs.com chắt lọc: dùng gì / tránh gì / vì sao, gotchas |
 | 3c | [docs/setup-strategy.md](./docs/setup-strategy.md) | Cấu hình dự án thế nào, vì sao, làm gì trước |
-| 3d | [docs/project-structure-and-flows.md](./docs/project-structure-and-flows.md) | Cây file đầy đủ + lý do từng config + 6 sơ đồ luồng (bootstrap, request, auth, job, module, hạ tầng) |
+| 3d | [docs/code-walkthrough.md](./docs/code-walkthrough.md) | Đọc code từ đâu, file nào làm gì, request đi qua đâu (cho người mới, dev React) |
+| 3e | [docs/project-structure-and-flows.md](./docs/project-structure-and-flows.md) | Cây file đầy đủ + lý do từng config + 6 sơ đồ luồng (bootstrap, request, auth, job, module, hạ tầng) |
 | 4 | [docs/project-roadmap.md](./docs/project-roadmap.md) | Thứ tự dựng bước 0–11, giai đoạn sản phẩm, những gì không làm |
 | 5 | [docs/testing-and-ci.md](./docs/testing-and-ci.md) | Tầng kiểm thử, kịch bản lõi, môi trường, pipeline |
 | 6 | [docs/project-analysis.md](./docs/project-analysis.md) | Phân tích PM / QA / Tech Lead, mâu thuẫn đã giải quyết, rủi ro |

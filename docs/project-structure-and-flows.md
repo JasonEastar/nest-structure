@@ -10,7 +10,8 @@ Bản vẽ cây thư mục theo [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gi
 ```
 c9_map/
 ├── src/
-│   ├── main.ts                       # bootstrap duy nhất: load-env → helmet, prefix /api, v1, swagger ×2, shutdown hooks, listen
+│   ├── main.ts                       # điểm vào server: load-env → createApp → Swagger UI → listen
+│   ├── app.ts                        # createApp(): helmet · trust proxy · prefix /api · version v1 · shutdown hooks (dùng chung với openapi-export)
 │   ├── app.module.ts                 # imports ConfigModule + CommonModule + modules; providers APP_GUARD Throttler → Auth → Permission · APP_PIPE · APP_FILTER · APP_INTERCEPTOR
 │   ├── openapi-export.ts             # `npm run openapi:export` → openapi/{app,admin}.json
 │   ├── config/                       # cấu hình app — không nghiệp vụ, không hạ tầng
@@ -30,14 +31,13 @@ c9_map/
 │   │   │   ├── drizzle.ts            # postgres.js + drizzle · geographyPoint customType · latLngToEwkt/ewkbToLatLng · DatabaseLifecycle
 │   │   │   └── schema.ts             # barrel gom *.schema.ts của mọi module
 │   │   ├── redis/
-│   │   │   ├── cache.ts              # REDIS_CACHE db0 · redisOptions() · cacheKeys · TTL · CacheService
+│   │   │   ├── cache.ts              # REDIS_CACHE db0 · redisOptions() · cacheKeys/TTL đang dùng · CacheService (5 thao tác)
 │   │   │   ├── queue.ts              # BullModule.forRoot (db1, prefix c9) · QUEUES
-│   │   │   ├── throttler.guard.ts    # RedisThrottlerStorage (Lua) · AppThrottlerGuard tracker u:/d:/ip:
-│   │   │   └── bull-board.ts         # /admin/queues + middleware JWT + queue:read
+│   │   │   └── throttler.guard.ts    # RedisThrottlerStorage (Lua) · AppThrottlerGuard tracker u:/d:/ip:
 │   │   └── http/
 │   │       ├── exceptions.ts         # ErrorCodes · AppException · AllExceptionsFilter → { error: { code, params, requestId } }
-│   │       ├── response.ts           # ResponseInterceptor { data, meta } · withMeta · cursor pagination
-│   │       ├── validation.ts         # APP_PIPE StandardSchemaValidationPipe · zText · zLatLng
+│   │       ├── response.ts           # ResponseInterceptor { data, meta: { requestId } }
+│   │       ├── validation.ts         # APP_PIPE StandardSchemaValidationPipe (zod) → 422 VALIDATION_FAILED
 │   │       ├── request-context.middleware.ts  # X-Instance-Id · X-Request-Id
 │   │       └── express.d.ts          # req.user
 │   └── modules/                      # nghiệp vụ — mỗi module 1 thư mục; file chính ở gốc, chỉ 2 thư mục con dto/ và schema/
@@ -54,12 +54,14 @@ c9_map/
 │       │   │   └── role.dto.ts               # ROLE_CODES · RoleSchema · SetUserRolesSchema
 │       │   └── schema/
 │       │       └── identity.schema.ts        # profiles · roles · permissions · role_permissions · user_roles · devices
-│       └── pin/
-│           ├── pin.module.ts · pin.constants.ts · pin.jobs.ts   # bước 7 thêm controller/service/repository/dto/schema
+│       ├── pin/
+│       │   ├── pin.module.ts · pin.constants.ts · pin.jobs.ts   # bước 7 thêm controller/service/repository/dto/schema
+│       └── queue-board/
+│           └── queue-board.module.ts # /admin/queues (Bull Board) + middleware JWT + queue:read; tắt khi test
 ├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac (SQL)
 ├── drizzle.config.ts                 # schema: 'src/**/*.schema.ts'
 ├── test/
-│   ├── unit/*.spec.ts                # logic thuần, không hạ tầng
+│   ├── unit/*.spec.ts                # logic thuần, không hạ tầng (env · exceptions · drizzle · permission.guard)
 │   ├── integration/*.spec.ts         # AppModule thật trên testcontainers (app · cross-cutting · geography · redis-queue · auth-rbac · supabase-real)
 │   └── setup/{containers.ts, env.ts} # globalSetup testcontainers + migrate · setupFiles inject URL
 ├── scripts/                          # smoke-multi-instance.sh · dev-token.mjs · verify-auth.mjs
@@ -68,7 +70,7 @@ c9_map/
 └── package.json · tsconfig.json · nest-cli.json
 ```
 
-Module mới = copy cấu trúc `identity/` (`nest g resource <x> modules` sinh đúng bố cục này, chỉ đổi `entities/` → `schema/`).
+Người mới đọc [code-walkthrough.md](./code-walkthrough.md) trước. Module mới = copy cấu trúc `identity/` (`nest g resource <x> modules` sinh đúng bố cục này, chỉ đổi `entities/` → `schema/`).
 
 ## 2. File — có gì, chặn lỗi gì
 
