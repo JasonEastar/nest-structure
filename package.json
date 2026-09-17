@@ -9,25 +9,23 @@
   "scripts": {
     "dev": "nest start --watch",
     "build": "nest build",
-    "start": "nest start",
     "start:prod": "node dist/main.js",
     "lint": "oxlint src/ test/",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "test:watch": "vitest --project unit",
-    "test:cov": "vitest run --coverage",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "smoke": "bash scripts/smoke-multi-instance.sh",
     "dev:infra": "docker compose up -d postgres redis",
     "dev:infra:full": "docker compose --profile full up -d --build",
     "dev:infra:down": "docker compose --profile full down",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "openapi:export": "nest build && node dist/openapi-export.js",
-    "test:unit": "vitest run --project unit",
-    "test:integration": "vitest run --project integration",
-    "smoke": "bash scripts/smoke-multi-instance.sh"
+    "openapi:export": "nest build && node dist/openapi-export.js"
   },
+
   "dependencies": {
     "@bull-board/api": "^9.10.1",
     "@bull-board/express": "^9.10.1",
