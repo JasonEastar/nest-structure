@@ -38,7 +38,7 @@ MUST   mọi job BullMQ có test "chạy 1 lần dù 2 worker"
 | SOS (gđ 2) | 500 recipients 0 trùng; latency < 5 s; "I'm safe" đóng mọi thứ; kill switch | E2E |
 | Thanh toán (gđ 3) | Webhook 2 lần → 1 pin; trả xong pin không lên → refund; VND không thập phân; VAT làm tròn | E2E |
 | Auth | Token hết hạn → 401; `aud` sai → 401; profile sync lần đầu; delete account rồi đăng ký lại cùng SĐT | E2E |
-| Đa instance | 6 test §1 + chaos `docker compose kill api-1` giữa fan-out | Script |
+| Đa instance | 5 test §1 + chaos `docker compose kill api-1` giữa fan-out | Script |
 | Ảnh | EXIF GPS bị strip; HEIC → WebP; > 10 MB bị từ chối; presigned hết hạn 5 phút | Integration |
 | Cache | Sửa pin → `del c9:v1:marker:{id}`; viewport public không chứa dữ liệu theo viewer | Integration |
 

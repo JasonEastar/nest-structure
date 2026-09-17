@@ -1,6 +1,6 @@
 # C9 Map — Lộ trình xây dựng
 
-**Cập nhật:** 2026-09-17 · **Trạng thái:** Active · **Chủ sở hữu:** Tech Lead
+**Cập nhật:** 2026-09-17 (skeleton xong, module mẫu location, chưa bắt đầu bước 7) · **Trạng thái:** Active · **Chủ sở hữu:** Tech Lead
 Thứ tự dựng backend theo checkpoint, giai đoạn sản phẩm, và những gì cố ý chưa làm.
 
 ---

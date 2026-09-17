@@ -204,16 +204,16 @@ flowchart TB
   CM["common/common.module.ts @Global<br/>DRIZZLE · REDIS · CacheService · BullMQ root · SUPABASE_ADMIN · JwtService · Logger · I18n"]
   ENV["config/env.ts"]
   ID["modules/user<br/>schema · dto · repository · service · controllers"]
-  PIN["modules/pin<br/>schema · constants · jobs"]
+  LOC["modules/location<br/>schema · dto · repository · service · controller"]
   HL["health"]
   ENV --> CM
   ENV --> APP
   APP --> CM
   APP --> ID
-  APP --> PIN
+  APP --> LOC
   APP --> HL
   ID --> CM
-  PIN --> CM
+  LOC --> CM
   HL --> CM
   APP -. "auth.guard gọi UserService.ensureProfile" .-> ID
 ```

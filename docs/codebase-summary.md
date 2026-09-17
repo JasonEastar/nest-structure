@@ -9,9 +9,11 @@
 
 | Mục | Giá trị |
 |---|---|
-| Bước roadmap | Skeleton 7/7 phase xong (roadmap bước 0–6 ✅): test unit/integration testcontainers, smoke đa instance, CI GitHub Actions; tiếp theo roadmap bước 7 Pin core |
-| Git | Nhánh `main`; e7f5f1a docs · f1476f4 phase 01 · 55d3858 phase 02 · fb5db5f phase 03 · 2f6ffc1 phase 04 · 6d3a5b6 phase 05 · 654527c phase 06 · 343b23f verify auth thật · 7469607 phase 07 test/CI · 9e00612 sắp xếp lại cấu trúc · 8b1b2c6 tinh giản YAGNI + code-walkthrough · module mẫu location (2026-09-17) |
-| Kế hoạch | `plans/260916-1500-c9-map-backend-skeleton/` ✅ hoàn thành; plan bước 7 (pin core) chưa lập |
+| Roadmap | Bước 0–6 ✅ (skeleton + auth + RBAC + test/CI). Tiếp theo: bước 7 Pin core, chưa lập plan |
+| Module | `health`, `user` (/me, /admin/roles), `location` (module mẫu: CRUD + public nearby PostGIS), `queue-board` (Bull Board). Chưa có queue nào đăng ký |
+| Test | 66 (unit 28 · integration 38) trên PostGIS + Redis thật qua testcontainers; smoke đa instance 5 kiểm tra; CI GitHub Actions chưa chạy trên remote |
+| Git | Nhánh `main`, 33 commit tới 2026-09-17. Mốc: 7469607 phase 07 · 9e00612 cấu trúc mới · 26d30ee module mẫu location · 7335b51 Swagger theo module · 33253c3 identity → user · eb0d162 rút gọn comment |
+| Kế hoạch | `plans/260916-1500-c9-map-backend-skeleton/` ✅ · `plans/260917-1000-restructure-src-layout/` ✅ · `plans/260917-1130-location-reference-module/` ✅ |
 
 ## 2. Cây thư mục hiện tại
 
@@ -102,7 +104,7 @@ c9_map/
 ├── Dockerfile · docker-compose.yml · nginx.conf · vitest.config.ts · .env.example · .github/workflows/ci.yml
 └── package.json · tsconfig.json · nest-cli.json
 ```
-Scaffold `nest new` 12: ESM (`type: module`, nodenext), oxlint, Vitest 4, TypeScript 6. Lệnh: `node scripts/dev-token.mjs` (token thật) · `node scripts/verify-auth.mjs` · `npm run openapi:export` · `npm run db:generate` · `npm run db:migrate` · `npm run dev:infra` (postgres+redis) · `npm run dev:infra:full` (+api×2+nginx) · `npm run dev` · `npm run typecheck` · `npm run lint` · `npm test` (unit + integration) · `npm run test:unit` · `npm run test:integration` · `npm run smoke` · `npm run build` → `dist/main.js`.
+Scaffold `nest new` 12: ESM (`type: module`, nodenext), oxlint, Vitest 4, TypeScript 6. Lệnh: xem bảng trong [README](../README.md#lệnh); thêm `node scripts/dev-token.mjs` (token thật) · `node scripts/verify-auth.mjs` (kiểm auth thật) · `npm run dev:tools` (RedisInsight).
 
 ## 4. Tiếp theo (roadmap bước 7 Pin core)
 
