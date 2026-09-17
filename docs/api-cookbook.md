@@ -145,7 +145,7 @@ Controller `return` dữ liệu thuần, interceptor bọc thành envelope. Clie
 
 Ngôn ngữ: chỉ header `Accept-Language: vi | en` (mặc định vi), client tự gắn header khi gọi; không nhận qua query hay body. Mã lỗi hiện có: `VALIDATION_FAILED` 422 · `NOT_FOUND` 404 · `UNAUTHENTICATED` 401 · `FORBIDDEN` 403 · `RATE_LIMITED` 429 · `CONFLICT` 409 · `BAD_REQUEST` 400 · `PAYLOAD_TOO_LARGE` 413 · `SERVICE_UNAVAILABLE` 503 · `INTERNAL` 500. Lỗi 5xx bất ngờ (throw Error thường) tự thành `INTERNAL`, stack chỉ ghi log.
 
-Map row DB sang response ở **một hàm** trong service (`toResponse`), controller không tự ghép object. Dữ liệu của người khác trả `NOT_FOUND`, không trả `FORBIDDEN` (không lộ tồn tại).
+Map row DB sang response bằng hàm `toXxxResponse(row)` đặt **ngay dưới response schema trong file dto** (ví dụ `toLocationResponse` trong `dto/location.dto.ts`). Service gọi hàm đó, controller không tự ghép object. Đổi shape thì sửa schema và mapper cùng một chỗ. Dữ liệu của người khác trả `NOT_FOUND`, không trả `FORBIDDEN` (không lộ tồn tại).
 
 ## 7. Hiện đúng trên Swagger
 

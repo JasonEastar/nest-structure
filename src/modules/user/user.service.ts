@@ -3,7 +3,7 @@ import type { AuthUser, AuthUserPort } from '../../common/auth/auth.guard.js';
 import { AppException } from '../../common/http/exceptions.js';
 import { CacheService, TTL, cacheKeys } from '../../common/redis/cache.js';
 import { InjectSupabaseAdmin, type SupabaseAdminPort, type SupabaseClaims } from '../../common/auth/supabase.js';
-import type { MeResponse } from './dto/me.dto.js';
+import { type MeResponse, toMeResponse } from './dto/me.dto.js';
 import type { RoleCode } from './dto/role.dto.js';
 import { UserRepository } from './user.repository.js';
 
@@ -62,18 +62,7 @@ export class UserService implements AuthUserPort {
       this.repo.findRoleCodes(userId),
       this.getPermissions(userId),
     ]);
-    return {
-      id: profile.id,
-      email: profile.email,
-      displayName: profile.displayName,
-      username: profile.username,
-      avatarUrl: profile.avatarUrl,
-      locale: profile.locale,
-      homeCityCode: profile.homeCityCode,
-      phoneVerified: profile.phoneVerifiedAt !== null,
-      roles,
-      permissions,
-    };
+    return toMeResponse(profile, roles, permissions);
   }
 
   /** Danh sách role cho admin. */

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { RoleCodeSchema } from './role.dto.js';
+import { type RoleCode, RoleCodeSchema } from './role.dto.js';
 
 /** DTO /me — hồ sơ người dùng đang đăng nhập. */
 export const MeResponseSchema = z.object({
@@ -15,3 +15,32 @@ export const MeResponseSchema = z.object({
   permissions: z.array(z.string()),
 }).meta({ id: 'MeResponse' });
 export type MeResponse = z.infer<typeof MeResponseSchema>;
+
+/** Profile (row) + role + permission → MeResponse. `phoneVerified` suy từ `phoneVerifiedAt`. */
+export function toMeResponse(
+  profile: {
+    id: string;
+    email: string | null;
+    displayName: string;
+    username: string | null;
+    avatarUrl: string | null;
+    locale: string;
+    homeCityCode: string | null;
+    phoneVerifiedAt: Date | null;
+  },
+  roles: RoleCode[],
+  permissions: string[],
+): MeResponse {
+  return {
+    id: profile.id,
+    email: profile.email,
+    displayName: profile.displayName,
+    username: profile.username,
+    avatarUrl: profile.avatarUrl,
+    locale: profile.locale,
+    homeCityCode: profile.homeCityCode,
+    phoneVerified: profile.phoneVerifiedAt !== null,
+    roles,
+    permissions,
+  };
+}

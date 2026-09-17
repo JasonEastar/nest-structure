@@ -98,9 +98,9 @@ Mỗi phút cần quét pin hết hạn. Có 2 instance mà dùng cron trong pro
 |---|---|
 | `schema/location.schema.ts` | Khai bảng bằng Drizzle, cột toạ độ PostGIS, index GIST, khoá ngoại cascade. Sinh migration: `npm run db:generate` rồi sửa tay dòng `geography` bị đặt trong nháy. |
 | `dto/create-location.dto.ts` | Schema zod cho body, dùng `zText` (strip HTML) và `zLatLng`. Số giới hạn lấy từ `location.constants.ts`. |
-| `dto/location.dto.ts` | Response schema, query phân trang (`PaginationQuerySchema`), query nearby. Một file cho một use case, cả request lẫn response. |
+| `dto/location.dto.ts` | Response schema + mapper `toLocationResponse(row)` ngay dưới, query phân trang, query nearby. Một file cho một use case, cả request lẫn response lẫn mapper. |
 | `location.repository.ts` | Mọi SQL: insert/returning, cursor `(created_at, id)`, `ST_DWithin` + `ST_Distance` theo mét thật. Mọi query lọc theo `userId`. |
-| `location.service.ts` | Luật: tối đa 20 địa điểm, của người khác trả `NOT_FOUND` (không lộ), map row DB sang response ở một chỗ, `pageOf()` tính `nextCursor`. |
+| `location.service.ts` | Luật: tối đa 20 địa điểm, của người khác trả `NOT_FOUND` (không lộ), `pageOf()` tính `nextCursor`. Không map dữ liệu, chỉ gọi `toLocationResponse`. |
 | `location.controller.ts` | Hai nhóm route trong một file: `LocationController` cần token (POST, GET list, GET :id, DELETE :id) và `LocationPublicController` không cần đăng nhập (`GET /public/locations/nearby`, `@Public()` ở class, chỉ trả trường an toàn). Chỉ khai route, gắn schema, gọi service. |
 | `location.module.ts` | Khai controller + provider. Không import DB/Redis vì `CommonModule` là `@Global`. |
 | `test/unit/location.service.spec.ts` | Test luật với repository giả cùng interface. |

@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { PaginationQuerySchema } from '../../../common/http/pagination.js';
+import type { LatLng } from '../../../common/database/columns.js';
+import type { SavedLocationRow } from '../schema/location.schema.js';
 import { LOCATION_LIMITS } from '../location.constants.js';
 
 /** Response của một địa điểm — dùng cho GET/POST/list. Ngày giờ ở dạng ISO string (UTC). */
@@ -13,6 +15,19 @@ export const LocationResponseSchema = z.object({
   createdAt: z.iso.datetime(),
 }).meta({ id: 'Location' });
 export type LocationResponse = z.infer<typeof LocationResponseSchema>;
+
+/** Row DB → Location (tách lat/lng khỏi point, ISO date). Mapper đặt cạnh schema: đổi shape thì sửa một chỗ. */
+export function toLocationResponse(row: SavedLocationRow): LocationResponse {
+  return {
+    id: row.id,
+    name: row.name,
+    lat: row.point.lat,
+    lng: row.point.lng,
+    radiusMeters: row.radiusMeters,
+    isPublic: row.isPublic,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
 
 /** GET /locations?cursor=&limit= */
 export const ListLocationsQuerySchema = PaginationQuerySchema;
@@ -35,4 +50,9 @@ export const PublicLocationResponseSchema = z.object({
   distanceMeters: z.number(),
 }).meta({ id: 'PublicLocation' });
 export type PublicLocationResponse = z.infer<typeof PublicLocationResponseSchema>;
+
+/** Kết quả nearby (id, name, point, distance) → PublicLocation; khoảng cách làm tròn mét. */
+export function toPublicLocationResponse(row: { id: string; name: string; point: LatLng; distanceMeters: number }): PublicLocationResponse {
+  return { id: row.id, name: row.name, lat: row.point.lat, lng: row.point.lng, distanceMeters: Math.round(row.distanceMeters) };
+}
 
