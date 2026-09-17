@@ -3,11 +3,7 @@ import type { Request } from 'express';
 import { type Observable, map } from 'rxjs';
 import { requestIdOf } from './request-context.middleware.js';
 
-/**
- * Bọc mọi response thành công thành `{ data, meta: { requestId } }` (APP_INTERCEPTOR).
- * Controller chỉ return dữ liệu thuần; client luôn đọc `body.data`. Lỗi có shape riêng ở exceptions.ts.
- * Endpoint list trả `withMeta(rows, { nextCursor })` (qua pagination.ts `pageOf`) → meta có thêm nextCursor.
- */
+/** Bọc mọi response thành công thành { data, meta: { requestId, nextCursor? } }. Controller chỉ return dữ liệu thuần. */
 export interface PageMeta {
   nextCursor?: string | null;
 }

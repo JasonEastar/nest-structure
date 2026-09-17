@@ -4,11 +4,7 @@ import type { StandardSchemaV1 } from '@standard-schema/spec';
 import { z } from 'zod';
 import { AppException } from './exceptions.js';
 
-/**
- * Pipe validate toàn cục — có sẵn trong Nest 12, không cần class-validator/nestjs-zod.
- * Controller gắn schema ngay trên decorator: `@Body({ schema: CreateXSchema })`, `@Param('id', { schema: z.uuid() })`.
- * Lỗi → 422 VALIDATION_FAILED, params.issues = [{ path, message }].
- */
+/** Pipe zod toàn cục (có sẵn Nest 12): `@Body({ schema })`, `@Param('id', { schema })`. Sai → 422 với issues[{ path, message }]. */
 export const ValidationPipeProvider: Provider = {
   provide: APP_PIPE,
   useFactory: () =>
@@ -26,7 +22,7 @@ export const ValidationPipeProvider: Provider = {
     }),
 };
 
-/** Text người dùng nhập: trim, bỏ thẻ HTML, giới hạn độ dài (skill security-sanitize-output). */
+/** Text người dùng nhập: trim, bỏ thẻ HTML, giới hạn độ dài. */
 const HTML_TAG = /<[^>]*>/g;
 export const zText = (max: number, min = 1) =>
   z
@@ -35,7 +31,7 @@ export const zText = (max: number, min = 1) =>
     .transform((s) => s.replace(HTML_TAG, ''))
     .pipe(z.string().min(min).max(max));
 
-/** Toạ độ WGS84 (lat trước, lng sau — cùng thứ tự với LatLng của columns.ts). */
+/** Toạ độ WGS84. */
 export const zLatLng = z.object({
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),

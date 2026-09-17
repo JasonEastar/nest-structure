@@ -5,15 +5,12 @@ import type { SupabaseClaims } from '../../common/auth/supabase.js';
 import { devices, permissions, profiles, rolePermissions, roles, userRoles } from './schema/user.schema.js';
 import type { RoleCode } from './dto/role.dto.js';
 
-/** Mọi SQL của user nằm ở đây; service chỉ có logic (code-standards §5). */
+/** Mọi SQL của user; service chỉ có logic. */
 @Injectable()
 export class UserRepository {
   constructor(@InjectDb() private readonly db: Db) {}
 
-  /**
-   * Tạo profile + role `user` cho `sub` mới. Idempotent: hai instance nhận request đầu cùng lúc
-   * vẫn chỉ một dòng (ON CONFLICT DO NOTHING trong một transaction).
-   */
+  /** Tạo profile + role `user`; ON CONFLICT DO NOTHING nên 2 instance cùng chạy vẫn chỉ một dòng. */
   async insertProfileIfMissing(claims: SupabaseClaims): Promise<void> {
     await this.db.transaction(async (tx) => {
       await tx
@@ -65,7 +62,7 @@ export class UserRepository {
     return rows.map((r) => r.code as RoleCode);
   }
 
-  /** Một query (không N+1): user → roles → permissions. */
+  /** Quyền của user qua một query join. */
   async findPermissionCodes(userId: string): Promise<string[]> {
     const rows = await this.db
       .selectDistinct({ code: permissions.code })
@@ -114,7 +111,7 @@ export class UserRepository {
       });
   }
 
-  /** Hard delete (cascade user_roles, devices). `profiles.deleted_at` dành cho ẩn danh hoá pin/thread ở gđ sau, chưa dùng. */
+  /** Hard delete, cascade user_roles và devices. */
   async deleteProfile(userId: string): Promise<void> {
     await this.db.delete(profiles).where(eq(profiles.id, userId));
   }

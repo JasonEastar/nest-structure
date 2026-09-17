@@ -26,11 +26,7 @@ export const GLOBAL_PREFIX_EXCLUDE = [
   { path: 'admin/queues/{*splat}', method: RequestMethod.ALL },
 ];
 
-/**
- * Tài liệu OpenAPI chia theo module nghiệp vụ: mỗi mục = một định nghĩa trong dropdown "Select a definition"
- * (/docs/<key>, JSON /docs/<key>-json, file openapi/<key>.json). Module mới → thêm một mục ở đây (hoặc gộp vào mục có sẵn).
- * Ghi chú "Quyền cần có" / "Không cần đăng nhập" tự sinh từ @RequirePermissions / @Public, không viết tay.
- */
+/** Swagger: mỗi mục = một định nghĩa trong dropdown (/docs/<key>-json, openapi/<key>.json). Module mới → thêm mục. */
 export const OPENAPI_DOCS: OpenApiDefinition[] = [
   {
     key: 'health',
@@ -58,19 +54,14 @@ export const OPENAPI_DOCS: OpenApiDefinition[] = [
   },
 ];
 
-/**
- * Module gốc: nối mọi thứ lại.
- * - imports: cấu hình (env, log, i18n) → hạ tầng (CommonModule @Global) → module nghiệp vụ.
- * - providers APP_*: các "lớp bọc" chạy cho MỌI request theo thứ tự middleware → guard → pipe → handler → interceptor → filter.
- */
+/** Module gốc. providers APP_* chạy cho MỌI request: middleware → guard → pipe → handler → interceptor → filter. */
 @Module({
   imports: [
-    // ignoreEnvFile: .env đã được nạp một lần ở config/load-env.ts. Để ConfigModule tự đọc .env thì giá trị trong file
-    // sẽ ghi đè biến môi trường thật của compose/CI — hai nguồn sự thật.
+    // ignoreEnvFile: .env đã nạp ở config/load-env.ts; để ConfigModule tự đọc thì file ghi đè env thật của compose/CI
     ConfigModule.forRoot({ isGlobal: true, cache: true, ignoreEnvFile: true, validationSchema: envSchema }),
     PinoLoggerModule,
     AppI18nModule,
-    DiscoveryModule, // DiscoveryService cho config/openapi.ts (đọc metadata guard để ghi quyền vào Swagger)
+    DiscoveryModule, // DiscoveryService cho config/openapi.ts (ghi quyền vào Swagger)
     CommonModule,
     HealthModule,
     UserModule,
@@ -78,7 +69,7 @@ export const OPENAPI_DOCS: OpenApiDefinition[] = [
     QueueBoardModule,
   ],
   providers: [
-    // Thứ tự APP_GUARD = thứ tự chạy: Throttler (chặn sớm, chưa tốn CPU verify) → Auth → Permission
+    // Thứ tự guard = thứ tự chạy: Throttler → Auth → Permission
     { provide: APP_GUARD, useClass: AppThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: PermissionGuard },

@@ -6,10 +6,7 @@ import { REDIS_CACHE, redisProviders } from './redis/redis.provider.js';
 import { SUPABASE_ADMIN, SupabaseJwtService, supabaseProviders } from './auth/supabase.js';
 import { AppThrottlerModule } from './redis/throttler.guard.js';
 
-/**
- * Module @Global duy nhất: gom provider hạ tầng (DB, Redis, cache, BullMQ root, throttler; Supabase thêm ở phase 06).
- * Feature module inject `@InjectDb() db: Db`, `CacheService`, `@InjectQueue(...)` mà không cần import gì.
- */
+/** Module @Global duy nhất: gom hạ tầng (DB, Redis, cache, BullMQ, throttler, Supabase). Module nghiệp vụ inject thẳng, không cần import. */
 @Global()
 @Module({
   imports: [QueueRootModule, AppThrottlerModule],

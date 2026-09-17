@@ -3,10 +3,7 @@ import { LoggerModule } from 'nestjs-pino';
 import type { Env } from './env.js';
 import { resolveRequestId } from '../common/http/request-context.middleware.js';
 
-/**
- * nestjs-pino: một dòng JSON mỗi request với requestId + instance; redact bí mật.
- * Dev: pino-pretty. Không log /health/* (probe mỗi vài giây).
- */
+/** Log JSON một dòng mỗi request (requestId, instance), ẩn bí mật; dev in đẹp; bỏ qua /health. */
 export const PinoLoggerModule = LoggerModule.forRootAsync({
   inject: [ConfigService],
   useFactory: (config: ConfigService<Env, true>) => {
@@ -18,7 +15,7 @@ export const PinoLoggerModule = LoggerModule.forRootAsync({
         genReqId: (req) => resolveRequestId(req as Parameters<typeof resolveRequestId>[0]),
         customProps: (req) => ({
           instance,
-          userId: (req as unknown as { user?: { id?: string } }).user?.id, // pino IncomingMessage, không phải Express Request
+          userId: (req as unknown as { user?: { id?: string } }).user?.id,
         }),
         autoLogging: {
           ignore: (req) => (req.url ?? '').startsWith('/health'),

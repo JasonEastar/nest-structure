@@ -4,19 +4,15 @@ import type { NextFunction, Request, Response } from 'express';
 import { uuidv7 } from 'uuidv7';
 import type { Env } from '../../config/env.js';
 
-/**
- * Gắn ngữ cảnh lên mọi request/response (chạy trước guard/pipe/log).
- * - X-Instance-Id: instance nào phục vụ (kiểm tra load balancing).
- * - X-Request-Id: giữ id do nginx sinh; không có (ALB, gọi thẳng) → sinh uuid v7. Gắn vào `req.id` cho pino và filter.
- */
+/** X-Request-Id (giữ của nginx, không có thì sinh uuid v7) + X-Instance-Id cho mọi request; chạy trước guard. */
 const REQUEST_ID = /^[A-Za-z0-9._-]{8,64}$/;
 
 type RequestWithId = { id?: unknown; headers: Record<string, string | string[] | undefined> };
 
-/** req.id (pino-http khai kiểu rộng) → string, rỗng nếu chưa có. */
+/** req.id → string, rỗng nếu chưa có. */
 export const requestIdOf = (req: { id?: unknown }): string => (typeof req.id === 'string' ? req.id : '');
 
-/** Idempotent: trả req.id nếu đã có; không thì lấy header hợp lệ hoặc sinh uuid v7. Dùng bởi pino (genReqId) và middleware. */
+/** Trả req.id nếu đã có; không thì lấy header hợp lệ hoặc sinh mới. Dùng bởi pino và middleware. */
 export function resolveRequestId(req: RequestWithId): string {
   const existing = requestIdOf(req);
   if (existing) return existing;

@@ -40,8 +40,8 @@ await sql.end();
 console.log(`devices ghi từ x-device-id: ${devices.map((d) => d.device_id).join(', ') || '(chưa có)'}`);
 // Gán role bằng SQL không đi qua admin API → tự xoá cache quyền (admin API làm việc này); TTL cache là 5 phút.
 const redisUrl = new URL(process.env.REDIS_URL);
-const redis = new Redis({ host: redisUrl.hostname, port: Number(redisUrl.port || 6379), db: Number(process.env.REDIS_CACHE_DB ?? 0) });
-await redis.del(`c9:perms:${userId}`);
+const redis = new Redis({ host: redisUrl.hostname, port: Number(redisUrl.port || 6379), db: 0 });
+await redis.del(`c9:v1:perms:${userId}`);
 await redis.quit();
 r = await call('GET', '/api/v1/me');
 console.log(`GET /me sau khi gán admin trong DB → roles trong body: ${/"roles":\[[^\]]*\]/.exec(r.body)?.[0] ?? r.body}`);

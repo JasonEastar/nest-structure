@@ -13,7 +13,6 @@ describe('config/env', () => {
     expect(env.NODE_ENV).toBe('development');
     expect(env.PORT).toBe(3000);
     expect(env.DB_POOL_MAX).toBe(10);
-    expect(env.REDIS_QUEUE_DB).toBe(1);
     expect(env.THROTTLE_SHORT_LIMIT).toBe(10);
     expect(env.INSTANCE_ID.length).toBeGreaterThan(0);
     expect(loadEnv({ ...base, PORT: '8080' }).PORT).toBe(8080);

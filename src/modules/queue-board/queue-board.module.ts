@@ -11,32 +11,23 @@ import { requestIdOf } from '../../common/http/request-context.middleware.js';
 import { QUEUES } from '../../common/redis/queue.js';
 import { UserModule } from '../user/user.module.js';
 
-/**
- * Giao diện xem hàng đợi BullMQ (queue depth, job lỗi, retry) tại /admin/queues — công cụ vận hành, không phải API app.
- * Bull Board mount như Express middleware nên guard của Nest KHÔNG chạy → tự kiểm Bearer token + permission `queue:read`
- * bằng tuỳ chọn `middleware` chính thức của @bull-board/nestjs. Tắt khi NODE_ENV=test.
- */
+/** Bull Board /admin/queues (công cụ ops). Mount ngoài Nest pipeline nên tự kiểm token + quyền queue:read. Tắt khi test. */
 export const QUEUE_BOARD_ROUTE = '/admin/queues';
 const QUEUE_BOARD_PERMISSION = 'queue:read';
 const enabled = (env: NodeJS.ProcessEnv) => env.NODE_ENV !== 'test';
 
 const COOKIE = 'c9_board_token';
 
-/** Đọc một cookie từ header (không thêm cookie-parser chỉ vì một chỗ dùng). */
+/** Đọc một cookie từ header. */
 function cookieOf(req: Request, name: string): string | undefined {
   const pair = (req.headers.cookie ?? '').split(';').map((c) => c.trim()).find((c) => c.startsWith(`${name}=`));
   return pair ? decodeURIComponent(pair.slice(name.length + 1)) : undefined;
 }
 
-/**
- * Middleware xác thực. Token lấy theo thứ tự: Bearer (gọi API) → `?access_token=` (mở trang lần đầu bằng trình duyệt)
- * → cookie. Mở bằng query thì đặt cookie HttpOnly giới hạn path /admin/queues, vì giao diện Bull Board sau đó
- * tự gọi /admin/queues/api/... KHÔNG kèm query — không có cookie sẽ 401 và trang quay vòng mãi.
- */
+/** Token: Bearer → ?access_token= (mở trang) → cookie. Mở bằng query thì đặt cookie vì UI gọi API không kèm query. */
 export function queueBoardAuth(jwt: SupabaseJwtService, users: AuthUserPort) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const deny = (code: 'UNAUTHENTICATED' | 'FORBIDDEN'): void => {
-      // Ngoài Nest pipeline (không qua filter) → tự ghi body cùng shape ErrorEnvelope; công cụ ops nên message tiếng Anh cố định
       res.status(ErrorCodes[code]).json({ error: { code, message: code, params: {}, requestId: requestIdOf(req) } });
     };
     const [scheme, bearer] = (req.header('authorization') ?? '').split(' ');
@@ -48,7 +39,6 @@ export function queueBoardAuth(jwt: SupabaseJwtService, users: AuthUserPort) {
       const permissions = await users.getPermissions(claims.sub);
       if (!permissions.includes(QUEUE_BOARD_PERMISSION)) return deny('FORBIDDEN');
       if (fromQuery) {
-        // Sống bằng tuổi thọ token (1 giờ); hết hạn thì mở lại bằng ?access_token= mới
         res.setHeader('Set-Cookie', `${COOKIE}=${encodeURIComponent(token)}; Path=${QUEUE_BOARD_ROUTE}; HttpOnly; SameSite=Lax; Max-Age=3600`);
       }
       next();
@@ -72,7 +62,6 @@ const queueNames = Object.values(QUEUES) as string[];
 const queues = BullBoardModule.forFeature(...queueNames.map((name) => ({ name, adapter: BullMQAdapter })));
 
 @Module({
-  // Chưa có queue → chỉ mount trang trống; có queue thì forFeature đăng ký để hiện trên board
   imports: [ConditionalModule.registerWhen(root, enabled), ...(queueNames.length ? [ConditionalModule.registerWhen(queues, enabled)] : [])],
 })
 export class QueueBoardModule {}

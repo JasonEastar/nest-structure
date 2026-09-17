@@ -6,12 +6,7 @@ import { Public } from '../../common/auth/decorators.js';
 import type { Env } from '../../config/env.js';
 import { DrizzleHealthIndicator, RedisHealthIndicator } from './health.indicators.js';
 
-/**
- * Health endpoints nằm ngoài prefix /api (main.ts `exclude`) và ngoài versioning (VERSION_NEUTRAL) → /health/live.
- * - /health/live : process còn sống, không check dependency (liveness).
- * - /health/ready: DB + Redis; 503 khi một dependency down. Terminus tự trả 503 `shutting_down` sau SIGTERM
- *   (beforeApplicationShutdown có sẵn) → nginx/compose ngừng route trong lúc job/request đang chạy được hoàn tất.
- */
+/** /health/live (process sống) · /health/ready (DB + Redis, 503 khi down hoặc đang shutdown). Ngoài prefix /api và versioning. */
 @ApiTags('Health')
 @Public()
 @Controller({ path: 'health', version: VERSION_NEUTRAL })

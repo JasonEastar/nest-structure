@@ -8,11 +8,7 @@ import { MeResponseSchema } from './dto/me.dto.js';
 import { RoleSchema, type SetUserRoles, SetUserRolesSchema } from './dto/role.dto.js';
 import { UserService } from './user.service.js';
 
-/**
- * Mọi route HTTP của module user, một file, hai nhóm:
- *   1. UserController       /api/v1/me            hồ sơ của user đang đăng nhập
- *   2. UserAdminController  /api/v1/admin/...     quản trị role, cần permission (ghi chú quyền tự sinh lên Swagger)
- */
+/** Route của module user: (1) /me hồ sơ của user đang đăng nhập, (2) /admin/... quản trị role, cần permission. */
 
 // ---------------------------------------------------------------------------------------------------------------------
 // 1. Hồ sơ của tôi — /api/v1/me

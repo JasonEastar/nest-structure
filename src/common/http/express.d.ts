@@ -1,12 +1,8 @@
-/**
- * Mở rộng kiểu Express Request dùng chung.
- * `req.id` đã được pino-http khai báo (ReqId = string | number | object) → không khai lại; đọc qua `requestIdOf(req)`.
- * `req.user` do AuthGuard gắn (phase 06).
- */
+/** req.user do AuthGuard gắn. req.id đã có từ pino-http, đọc qua requestIdOf(). */
 declare global {
   namespace Express {
     interface Request {
-      user?: { id: string; email?: string | null; locale?: string };
+      user?: { id: string; email?: string | null };
     }
   }
 }

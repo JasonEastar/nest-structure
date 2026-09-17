@@ -8,6 +8,7 @@ import type { Env } from '../../config/env.js';
  * Nghiệp vụ không dùng file này trực tiếp: dùng CacheService (cache.ts). Chỉ throttler/health inject Redis thô.
  */
 export const REDIS_CACHE = Symbol('REDIS_CACHE');
+export const REDIS_DB = { cache: 0, queue: 1 } as const;
 export const InjectRedisCache = () => Inject(REDIS_CACHE);
 
 /** REDIS_URL → options ioredis. `forQueue`: BullMQ bắt buộc maxRetriesPerRequest = null. */
@@ -39,7 +40,7 @@ export const redisProviders: Provider[] = [
     inject: [ConfigService],
     useFactory: (config: ConfigService<Env, true>) =>
       // Bắt buộc có listener 'error': không có thì Redis chớp một cái là cả instance chết (uncaughtException).
-      new Redis(redisOptions(config, config.get('REDIS_CACHE_DB', { infer: true }))).on('error', (err: Error) =>
+      new Redis(redisOptions(config, REDIS_DB.cache)).on('error', (err: Error) =>
         new Logger('Redis').error(err.message),
       ),
   },

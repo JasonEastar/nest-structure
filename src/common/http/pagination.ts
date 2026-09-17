@@ -2,13 +2,7 @@ import { z } from 'zod';
 import { AppException } from './exceptions.js';
 import { type PartialEnvelope, withMeta } from './response.js';
 
-/**
- * Phân trang bằng cursor (created_at, id) — không OFFSET (code-standards §2.3).
- * Cách dùng trong controller/service:
- *   const q = PaginationQuerySchema.parse(query)  // hoặc @Query({ schema: PaginationQuerySchema })
- *   const rows = await repo.findPage(userId, q.limit + 1, decodeCursor(q.cursor))
- *   return pageOf(rows, q.limit, (r) => ({ createdAt: r.createdAt.toISOString(), id: r.id }))
- */
+/** Phân trang cursor (created_at, id), không OFFSET. Mẫu dùng: LocationService.list. */
 export const CursorSchema = z.object({ createdAt: z.iso.datetime(), id: z.uuid() });
 export type Cursor = z.infer<typeof CursorSchema>;
 

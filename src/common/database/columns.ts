@@ -1,10 +1,7 @@
 import { customType, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { uuidv7 } from 'uuidv7';
 
-/**
- * Cột dùng chung cho mọi `*.schema.ts`. File này CHỈ import drizzle-orm và uuidv7 (không import drizzle.ts)
- * để schema import được mà không tạo vòng schema ↔ barrel ↔ client.
- */
+/** Cột dùng chung cho *.schema.ts. Chỉ import drizzle-orm + uuidv7 (không import drizzle.ts, tránh vòng). */
 
 /** `created_at` + `updated_at` (updated_at tự cập nhật khi Drizzle update). */
 export const timestamps = {
@@ -21,10 +18,7 @@ export const uuidV7Pk = () =>
     .primaryKey()
     .$defaultFn(() => uuidv7());
 
-/**
- * `geography(Point, 4326)` — Drizzle 0.45 chỉ có `geometry` built-in.
- * Ghi: { lat, lng } → EWKT. Đọc: PostGIS trả EWKB hex → parse x/y. Index GIST viết trong migration SQL.
- */
+/** Cột geography(Point,4326). Ghi { lat, lng } → EWKT; đọc EWKB hex → { lat, lng }. */
 export type LatLng = { lat: number; lng: number };
 
 export const geographyPoint = customType<{ data: LatLng; driverData: string }>({
@@ -33,10 +27,7 @@ export const geographyPoint = customType<{ data: LatLng; driverData: string }>({
   fromDriver: (value) => ewkbToLatLng(value),
 });
 
-/**
- * { lat, lng } → EWKT. Hoạt động vì postgres.js gửi tham số string với OID 0 → Postgres suy kiểu từ cột.
- * Trong SQL viết tay phải ép `${v}::geography` (PostGIS không có cast text → geography ngầm).
- */
+/** { lat, lng } → EWKT. Trong SQL viết tay phải ép `${v}::geography`. */
 export function latLngToEwkt(value: LatLng): string {
   return `SRID=4326;POINT(${value.lng} ${value.lat})`;
 }

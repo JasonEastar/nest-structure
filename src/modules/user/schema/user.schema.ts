@@ -1,12 +1,9 @@
 import { index, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { timestamps, uuidV7Pk } from '../../../common/database/columns.js';
 
-/**
- * Bảng của module user. Quy tắc (ADR-0006 §6): *.schema.ts chỉ import drizzle-orm, common/database/columns.ts
- * và *.schema.ts khác — không import common/database/drizzle.ts (tránh vòng).
- */
+/** Bảng của module user. *.schema.ts chỉ import drizzle-orm, columns.ts và *.schema.ts khác. */
 
-/** id = `sub` của Supabase Auth (uuid v4). Không FK sang Supabase (khác database, ADR-0005). */
+/** id = sub của Supabase Auth; không FK sang Supabase (khác database). */
 export const profiles = pgTable(
   'profiles',
   {
@@ -66,7 +63,7 @@ export const userRoles = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.roleId] })],
 );
 
-/** Push token gắn với thiết bị, không gắn với user (code-standards §2.4). */
+/** Thiết bị + push token (gắn với thiết bị, không phải user). */
 export const devices = pgTable(
   'devices',
   {

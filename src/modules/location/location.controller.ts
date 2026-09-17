@@ -16,11 +16,8 @@ import {
 import { LocationService } from './location.service.js';
 
 /**
- * Mọi route HTTP của module location, một file, hai nhóm:
- *   1. LocationController        /api/v1/locations/...         cần đăng nhập (AuthGuard), dữ liệu của chính user
- *   2. LocationPublicController  /api/v1/public/locations/...  không cần đăng nhập (@Public() ở class)
- * Phải là hai class vì @Controller() quyết định prefix path và @Public() áp cho cả class — không thể trộn trong một class.
- * Controller chỉ: khai route, gắn schema zod (pipe toàn cục validate), lấy user, gọi service, return. Không có luật ở đây.
+ * Route của module location: (1) /locations cần token, (2) /public/locations không cần. Hai class vì prefix và @Public() áp theo class.
+ * Controller chỉ khai route + schema, gọi service. Luật nằm ở service.
  */
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -63,7 +60,6 @@ export class LocationController {
 
 // ---------------------------------------------------------------------------------------------------------------------
 // 2. Route công khai — /api/v1/public/locations (không token, không req.user, không @ApiBearerAuth)
-//    Vẫn bị rate limit (theo x-device-id rồi IP) và chỉ trả trường an toàn — không lộ dữ liệu của user.
 // ---------------------------------------------------------------------------------------------------------------------
 @Public()
 @ApiTags('Locations') // cùng tag với nhóm 1 → Swagger gom chung một mục

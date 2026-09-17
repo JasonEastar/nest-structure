@@ -7,10 +7,7 @@ import { type MeResponse, toMeResponse } from './dto/me.dto.js';
 import type { RoleCode } from './dto/role.dto.js';
 import { UserRepository } from './user.repository.js';
 
-/**
- * Nghiệp vụ user: tạo profile lần đầu (thay trigger DB, vì Postgres và Supabase là 2 database), quyền hiệu lực (RBAC + cache),
- * hồ sơ /me, gán role, xoá tài khoản. Implements AuthUserPort để AuthGuard/PermissionGuard trong common/ gọi được qua AUTH_USER.
- */
+/** Nghiệp vụ user: profile lần đầu, quyền (RBAC + cache), /me, gán role, xoá tài khoản. Là AUTH_USER cho guard. */
 @Injectable()
 export class UserService implements AuthUserPort {
   private readonly logger = new Logger(UserService.name);
@@ -21,12 +18,9 @@ export class UserService implements AuthUserPort {
     @InjectSupabaseAdmin() private readonly supabaseAdmin: SupabaseAdminPort,
   ) {}
 
-  /**
-   * Thay cho trigger DB (Postgres và Supabase là hai database — ADR-0005).
-   * Flag Redis 1 giờ để request thứ hai trở đi không chạm DB.
-   */
+  /** Tạo profile lần đầu (thay trigger DB vì Supabase là DB khác); cờ Redis 1 giờ để không chạm DB mỗi request. */
   async ensureProfile(claims: SupabaseClaims): Promise<AuthUser> {
-    // Token còn hạn sau DELETE /me không được làm profile "sống lại" (Supabase JWT stateless, không thu hồi được).
+    // Token còn hạn sau DELETE /me không được làm profile sống lại
     if (await this.cache.has(CACHE.deleted.key(claims.sub))) throw new AppException('UNAUTHENTICATED');
     const flagKey = CACHE.profileExists.key(claims.sub);
     if (!(await this.cache.has(flagKey))) {
@@ -36,7 +30,7 @@ export class UserService implements AuthUserPort {
     return { id: claims.sub, email: claims.email ?? null };
   }
 
-  /** Quyền hiệu lực: cache 5 phút; admin đổi role → DEL ngay (thu hồi không đợi token hết hạn). */
+  /** Quyền hiệu lực, cache 5 phút; đổi role → xoá cache ngay. */
   async getPermissions(userId: string): Promise<string[]> {
     const key = CACHE.perms.key(userId);
     const cached = await this.cache.getJson<string[]>(key);
@@ -46,7 +40,7 @@ export class UserService implements AuthUserPort {
     return codes;
   }
 
-  /** Ghi `devices.last_seen_at` tối đa 1 lần / 5 phút / thiết bị (không UPDATE mỗi request). */
+  /** Ghi last_seen thiết bị tối đa 1 lần / 5 phút. */
   async touchDevice(userId: string, deviceId: string): Promise<void> {
     const key = CACHE.deviceSeen.key(userId, deviceId);
     if (await this.cache.has(key)) return;
@@ -75,7 +69,7 @@ export class UserService implements AuthUserPort {
     return this.repo.findRoleCodes(userId);
   }
 
-  /** Gán lại role cho user. Xoá cache quyền để hiệu lực tức thì trên mọi instance. */
+  /** Thay toàn bộ role; xoá cache quyền để hiệu lực ngay. */
   async setUserRoles(userId: string, codes: RoleCode[]): Promise<{ id: string; roles: RoleCode[] }> {
     if (!(await this.repo.profileExists(userId))) {
       throw new AppException('NOT_FOUND', { resource: 'profile', id: userId });
@@ -85,9 +79,7 @@ export class UserService implements AuthUserPort {
     return { id: userId, roles: await this.repo.findRoleCodes(userId) };
   }
 
-  /**
-   * Xoá tài khoản: local trước (tx + cascade), Supabase sau. Idempotent — gọi lại được nếu bước sau lỗi.
-   */
+  /** Xoá tài khoản: local trước (cascade), Supabase sau; gọi lại được nếu bước sau lỗi. */
   async deleteMe(userId: string): Promise<void> {
     await this.repo.deleteProfile(userId);
     await this.cache.del(CACHE.perms.key(userId), CACHE.profileExists.key(userId));

@@ -3,9 +3,8 @@ import { geographyPoint, timestamps, uuidV7Pk } from '../../../common/database/c
 import { profiles } from '../../user/schema/user.schema.js';
 
 /**
- * Bảng của module location. Quy tắc (ADR-0006 §6): chỉ import drizzle-orm, common/database/columns.ts và *.schema.ts khác.
- * Thêm bảng → `npm run db:generate` → sửa tay kiểu customType bị đặt trong nháy (`"geography(Point,4326)"` → bỏ nháy)
- * → `npm run db:migrate`. Nhớ export ở common/database/schema.ts.
+ * Bảng của module location. Thêm bảng → `db:generate` → sửa tay `"geography(Point,4326)"` bị đặt trong nháy → `db:migrate`
+ * → export ở common/database/schema.ts.
  */
 
 /** Địa điểm user tự lưu (nhà, công ty, trường con...). Nền cho "My areas" cảnh báo theo vùng (roadmap bước 11). */

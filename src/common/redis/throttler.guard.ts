@@ -8,16 +8,9 @@ import { AppException } from '../http/exceptions.js';
 import { REDIS_CACHE } from './redis.provider.js';
 
 /**
- * Rate limit đếm chung mọi instance (storage Redis). Hai tầng mặc định: short 10/s, long 100/phút.
- * Override từng route: `@Throttle({ short: { limit: 1, ttl: 300_000 } })`; bỏ qua: `@SkipThrottle()`.
- * Tracker ưu tiên: user → thiết bị (x-device-id) → IP thật (trust proxy đã bật trong main.ts).
- * Đứng ĐẦU chuỗi APP_GUARD để request bị chặn không tốn CPU verify JWT.
- */
-
-/**
- * ThrottlerStorage trên ioredis, atomic bằng Lua (package @nest-lab/throttler-storage-redis chưa hỗ trợ Nest 12).
- * Key: c9:throttle:{throttlerName}:{tracker-hash}. INCR + PEXPIRE lần đầu; vượt limit và có blockDuration → key block.
- * Cửa sổ cố định (fixed window): biên cửa sổ có thể cho qua ~2× limit trong chốc lát — chấp nhận. `blockDuration: 0` = không bao giờ chặn.
+ * Rate limit đếm chung mọi instance qua Redis: short 10/s, long 100/phút; tracker user → x-device-id → IP.
+ * Override route: `@Throttle({ short: { limit, ttl } })`, bỏ qua: `@SkipThrottle()`. Guard đầu chuỗi (chặn trước khi verify JWT).
+ * Storage tự viết bằng Lua (fixed window) vì package Redis chính thức chưa hỗ trợ Nest 12.
  */
 const INCREMENT_LUA = `
 local hits = redis.call('INCR', KEYS[1])
@@ -34,7 +27,7 @@ return { hits, ttl, blockTtl }
 export class RedisThrottlerStorage implements ThrottlerStorage {
   constructor(private readonly redis: Redis) {}
 
-  /** Một lần đếm cho tracker: chạy Lua nguyên tử, trả số hit và thời gian còn lại để guard quyết 429. */
+  /** Đếm một lần (Lua nguyên tử), trả số hit + thời gian còn lại. */
   async increment(
     key: string,
     ttl: number,

@@ -4,11 +4,7 @@ import { I18nContext, I18nService } from 'nestjs-i18n';
 import { DEFAULT_LOCALE } from '../../config/i18n.js';
 import { requestIdOf } from './request-context.middleware.js';
 
-/**
- * Mã lỗi trả cho client (SCREAMING_SNAKE) kèm HTTP status mặc định.
- * Thêm mã mới: thêm ở đây + thêm câu dịch cùng tên trong i18n/{vi,en}/errors.json.
- * Client xử lý logic theo `code`; `message` đã dịch theo ngôn ngữ request, hiển thị được ngay.
- */
+/** Mã lỗi + HTTP status mặc định. Thêm mã mới → thêm câu dịch cùng tên trong i18n/{vi,en}/errors.json. */
 export const ErrorCodes = {
   VALIDATION_FAILED: HttpStatus.UNPROCESSABLE_ENTITY,
   NOT_FOUND: HttpStatus.NOT_FOUND,
@@ -60,11 +56,8 @@ const STATUS_TO_CODE: Partial<Record<number, ErrorCode>> = {
 };
 
 /**
- * Filter toàn cục (APP_FILTER): mọi lỗi → `{ error: { code, message, params, requestId } }` (ErrorEnvelope).
- * - AppException: giữ code/params/status của nó. HttpException của Nest: map status → code. Lỗi lạ: 500 INTERNAL.
- * - `message` dịch từ i18n/errors.json theo header Accept-Language của request, tìm theo thứ tự
- *   `CODE_<reason>` (vd CONFLICT_LIMIT_REACHED) → `CODE` → chính mã lỗi nếu chưa có câu dịch.
- * - 5xx: log stack, không lộ chi tiết ra client.
+ * Filter toàn cục: mọi lỗi → ErrorEnvelope. AppException giữ code/status; HttpException Nest map status → code; lỗi lạ → 500.
+ * message dịch theo Accept-Language: `CODE_<reason>` → `CODE` → mã lỗi. 5xx log stack, không lộ ra client.
  */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -72,7 +65,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   constructor(@Inject(I18nService) private readonly i18n: Pick<I18nService, 't'>) {}
 
-  /** Câu lỗi theo ngôn ngữ. `params.resource` được dịch qua `errors.resource.<tên>` nếu có (vd location → địa điểm). */
+  /** Câu lỗi theo ngôn ngữ; params.resource dịch qua errors.resource.<tên> nếu có. */
   translate(lang: string, code: ErrorCode, params: ErrorParams): string {
     const args = { ...params };
     if (typeof params.resource === 'string') {
@@ -82,7 +75,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     return byReason ?? this.lookup(lang, `errors.${code}`, args) ?? code;
   }
 
-  /** nestjs-i18n trả lại chính key khi thiếu câu dịch → coi là undefined để fallback. */
+  /** nestjs-i18n trả lại key khi thiếu câu dịch → undefined để fallback. */
   private lookup(lang: string, key: string, args?: ErrorParams): string | undefined {
     const text = this.i18n.t(key as never, { lang, args }) as unknown;
     return typeof text === 'string' && text !== key ? text : undefined;
@@ -114,8 +107,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       );
     }
 
-    if (res.headersSent) return; // response đã bắt đầu gửi (stream): không ghi thêm, tránh ERR_HTTP_HEADERS_SENT
-    // /health/*: giữ nguyên body của Terminus ({ status, info, error, details }) cho probe/người vận hành đọc
+    if (res.headersSent) return; // đã bắt đầu gửi (stream) → không ghi thêm
+    // /health/*: giữ body của Terminus cho probe đọc
     if (req.path.startsWith('/health') && exception instanceof HttpException) {
       res.status(status).json(exception.getResponse());
       return;

@@ -5,11 +5,7 @@ import { type AuthUserPort, AUTH_USER } from './auth.guard.js';
 import { RequirePermissions } from './decorators.js';
 import { AppException } from '../http/exceptions.js';
 
-/**
- * Kiểm quyền `resource:action` từ DB (cache Redis 5 phút) — NEVER đọc role/permission từ JWT,
- * để admin thu hồi quyền có hiệu lực ngay mà không cần đợi token hết hạn.
- * Guard cuối chuỗi: Throttler → Auth → Permission.
- */
+/** Kiểm quyền từ DB qua cache (không đọc từ JWT, để thu hồi có hiệu lực ngay). Guard cuối chuỗi. */
 @Injectable()
 export class PermissionGuard implements CanActivate {
   constructor(

@@ -6,31 +6,24 @@ import { AppException } from '../http/exceptions.js';
 import type { SupabaseClaims } from './supabase.js';
 import { SupabaseJwtService } from './supabase.js';
 
-/**
- * Cổng tới module user — common KHÔNG import modules/ (code-standards §2.2).
- * UserModule cung cấp `{ provide: AUTH_USER, useExisting: UserService }`.
- */
+/** Cổng tới UserService (common không import modules/). UserModule provide AUTH_USER = UserService. */
 export interface AuthUser {
   id: string;
   email?: string | null;
-  locale?: string;
 }
 export interface AuthUserPort {
-  /** Tạo profile + role `user` ở request đầu tiên của một `sub` (idempotent, an toàn đa instance). */
+  /** Tạo profile + role `user` ở request đầu tiên (idempotent). */
   ensureProfile(claims: SupabaseClaims): Promise<AuthUser>;
-  /** Quyền hiệu lực của user (cache Redis 5 phút, nguồn là bảng RBAC). */
+  /** Quyền hiệu lực (cache 5 phút). */
   getPermissions(userId: string): Promise<string[]>;
-  /** Ghi nhận thiết bị từ header `x-device-id` (throttle ghi, không chặn request). */
+  /** Ghi nhận thiết bị từ header x-device-id. */
   touchDevice(userId: string, deviceId: string): Promise<void>;
 }
 export const AUTH_USER = Symbol('AUTH_USER');
 
 const DEVICE_ID = /^[A-Za-z0-9._-]{8,128}$/;
 
-/**
- * Xác thực mọi request trừ `@Public()`: Bearer → verify JWKS Supabase → ensureProfile → `req.user`.
- * Guard thứ hai trong chuỗi (sau Throttler), trước PermissionGuard.
- */
+/** Xác thực mọi request trừ @Public(). Guard thứ 2 sau Throttler. */
 @Injectable()
 export class AuthGuard implements CanActivate {
   private readonly logger = new Logger(AuthGuard.name);
@@ -56,7 +49,7 @@ export class AuthGuard implements CanActivate {
 
     const deviceId = req.header('x-device-id');
     if (deviceId && DEVICE_ID.test(deviceId)) {
-      // fire-and-forget: lỗi ghi thiết bị không được làm hỏng request (code-standards §2.7)
+      // fire-and-forget: lỗi ghi thiết bị không làm hỏng request
       void this.users
         .touchDevice(req.user.id, deviceId)
         .catch((error: unknown) => this.logger.warn(`touchDevice failed: ${String(error)}`));

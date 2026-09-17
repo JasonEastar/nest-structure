@@ -5,22 +5,18 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type { Env } from '../../config/env.js';
 import { AppException } from '../http/exceptions.js';
 
-/**
- * Supabase CHỈ làm Auth (ADR-0002, ADR-0005): phát JWT (Google sign-in), quản lý user.
- * NestJS không phát hành token, chỉ verify bằng JWKS; dữ liệu nghiệp vụ nằm ở Postgres riêng.
- */
+/** Supabase chỉ làm Auth: phát JWT (Google), quản lý user. App chỉ verify bằng JWKS, không phát token. */
 
-/** Claims dùng trong app (không lấy role/permission từ token — đọc từ DB). */
+/** Claims app dùng (role/permission KHÔNG lấy từ token). */
 export interface SupabaseClaims {
   sub: string;
   email?: string;
-  sessionId?: string;
   isAnonymous: boolean;
   fullName?: string;
   avatarUrl?: string;
 }
 
-/** Cổng tới Supabase Admin API — interface nhỏ để test thay bằng in-memory (skill di-use-interfaces-tokens). */
+/** Cổng tới Supabase Admin API (test thay bằng in-memory). */
 export interface SupabaseAdminPort {
   deleteUser(userId: string): Promise<void>;
   getUserById(userId: string): Promise<{ id: string; email?: string; phoneConfirmedAt?: string | null } | null>;
@@ -39,25 +35,23 @@ export class SupabaseJwtService {
     const url = config.get('SUPABASE_URL', { infer: true }).replace(/\/$/, '');
     this.issuer = `${url}/auth/v1`;
     const jwksUrl = config.get('SUPABASE_JWKS_URL', { infer: true }) ?? `${this.issuer}/.well-known/jwks.json`;
-    // createRemoteJWKSet tự cache theo `kid` và xoay khoá; không fetch mỗi request.
-    // Project phải bật "JWT signing keys" (ES256). Legacy HS256 → JWKS rỗng → mọi token bị 401 (đúng thiết kế, ADR-0002).
+    // JWKS được cache theo kid, không fetch mỗi request. Project phải bật JWT signing keys (ES256).
     this.jwks = createRemoteJWKSet(new URL(jwksUrl));
   }
 
-  /** Lỗi verify luôn trả UNAUTHENTICATED chung; lý do chỉ ghi log debug (không lộ cho client). */
+  /** Mọi lỗi verify → UNAUTHENTICATED; lý do chỉ ghi log debug. */
   async verify(token: string): Promise<SupabaseClaims> {
     try {
       const { payload } = await jwtVerify(token, this.jwks, {
         issuer: this.issuer,
         audience: 'authenticated',
-        algorithms: ['ES256', 'RS256'], // ghim tường minh: HS256/none bị từ chối dù JWKS bị thay
+        algorithms: ['ES256', 'RS256'], // ghim: HS256/none bị từ chối
         clockTolerance: 5,
       });
       const meta = (payload.user_metadata ?? {}) as Record<string, unknown>;
       const claims: SupabaseClaims = {
         sub: String(payload.sub),
         email: typeof payload.email === 'string' ? payload.email : undefined,
-        sessionId: typeof payload.session_id === 'string' ? payload.session_id : undefined,
         isAnonymous: payload.is_anonymous === true,
         fullName: typeof meta.full_name === 'string' ? meta.full_name : undefined,
         avatarUrl: typeof meta.avatar_url === 'string' ? meta.avatar_url : undefined,
@@ -72,7 +66,7 @@ export class SupabaseJwtService {
   }
 }
 
-/** Adapter thật: service_role key, chỉ chạy ở server, không giữ session. */
+/** Adapter thật với secret key, chỉ chạy ở server. */
 @Injectable()
 export class SupabaseAdminAdapter implements SupabaseAdminPort {
   private readonly client: SupabaseClient;
@@ -88,7 +82,6 @@ export class SupabaseAdminAdapter implements SupabaseAdminPort {
   /** Xoá user trên Supabase Auth. Đã xoá trước đó (404) → coi như thành công. */
   async deleteUser(userId: string): Promise<void> {
     const { error } = await this.client.auth.admin.deleteUser(userId);
-    // User đã bị xoá trước đó → coi như thành công (idempotent).
     if (error && error.status !== 404) throw error;
   }
 
