@@ -7,9 +7,9 @@
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {
-    "dev": "nest start --watch",
+    "dev": "nest start --watch --exec \"node --import ./dist/instrument.js\"",
     "build": "nest build",
-    "start:prod": "node dist/main.js",
+    "start:prod": "node --import ./dist/instrument.js dist/main.js",
     "lint": "oxlint src/ test/",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -27,7 +27,6 @@
     "openapi:export": "nest build && node dist/openapi-export.js"
   },
   "dependencies": {
-    "@axiomhq/pino": "^2.0.0",
     "@bull-board/api": "^9.10.1",
     "@bull-board/express": "^9.10.1",
     "@bull-board/nestjs": "^9.10.1",
@@ -39,6 +38,7 @@
     "@nestjs/swagger": "^12.0.1",
     "@nestjs/terminus": "^12.0.0",
     "@nestjs/throttler": "^6.5.0",
+    "@sentry/nestjs": "^10.75.0",
     "@standard-schema/spec": "^1.1.0",
     "@supabase/supabase-js": "^2.116.0",
     "bullmq": "^6.3.6",
@@ -86,6 +86,10 @@
     "@nestjs/throttler": {
       "@nestjs/common": "$@nestjs/common",
       "@nestjs/core": "$@nestjs/core"
+    },
+    "@sentry/nestjs": {
+      "@nestjs/core": "$@nestjs/core",
+      "@nestjs/common": "$@nestjs/common"
     }
   }
 }

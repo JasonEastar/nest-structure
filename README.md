@@ -14,7 +14,7 @@ Bản đồ đời sống thời gian thực cho TP.HCM: kẹt xe, ngập, chợ
 | Validation & docs | zod 4 + Swagger (`@nestjs/swagger`) | Một schema cho validate, kiểu TS và tài liệu API |
 | i18n | nestjs-i18n | Thông báo lỗi vi/en theo header `Accept-Language` |
 | Test | Vitest + testcontainers + supertest | Unit và integration trên Postgres/Redis thật |
-| Vận hành | Docker Compose, nginx, GitHub Actions | Dev đa instance, CI lint/test/build |
+| Vận hành | Docker Compose, nginx, GitHub Actions, Sentry | Dev đa instance, CI lint/test/build, lỗi + log + trace lên Sentry khi có `SENTRY_DSN` |
 
 ## Chạy local
 

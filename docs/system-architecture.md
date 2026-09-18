@@ -184,7 +184,7 @@ Presigned PUT R2, 5 phút, ≤ 10 MB, `image/jpeg|png|webp|heic`. Backend xác n
 
 ## 13. Logging & giám sát
 
-`nestjs-pino` JSON, redact `authorization`, `*.token`, `*.phone`, toạ độ user. Mọi dòng có `requestId`, `instance`, `userId?`; `requestId` truyền vào job data. Log đẩy thêm lên Axiom khi có `AXIOM_TOKEN` + `AXIOM_DATASET`. Metrics (Prometheus) và Sentry: chưa có, thêm khi lên staging.
+`nestjs-pino` JSON, redact `authorization`, `*.token`, `*.phone`, toạ độ user. Mọi dòng có `requestId`, `instance`, `userId?`; `requestId` truyền vào job data. Sentry (`SENTRY_DSN`): lỗi 5xx + log (Sentry Logs, qua pinoIntegration) + trace 10 %. Metrics (Prometheus): chưa có, thêm khi lên staging.
 
 ## 14. Docker & môi trường
 

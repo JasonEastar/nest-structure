@@ -1,4 +1,8 @@
 import { type ArgumentsHost, HttpStatus, NotFoundException } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
+
+// Chỉ mock SDK bên ngoài để biết filter có gọi captureException đúng lúc; logic filter chạy thật
+vi.mock('@sentry/nestjs', () => ({ captureException: vi.fn() }));
 import { AllExceptionsFilter, AppException, ErrorCodes } from '../../src/common/http/exceptions.js';
 
 function host(req: Record<string, unknown>, res: Record<string, unknown>): ArgumentsHost {
@@ -89,12 +93,18 @@ describe('AllExceptionsFilter', () => {
     expect((calls.body as { code: string }).code).toBe('NOT_FOUND');
   });
 
-  it('lỗi lạ → 500 INTERNAL, không lộ message', () => {
+  it('lỗi lạ → 500 INTERNAL, không lộ message, gửi Sentry kèm requestId; 4xx không gửi', () => {
+    vi.mocked(Sentry.captureException).mockClear();
     const { res, calls } = fakeRes();
-    filter.catch(new Error('db password leaked'), host(req, res));
+    const boom = new Error('db password leaked');
+    filter.catch(boom, host(req, res));
     expect(calls.status).toBe(500);
     expect(JSON.stringify(calls.body)).not.toContain('leaked');
     expect((calls.body as { code: string }).code).toBe('INTERNAL');
+    expect(Sentry.captureException).toHaveBeenCalledWith(boom, { tags: { requestId: 'req-1' }, extra: { code: 'INTERNAL' } });
+
+    filter.catch(new NotFoundException(), host(req, fakeRes().res));
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1); // 404 không phải lỗi hệ thống
   });
 
   it('headers đã gửi → không ghi thêm', () => {

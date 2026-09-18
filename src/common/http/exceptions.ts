@@ -1,5 +1,6 @@
 import { ArgumentsHost, Catch, type ExceptionFilter, HttpException, HttpStatus, Inject, Logger } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import * as Sentry from '@sentry/nestjs';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import { DEFAULT_LOCALE } from '../../config/i18n.js';
 import { requestIdOf } from './request-context.middleware.js';
@@ -92,6 +93,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     if (status >= 500) {
+      Sentry.captureException(exception, { tags: { requestId }, extra: { code } }); // no-op khi không có DSN
       this.logger.error(
         `${req.method} ${req.originalUrl} → ${status} ${code} requestId=${requestId}`,
         exception instanceof Error ? exception.stack : String(exception),

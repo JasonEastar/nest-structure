@@ -227,4 +227,6 @@ this.logger.error(`fcm failed`, err.stack);              // stack ở tham số 
 - Không log token, cookie, mật khẩu, SĐT, toạ độ chính xác của user: pino đã redact các key này thành `[redacted]`, nhưng đừng ghép chúng vào chuỗi message.
 - Mức log: `LOG_LEVEL` trong `.env` (`info` mặc định, `debug` khi cần soi, `warn` trên test). `/health/*` không log.
 
-Xem log: dev `npm run dev` in thẳng terminal; Docker `docker compose logs -f api-1` (mỗi container giữ tối đa 3 × 20 MB). Tập trung nhiều instance: đặt `AXIOM_TOKEN` + `AXIOM_DATASET` trong env là pino gửi thêm mọi dòng lên Axiom (`logger.ts`), xem tại app.axiom.co → dataset. Token cần quyền Ingest.
+Xem log: dev `npm run dev` in thẳng terminal; Docker `docker compose logs -f api-1` (mỗi container giữ tối đa 3 × 20 MB).
+
+**Sentry** (đặt `SENTRY_DSN` trong env, `src/instrument.ts`): lỗi 5xx lên Sentry Issues kèm stack, request và tag `requestId` (filter tự gọi `captureException`); mọi dòng pino từ `info` lên Sentry Logs (tìm theo `requestId`, `userId`); 10 % request có trace. App phải chạy bằng `node --import ./dist/instrument.js dist/main.js` (scripts `dev`, `start:prod`, Dockerfile đã đặt) — chạy `node dist/main.js` trần thì Sentry không bắt log/trace. Nghi Sentry không nhận: `SENTRY_DEBUG=1`.

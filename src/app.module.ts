@@ -1,5 +1,6 @@
 import { type MiddlewareConsumer, Module, type NestModule, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { SentryModule } from '@sentry/nestjs/setup';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, DiscoveryModule } from '@nestjs/core';
 import { CommonModule } from './common/common.module.js';
 import { AuthGuard } from './common/auth/auth.guard.js';
@@ -59,6 +60,7 @@ export const OPENAPI_DOCS: OpenApiDefinition[] = [
   imports: [
     // Đọc .env (biến đã có trong môi trường thắng file) rồi validate bằng envSchema; ConfigService dùng ở mọi nơi
     ConfigModule.forRoot({ isGlobal: true, cache: true, validationSchema: envSchema }),
+    SentryModule.forRoot(), // gắn request context vào lỗi/trace; no-op khi không có SENTRY_DSN
     PinoLoggerModule,
     AppI18nModule,
     DiscoveryModule, // DiscoveryService cho config/openapi.ts (ghi quyền vào Swagger)

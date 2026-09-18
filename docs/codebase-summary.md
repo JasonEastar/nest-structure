@@ -43,13 +43,14 @@ c9_backend/
 ```
 c9_map/
 ├── src/
+│   ├── instrument.ts                 # Sentry.init khi có SENTRY_DSN; nạp bằng `node --import` trước app
 │   ├── main.ts                       # điểm vào server: createApp → Swagger UI → listen
 │   ├── app.ts                        # createApp(): helmet · trust proxy · prefix /api · version v1 · shutdown hooks (dùng chung với openapi-export)
 │   ├── app.module.ts                 # imports ConfigModule + CommonModule + modules; providers APP_GUARD Throttler → Auth → Permission · APP_PIPE · APP_FILTER · APP_INTERCEPTOR
 │   ├── openapi-export.ts             # `npm run openapi:export` → openapi/<key>.json mỗi định nghĩa (users, locations, health)
 │   ├── config/                       # cấu hình app — không nghiệp vụ, không hạ tầng
 │   │   ├── env.ts                    # zod schema; ConfigModule đọc .env + validate, dùng qua ConfigService
-│   │   ├── logger.ts                 # nestjs-pino → stdout (+ Axiom khi có AXIOM_TOKEN/DATASET) · redact · bỏ log /health
+│   │   ├── logger.ts                 # nestjs-pino → stdout (Sentry tự bắt qua pinoIntegration) · redact · bỏ log /health
 │   │   ├── i18n.ts                   # nestjs-i18n vi/en, resolver Accept-Language
 │   │   └── openapi.ts                # định nghĩa theo module (OPENAPI_DOCS) · tự ghi quyền/public · envelope() · exportOpenApi()
 │   ├── common/                       # hạ tầng dùng chung, gom theo mối quan tâm — KHÔNG import modules/

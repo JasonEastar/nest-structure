@@ -2,15 +2,17 @@ import { hostname } from 'node:os';
 import { z } from 'zod';
 
 /** Toàn bộ biến môi trường. ConfigModule (app.module.ts) đọc .env, validate bằng schema này; sai/thiếu → app không boot. */
+/** URL tuỳ chọn: để trống trong .env (`X=`) coi như không đặt. */
+const optionalUrl = z.preprocess((v) => (v === '' ? undefined : v), z.url().optional());
+
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
   INSTANCE_ID: z.string().min(1).default(hostname()),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1), // nginx = 1; thêm ALB phía trước = 2
-  PUBLIC_URL: z.url({ protocol: /^https?$/ }).optional(), // URL công khai của API (staging/prod) → mục Servers trong Swagger
-  AXIOM_TOKEN: z.string().min(10).optional(), // đặt cả 2 biến Axiom → log gửi thêm lên Axiom (xem logger.ts)
-  AXIOM_DATASET: z.string().min(1).optional(),
+  PUBLIC_URL: optionalUrl, // URL công khai của API (staging/prod) → mục Servers trong Swagger
+  SENTRY_DSN: optionalUrl, // có → lỗi 5xx, log và trace lên Sentry (src/instrument.ts)
 
   // Postgres 16 + PostGIS (tự host)
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),

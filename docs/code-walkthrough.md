@@ -58,11 +58,12 @@ Chưa có module nào dùng. Khi cần việc chạy nền hoặc theo lịch (v
 
 | File | Làm gì (một câu) | Mở khi |
 |---|---|---|
+| `instrument.ts` | Bật Sentry khi có `SENTRY_DSN` (lỗi, log, trace); nạp bằng `node --import` | Đổi tỉ lệ trace, tắt bớt |
 | `main.ts` | Chạy server | Gần như không bao giờ |
 | `app.ts` | Cấu hình app dùng chung cho server và lệnh xuất OpenAPI | Đổi prefix, version, helmet |
 | `app.module.ts` | Nối module + 6 lớp bọc toàn cục | Thêm module mới |
 | `config/env.ts` | Khai báo và validate biến môi trường (ConfigModule đọc `.env`, dùng qua `ConfigService`) | Thêm biến env |
-| `config/logger.ts` | Log JSON một dòng mỗi request, ẩn token | Đổi field log, thêm redact |
+| `config/logger.ts` | Log JSON một dòng mỗi request, ẩn token; Sentry tự bắt mọi dòng | Đổi field log, thêm redact |
 | `config/i18n.ts` | Đa ngôn ngữ vi/en: chỉ header `Accept-Language` quyết định (mặc định vi); câu chữ ở `i18n/<lang>/*.json` | Thêm ngôn ngữ, đổi cách chọn |
 | `config/openapi.ts` | Swagger `/docs` chia theo module (dropdown), Servers, Schemas từ `.meta({ id })`, tự ghi quyền/public vào mô tả từ metadata guard, `envelope()`, xuất `openapi/<key>.json` | Đổi mô tả tài liệu, thêm server |
 | `common/common.module.ts` | Gom DB, Redis, queue, Supabase thành một module dùng chung; đóng kết nối khi app tắt | Thêm hạ tầng mới |
