@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type { Redis } from 'ioredis';
-import { InjectRedisCache } from './redis.provider.js';
+import { REDIS_CACHE } from './redis.provider.js';
 
 /**
  * Cache nghiệp vụ. Mỗi mục = key + TTL (giây) đi cùng nhau; thêm mục mới ở đây, không viết chuỗi key trong service.
@@ -23,7 +23,7 @@ export const CACHE = {
  */
 @Injectable()
 export class CacheService {
-  constructor(@InjectRedisCache() private readonly redis: Redis) {}
+  constructor(@Inject(REDIS_CACHE) private readonly redis: Redis) {}
 
   /** Đọc object đã lưu dạng JSON; null nếu không có. */
   async getJson<T>(key: string): Promise<T | null> {

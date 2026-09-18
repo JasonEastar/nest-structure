@@ -1,15 +1,14 @@
-import { Inject, Injectable, Logger, type OnModuleDestroy, type Provider } from '@nestjs/common';
+import { Logger, type Provider } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Redis, type RedisOptions } from 'ioredis';
 import type { Env } from '../../config/env.js';
 
 /**
  * Kết nối Redis. db0 (REDIS_CACHE) = cache + rate limit, được phép mất. db1 = BullMQ, mở riêng ở queue.ts.
- * Nghiệp vụ không dùng file này trực tiếp: dùng CacheService (cache.ts). Chỉ throttler/health inject Redis thô.
+ * Nghiệp vụ dùng CacheService (cache.ts); chỉ throttler/health inject Redis thô: `@Inject(REDIS_CACHE) redis: Redis`.
  */
 export const REDIS_CACHE = Symbol('REDIS_CACHE');
 export const REDIS_DB = { cache: 0, queue: 1 } as const;
-export const InjectRedisCache = () => Inject(REDIS_CACHE);
 
 /** REDIS_URL → options ioredis. `forQueue`: BullMQ bắt buộc maxRetriesPerRequest = null. */
 export function redisOptions(config: ConfigService<Env, true>, db: number, forQueue = false): RedisOptions {
@@ -25,24 +24,10 @@ export function redisOptions(config: ConfigService<Env, true>, db: number, forQu
   };
 }
 
-/** Giữ client để QUIT khi app tắt. */
-@Injectable()
-class RedisLifecycle implements OnModuleDestroy {
-  constructor(@InjectRedisCache() private readonly redis: Redis) {}
-  async onModuleDestroy(): Promise<void> {
-    await this.redis.quit().catch(() => this.redis.disconnect());
-  }
-}
-
-export const redisProviders: Provider[] = [
-  {
-    provide: REDIS_CACHE,
-    inject: [ConfigService],
-    useFactory: (config: ConfigService<Env, true>) =>
-      // Bắt buộc có listener 'error': không có thì Redis chớp một cái là cả instance chết (uncaughtException).
-      new Redis(redisOptions(config, REDIS_DB.cache)).on('error', (err: Error) =>
-        new Logger('Redis').error(err.message),
-      ),
-  },
-  RedisLifecycle,
-];
+export const redisProvider: Provider = {
+  provide: REDIS_CACHE,
+  inject: [ConfigService],
+  useFactory: (config: ConfigService<Env, true>) =>
+    // Bắt buộc có listener 'error': không có thì Redis chớp một cái là cả instance chết (uncaughtException).
+    new Redis(redisOptions(config, REDIS_DB.cache)).on('error', (err: Error) => new Logger('Redis').error(err.message)),
+};

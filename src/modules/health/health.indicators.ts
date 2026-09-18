@@ -1,16 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { HealthIndicatorService, type HealthIndicatorResult } from '@nestjs/terminus';
 import { sql } from 'drizzle-orm';
 import type { Redis } from 'ioredis';
-import { type Db, InjectDb } from '../../common/database/drizzle.js';
-import { InjectRedisCache } from '../../common/redis/redis.provider.js';
+import { type Db, DRIZZLE } from '../../common/database/drizzle.js';
+import { REDIS_CACHE } from '../../common/redis/redis.provider.js';
 
 /** Terminus 12: inject HealthIndicatorService, trả indicator.up()/down() (API cũ HealthIndicator đã bị gỡ). */
 @Injectable()
 export class DrizzleHealthIndicator {
   constructor(
     private readonly indicators: HealthIndicatorService,
-    @InjectDb() private readonly db: Db,
+    @Inject(DRIZZLE) private readonly db: Db,
   ) {}
 
   /** `select 1` qua pool hiện tại; lỗi → down kèm message. */
@@ -29,7 +29,7 @@ export class DrizzleHealthIndicator {
 export class RedisHealthIndicator {
   constructor(
     private readonly indicators: HealthIndicatorService,
-    @InjectRedisCache() private readonly redis: Redis,
+    @Inject(REDIS_CACHE) private readonly redis: Redis,
   ) {}
 
   /** PING Redis cache; không PONG → down. */

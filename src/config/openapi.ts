@@ -4,7 +4,8 @@ import type { INestApplication, Type } from '@nestjs/common';
 import { DiscoveryService, Reflector } from '@nestjs/core';
 import { DocumentBuilder, type OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { z } from 'zod';
-import { Public, RequirePermissions } from '../common/auth/decorators.js';
+import { IS_PUBLIC, PERMISSIONS } from '../common/auth/decorators.js';
+import type { ConfigService } from '@nestjs/config';
 import type { Env } from './env.js';
 
 /**
@@ -20,7 +21,7 @@ export interface OpenApiDefinition {
   modules: Type[]; // Swagger include — chỉ controller của các module này
 }
 
-type DocEnv = Pick<Env, 'PORT' | 'PUBLIC_URL'>;
+type DocEnv = ConfigService<Env, true>;
 
 /** Shape lỗi thống nhất (khớp ErrorEnvelope trong exceptions.ts); id → Schemas: ErrorResponse. */
 const ErrorResponseSchema = z
@@ -53,7 +54,7 @@ function buildOne(app: INestApplication, def: OpenApiDefinition, env: DocEnv): O
     .setDescription(def.description + COMMON_DESCRIPTION)
     .setVersion('1')
     .addServer('/', 'Máy chủ đang mở trang này') // tương đối: dev localhost, Docker/nginx, staging đều đúng
-    .addServer(`http://localhost:${env.PORT}`, 'Local')
+    .addServer(`http://localhost:${env.get('PORT', { infer: true })}`, 'Local')
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'supabase')
     .addGlobalResponse(
       { status: 401, description: 'UNAUTHENTICATED', standardSchema: ErrorResponseSchema },
@@ -62,7 +63,8 @@ function buildOne(app: INestApplication, def: OpenApiDefinition, env: DocEnv): O
       { status: 429, description: 'RATE_LIMITED', standardSchema: ErrorResponseSchema },
       { status: 500, description: 'INTERNAL', standardSchema: ErrorResponseSchema },
     );
-  if (env.PUBLIC_URL) builder.addServer(env.PUBLIC_URL, 'Public'); // staging/prod đặt PUBLIC_URL trong env
+  const publicUrl = env.get('PUBLIC_URL', { infer: true });
+  if (publicUrl) builder.addServer(publicUrl, 'Public'); // staging/prod đặt PUBLIC_URL trong env
   for (const tag of def.tags ?? []) builder.addTag(tag.name, tag.description);
 
   const document = SwaggerModule.createDocument(app, builder.build(), {
@@ -96,8 +98,8 @@ function annotateAccess(app: INestApplication, document: OpenAPIObject): void {
     for (const op of Object.values(methods) as { operationId?: string; description?: string; security?: unknown[] }[]) {
       const handler = op.operationId ? handlers.get(op.operationId) : undefined;
       if (!handler) continue;
-      const isPublic = reflector.getAllAndOverride(Public, [handler.fn, handler.cls]);
-      const required = reflector.getAllAndOverride(RequirePermissions, [handler.fn, handler.cls]);
+      const isPublic = reflector.getAllAndOverride<boolean>(IS_PUBLIC, [handler.fn, handler.cls]);
+      const required = reflector.getAllAndOverride<string[]>(PERMISSIONS, [handler.fn, handler.cls]);
       const notes: string[] = [];
       if (isPublic) {
         notes.push('**Không cần đăng nhập.**');

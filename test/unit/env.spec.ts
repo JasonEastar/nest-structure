@@ -1,4 +1,11 @@
-import { envSchema, loadEnv } from '../../src/config/env.js';
+import { envSchema } from '../../src/config/env.js';
+
+/** Thay cho ConfigModule trong unit test: parse như Nest sẽ làm lúc boot. */
+const loadEnv = (source: Record<string, string>) => {
+  const r = envSchema.safeParse(source);
+  if (!r.success) throw new Error(r.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('\n'));
+  return r.data;
+};
 
 const base = {
   DATABASE_URL: 'postgres://c9:c9@127.0.0.1:5432/c9_map',

@@ -2,7 +2,7 @@ import { type CanActivate, type ExecutionContext, Inject, Injectable } from '@ne
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import { type AuthUserPort, AUTH_USER } from './auth.guard.js';
-import { RequirePermissions } from './decorators.js';
+import { PERMISSIONS } from './decorators.js';
 import { AppException } from '../http/exceptions.js';
 
 /** Kiểm quyền từ DB qua cache (không đọc từ JWT, để thu hồi có hiệu lực ngay). Guard cuối chuỗi. */
@@ -15,10 +15,7 @@ export class PermissionGuard implements CanActivate {
 
   /** Không có @RequirePermissions → cho qua. Có → so quyền của user (cache) với danh sách yêu cầu; thiếu → 403. */
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const required = this.reflector.getAllAndOverride(RequirePermissions, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const required = this.reflector.getAllAndOverride<string[]>(PERMISSIONS, [context.getHandler(), context.getClass()]);
     if (!required?.length) return true;
 
     const user = context.switchToHttp().getRequest<Request>().user;

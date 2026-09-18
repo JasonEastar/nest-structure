@@ -1,7 +1,7 @@
 import { hostname } from 'node:os';
 import { z } from 'zod';
 
-/** Toàn bộ biến môi trường, nơi duy nhất đọc process.env. Sai/thiếu → app không boot, in tên biến. */
+/** Toàn bộ biến môi trường. ConfigModule (app.module.ts) đọc .env, validate bằng schema này; sai/thiếu → app không boot. */
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
@@ -31,15 +31,3 @@ export const envSchema = z.object({
 });
 
 export type Env = z.infer<typeof envSchema>;
-
-/** Parse + validate env; sai → throw liệt kê từng biến (app không boot với cấu hình thiếu). */
-export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
-  const result = envSchema.safeParse(source);
-  if (!result.success) {
-    const lines = result.error.issues.map(
-      (issue) => `  - ${issue.path.join('.') || '(root)'}: ${issue.message}`,
-    );
-    throw new Error(`Invalid environment variables:\n${lines.join('\n')}`);
-  }
-  return result.data;
-}

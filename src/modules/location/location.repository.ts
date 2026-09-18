@@ -1,14 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { and, count, desc, eq, lt, or, sql } from 'drizzle-orm';
 import { type LatLng, latLngToEwkt } from '../../common/database/columns.js';
-import { type Db, InjectDb } from '../../common/database/drizzle.js';
+import { type Db, DRIZZLE } from '../../common/database/drizzle.js';
 import type { Cursor } from '../../common/http/pagination.js';
 import { type SavedLocationRow, savedLocations } from './schema/location.schema.js';
 
 /** Mọi SQL của location ở đây; service chỉ có logic (code-standards §5). Mọi query đều lọc theo userId (dữ liệu riêng tư). */
 @Injectable()
 export class LocationRepository {
-  constructor(@InjectDb() private readonly db: Db) {}
+  constructor(@Inject(DRIZZLE) private readonly db: Db) {}
 
   /** Tạo địa điểm, trả về dòng vừa ghi (có id, created_at do DB/app sinh). */
   async insert(userId: string, data: { name: string; point: LatLng; radiusMeters: number; isPublic: boolean }): Promise<SavedLocationRow> {

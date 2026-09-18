@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, type Provider } from '@nestjs/common';
+import { Injectable, Logger, type Provider } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
@@ -21,9 +21,7 @@ export interface SupabaseAdminPort {
   deleteUser(userId: string): Promise<void>;
   getUserById(userId: string): Promise<{ id: string; email?: string; phoneConfirmedAt?: string | null } | null>;
 }
-export const SUPABASE_ADMIN = Symbol('SUPABASE_ADMIN');
-/** `@InjectSupabaseAdmin() admin: SupabaseAdminPort` trong service. */
-export const InjectSupabaseAdmin = () => Inject(SUPABASE_ADMIN);
+export const SUPABASE_ADMIN = Symbol('SUPABASE_ADMIN'); // inject: `@Inject(SUPABASE_ADMIN) admin: SupabaseAdminPort`
 
 @Injectable()
 export class SupabaseJwtService {

@@ -130,13 +130,12 @@ NEVER  app.useGlobalGuards/Pipes/Filters/Interceptors — dùng token APP_*
 ```
 c9_map/
 ├── src/
-│   ├── main.ts                       # điểm vào server: load-env → createApp → Swagger UI → listen
+│   ├── main.ts                       # điểm vào server: createApp → Swagger UI → listen
 │   ├── app.ts                        # createApp(): helmet · trust proxy · prefix /api · version v1 · shutdown hooks (dùng chung với openapi-export)
 │   ├── app.module.ts                 # imports ConfigModule + CommonModule + modules; providers APP_GUARD Throttler → Auth → Permission · APP_PIPE · APP_FILTER · APP_INTERCEPTOR
 │   ├── openapi-export.ts             # `npm run openapi:export` → openapi/<key>.json mỗi định nghĩa (users, locations, health)
 │   ├── config/                       # cấu hình app — không nghiệp vụ, không hạ tầng
-│   │   ├── env.ts                    # zod schema → `env` có kiểu, fail-fast lúc boot
-│   │   ├── load-env.ts               # nạp .env (import đầu tiên của main.ts / openapi-export.ts)
+│   │   ├── env.ts                    # zod schema; ConfigModule đọc .env + validate, dùng qua ConfigService
 │   │   ├── logger.ts                 # nestjs-pino: genReqId · redact · bỏ log /health
 │   │   ├── i18n.ts                   # nestjs-i18n vi/en, resolver Accept-Language
 │   │   └── openapi.ts                # định nghĩa theo module (OPENAPI_DOCS) · tự ghi quyền/public · envelope() · exportOpenApi()
@@ -148,17 +147,17 @@ c9_map/
 │   │   │   ├── supabase.ts           # SupabaseJwtService (jose + JWKS, ES256/RS256) · SUPABASE_ADMIN port + adapter
 │   │   │   └── decorators.ts         # Public · RequirePermissions · CurrentUser
 │   │   ├── database/
-│   │   │   ├── drizzle.ts            # postgres.js + drizzle client · DatabaseLifecycle
+│   │   │   ├── drizzle.ts            # provider DRIZZLE (postgres.js + drizzle client)
 │   │   │   ├── columns.ts            # cột dùng chung cho *.schema.ts: timestamps · uuidV7Pk · geographyPoint (lat/lng ↔ EWKT/EWKB)
 │   │   │   └── schema.ts             # barrel gom *.schema.ts của mọi module
 │   │   ├── redis/
-│   │   │   ├── redis.provider.ts     # kết nối db0 (REDIS_CACHE) · redisOptions() · đóng khi tắt
+│   │   │   ├── redis.provider.ts     # provider REDIS_CACHE (db0) · redisOptions()
 │   │   │   ├── cache.ts              # CACHE (key + ttl từng mục) · CacheService (5 thao tác)
 │   │   │   ├── queue.ts              # BullModule.forRoot (db1, prefix c9) · QUEUES
 │   │   │   └── throttler.guard.ts    # RedisThrottlerStorage (Lua) · AppThrottlerGuard tracker u:/d:/ip:
 │   │   └── http/
 │   │       ├── exceptions.ts         # ErrorCodes · AppException · AllExceptionsFilter → { error: { code, params, requestId } }
-│   │       ├── response.ts           # ResponseInterceptor { data, meta: { requestId } } · withMeta
+│   │       ├── response.ts           # ResponseInterceptor { data, meta: { requestId, nextCursor? } }
 │   │       ├── pagination.ts         # cursor (created_at, id) · PaginationQuerySchema · pageOf()
 │   │       ├── validation.ts         # APP_PIPE StandardSchemaValidationPipe (zod) → 422 · zText · zLatLng
 │   │       ├── request-context.middleware.ts  # X-Instance-Id · X-Request-Id

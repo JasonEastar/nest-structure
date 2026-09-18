@@ -140,7 +140,7 @@ Controller `return` dữ liệu thuần, interceptor bọc thành envelope. Clie
 | Tạo | `@Post()` return object | 201 + envelope |
 | Đọc | `@Get()` return object | 200 |
 | Xoá / không có gì trả | `@HttpCode(HttpStatus.NO_CONTENT)` + `Promise<void>` | 204 |
-| Danh sách phân trang | service: `return pageOf(rows, query.limit, (r) => ({ createdAt: r.createdAt, id: r.id }))` sau khi repository lấy `limit + 1` dòng | `meta.nextCursor` = chuỗi hoặc `null`; client gửi lại `?cursor=` |
+| Danh sách phân trang | service: `return pageOf(rows, query.limit, (r) => ({ createdAt: r.createdAt, id: r.id }))` sau khi repository lấy `limit + 1` dòng | Trả `{ data, meta: { nextCursor } }`; interceptor thêm `requestId`. Client gửi lại `?cursor=` |
 | Lỗi nghiệp vụ | `throw new AppException('NOT_FOUND', { resource: 'location', id })` | `{ error: { code, message, params, requestId } }` đúng HTTP status; `message` = câu trong `i18n/<lang>/errors.json` (`NOT_FOUND` + `resource.location` → "Không tìm thấy địa điểm") |
 | Lỗi mới chưa có mã | thêm vào `ErrorCodes` trong `common/http/exceptions.ts` kèm status, thêm câu cùng tên vào `i18n/vi/errors.json` và `i18n/en/errors.json` | Cần câu riêng theo tình huống: `params.reason` + key `CODE_REASON` (vd `CONFLICT_LIMIT_REACHED`) |
 

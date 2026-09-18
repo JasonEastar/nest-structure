@@ -61,12 +61,11 @@ Chưa có module nào dùng. Khi cần việc chạy nền hoặc theo lịch (v
 | `main.ts` | Chạy server | Gần như không bao giờ |
 | `app.ts` | Cấu hình app dùng chung cho server và lệnh xuất OpenAPI | Đổi prefix, version, helmet |
 | `app.module.ts` | Nối module + 6 lớp bọc toàn cục | Thêm module mới |
-| `config/env.ts` | Khai báo và validate biến môi trường | Thêm biến env |
-| `config/load-env.ts` | Nạp `.env` trước mọi thứ | Không |
+| `config/env.ts` | Khai báo và validate biến môi trường (ConfigModule đọc `.env`, dùng qua `ConfigService`) | Thêm biến env |
 | `config/logger.ts` | Log JSON một dòng mỗi request, ẩn token | Đổi field log, thêm redact |
 | `config/i18n.ts` | Đa ngôn ngữ vi/en: chỉ header `Accept-Language` quyết định (mặc định vi); câu chữ ở `i18n/<lang>/*.json` | Thêm ngôn ngữ, đổi cách chọn |
 | `config/openapi.ts` | Swagger `/docs` chia theo module (dropdown), Servers, Schemas từ `.meta({ id })`, tự ghi quyền/public vào mô tả từ metadata guard, `envelope()`, xuất `openapi/<key>.json` | Đổi mô tả tài liệu, thêm server |
-| `common/common.module.ts` | Gom DB, Redis, queue, Supabase thành một module dùng chung | Thêm hạ tầng mới |
+| `common/common.module.ts` | Gom DB, Redis, queue, Supabase thành một module dùng chung; đóng kết nối khi app tắt | Thêm hạ tầng mới |
 | `common/auth/auth.guard.ts` | Token → `req.user`; định nghĩa cổng `AUTH_USER` để guard gọi được UserService | Đổi cách xác thực |
 | `common/auth/permission.guard.ts` | Kiểm `@RequirePermissions` | Hiếm |
 | `common/auth/supabase.ts` | Xác minh JWT bằng JWKS; gọi Supabase Admin API (xoá user) | Đổi issuer, thuật toán |
@@ -79,7 +78,7 @@ Chưa có module nào dùng. Khi cần việc chạy nền hoặc theo lịch (v
 | `common/redis/queue.ts` | Kết nối BullMQ + tên các queue | Thêm queue |
 | `common/redis/throttler.guard.ts` | Rate limit đếm chung mọi instance | Đổi giới hạn |
 | `common/http/exceptions.ts` | Bảng mã lỗi + filter dịch `message` | Thêm mã lỗi (kèm câu trong `i18n/*/errors.json`) |
-| `common/http/response.ts` | Bọc `{ data, meta }`; `withMeta` cho list | Hiếm |
+| `common/http/response.ts` | Bọc `{ data, meta }` | Hiếm |
 | `common/http/pagination.ts` | Cursor phân trang + `pageOf()` | Viết endpoint list |
 | `common/http/validation.ts` | Pipe zod toàn cục | Hiếm |
 | `common/http/request-context.middleware.ts` | `X-Request-Id`, `X-Instance-Id` | Hiếm |

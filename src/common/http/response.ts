@@ -3,23 +3,14 @@ import type { Request } from 'express';
 import { type Observable, map } from 'rxjs';
 import { requestIdOf } from './request-context.middleware.js';
 
-/** Bọc mọi response thành công thành { data, meta: { requestId, nextCursor? } }. Controller chỉ return dữ liệu thuần. */
-export interface PageMeta {
-  nextCursor?: string | null;
-}
+/**
+ * Bọc mọi response thành công thành { data, meta: { requestId, nextCursor? } }.
+ * Controller/service trả dữ liệu thuần; endpoint list trả sẵn { data, meta } (xem pageOf) thì chỉ thêm requestId.
+ */
 export interface Envelope<T> {
   data: T;
-  meta: PageMeta & { requestId: string };
+  meta: { requestId: string; nextCursor?: string | null };
 }
-
-const ENVELOPE: unique symbol = Symbol('envelope');
-export type PartialEnvelope<T> = { data: T; meta: PageMeta; [ENVELOPE]: true };
-
-/** Handler trả kèm meta (nextCursor); requestId do interceptor gắn, handler không đặt được. */
-export const withMeta = <T>(data: T, meta: PageMeta): PartialEnvelope<T> => ({ data, meta, [ENVELOPE]: true });
-
-const isPartialEnvelope = (v: unknown): v is PartialEnvelope<unknown> =>
-  typeof v === 'object' && v !== null && (v as Record<symbol, unknown>)[ENVELOPE] === true;
 
 /** Route không bọc: health (Terminus có body riêng), Swagger UI, Bull Board. */
 const SKIP_PREFIXES = ['/health', '/docs', '/admin/queues'];
@@ -35,9 +26,14 @@ export class ResponseInterceptor implements NestInterceptor {
     return next.handle().pipe(
       map((body: unknown): unknown => {
         if (body instanceof StreamableFile) return body; // tải file: không bọc
-        if (isPartialEnvelope(body)) return { data: body.data, meta: { ...body.meta, requestId } } satisfies Envelope<unknown>;
-        return { data: body ?? null, meta: { requestId } } satisfies Envelope<unknown>;
+        if (isPage(body)) return { data: body.data, meta: { ...body.meta, requestId } };
+        return { data: body ?? null, meta: { requestId } };
       }),
     );
   }
+}
+
+/** Handler đã trả sẵn { data, meta } (từ pageOf) thì giữ meta đó và thêm requestId. */
+function isPage(body: unknown): body is { data: unknown; meta: Record<string, unknown> } {
+  return typeof body === 'object' && body !== null && 'data' in body && 'meta' in body;
 }

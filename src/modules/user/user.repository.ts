@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { eq, inArray } from 'drizzle-orm';
-import { type Db, InjectDb } from '../../common/database/drizzle.js';
+import { type Db, DRIZZLE } from '../../common/database/drizzle.js';
 import type { SupabaseClaims } from '../../common/auth/supabase.js';
 import { devices, permissions, profiles, rolePermissions, roles, userRoles } from './schema/user.schema.js';
 import type { RoleCode } from './dto/role.dto.js';
@@ -8,7 +8,7 @@ import type { RoleCode } from './dto/role.dto.js';
 /** Mọi SQL của user; service chỉ có logic. */
 @Injectable()
 export class UserRepository {
-  constructor(@InjectDb() private readonly db: Db) {}
+  constructor(@Inject(DRIZZLE) private readonly db: Db) {}
 
   /** Tạo profile + role `user`; ON CONFLICT DO NOTHING nên 2 instance cùng chạy vẫn chỉ một dòng. */
   async insertProfileIfMissing(claims: SupabaseClaims): Promise<void> {

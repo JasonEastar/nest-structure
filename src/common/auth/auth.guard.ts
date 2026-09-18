@@ -1,7 +1,7 @@
 import { type CanActivate, type ExecutionContext, Inject, Injectable, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
-import { Public } from './decorators.js';
+import { IS_PUBLIC } from './decorators.js';
 import { AppException } from '../http/exceptions.js';
 import type { SupabaseClaims } from './supabase.js';
 import { SupabaseJwtService } from './supabase.js';
@@ -36,9 +36,7 @@ export class AuthGuard implements CanActivate {
 
   /** Route @Public → cho qua. Còn lại: Bearer → verify JWKS → ensureProfile → req.user; sai → 401. */
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    if (context.getType() !== 'http') return true;
-    const isPublic = this.reflector.getAllAndOverride(Public, [context.getHandler(), context.getClass()]);
-    if (isPublic) return true;
+    if (this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [context.getHandler(), context.getClass()])) return true;
 
     const req = context.switchToHttp().getRequest<Request>();
     const [scheme, token] = (req.header('authorization') ?? '').split(' ');

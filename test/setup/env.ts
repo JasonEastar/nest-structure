@@ -1,10 +1,10 @@
+import { existsSync } from 'node:fs';
 import { inject } from 'vitest';
-import '../../src/config/load-env.js';
+
+if (existsSync('.env')) process.loadEnvFile('.env'); // SUPABASE_* v.v. cho test; DATABASE_URL/REDIS_URL ghi đè bên dưới
 
 /**
- * setupFile của project `integration` — chạy trong mỗi worker TRƯỚC khi test file import AppModule
- * (ConfigModule chụp process.env lúc app.module được import).
- * URL Postgres/Redis lấy từ globalSetup (testcontainers) qua inject(); ghi đè giá trị trong .env.
+ * setupFile của project `integration`, chạy trong mỗi worker trước test file. URL Postgres/Redis lấy từ testcontainers qua inject().
  * Test muốn ghi đè biến khác (vd SUPABASE_JWKS_URL) phải set process.env RỒI mới `await import('../../src/app.module.js')`.
  */
 process.env.NODE_ENV = 'test';

@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { AuthUser, AuthUserPort } from '../../common/auth/auth.guard.js';
 import { AppException } from '../../common/http/exceptions.js';
 import { CACHE, CacheService } from '../../common/redis/cache.js';
-import { InjectSupabaseAdmin, type SupabaseAdminPort, type SupabaseClaims } from '../../common/auth/supabase.js';
+import { SUPABASE_ADMIN, type SupabaseAdminPort, type SupabaseClaims } from '../../common/auth/supabase.js';
 import { type MeResponse, toMeResponse } from './dto/me.dto.js';
 import type { RoleCode } from './dto/role.dto.js';
 import { UserRepository } from './user.repository.js';
@@ -15,7 +15,7 @@ export class UserService implements AuthUserPort {
   constructor(
     private readonly repo: UserRepository,
     private readonly cache: CacheService,
-    @InjectSupabaseAdmin() private readonly supabaseAdmin: SupabaseAdminPort,
+    @Inject(SUPABASE_ADMIN) private readonly supabaseAdmin: SupabaseAdminPort,
   ) {}
 
   /** Tạo profile lần đầu (thay trigger DB vì Supabase là DB khác); cờ Redis 1 giờ để không chạm DB mỗi request. */

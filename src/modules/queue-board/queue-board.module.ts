@@ -2,7 +2,6 @@ import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { Module } from '@nestjs/common';
-import { ConditionalModule } from '@nestjs/config';
 import type { NextFunction, Request, Response } from 'express';
 import { AUTH_USER, type AuthUserPort } from '../../common/auth/auth.guard.js';
 import { SupabaseJwtService } from '../../common/auth/supabase.js';
@@ -14,8 +13,6 @@ import { UserModule } from '../user/user.module.js';
 /** Bull Board /admin/queues (công cụ ops). Mount ngoài Nest pipeline nên tự kiểm token + quyền queue:read. Tắt khi test. */
 export const QUEUE_BOARD_ROUTE = '/admin/queues';
 const QUEUE_BOARD_PERMISSION = 'queue:read';
-const enabled = (env: NodeJS.ProcessEnv) => env.NODE_ENV !== 'test';
-
 const COOKIE = 'c9_board_token';
 
 /** Đọc một cookie từ header. */
@@ -59,9 +56,13 @@ const root = BullBoardModule.forRootAsync({
   }),
 });
 const queueNames = Object.values(QUEUES) as string[];
-const queues = BullBoardModule.forFeature(...queueNames.map((name) => ({ name, adapter: BullMQAdapter })));
 
 @Module({
-  imports: [ConditionalModule.registerWhen(root, enabled), ...(queueNames.length ? [ConditionalModule.registerWhen(queues, enabled)] : [])],
+  // Tắt khi chạy test (Bull Board mount ngoài Nest). Đọc lúc import nên NODE_ENV phải là biến môi trường thật, không phải chỉ trong .env.
+  // Chưa có queue thì chỉ mount trang trống.
+  imports:
+    process.env.NODE_ENV === 'test'
+      ? []
+      : [root, ...(queueNames.length ? [BullBoardModule.forFeature(...queueNames.map((name) => ({ name, adapter: BullMQAdapter })))] : [])],
 })
 export class QueueBoardModule {}

@@ -57,8 +57,8 @@ export const OPENAPI_DOCS: OpenApiDefinition[] = [
 /** Module gốc. providers APP_* chạy cho MỌI request: middleware → guard → pipe → handler → interceptor → filter. */
 @Module({
   imports: [
-    // ignoreEnvFile: .env đã nạp ở config/load-env.ts; để ConfigModule tự đọc thì file ghi đè env thật của compose/CI
-    ConfigModule.forRoot({ isGlobal: true, cache: true, ignoreEnvFile: true, validationSchema: envSchema }),
+    // Đọc .env (biến đã có trong môi trường thắng file) rồi validate bằng envSchema; ConfigService dùng ở mọi nơi
+    ConfigModule.forRoot({ isGlobal: true, cache: true, validationSchema: envSchema }),
     PinoLoggerModule,
     AppI18nModule,
     DiscoveryModule, // DiscoveryService cho config/openapi.ts (ghi quyền vào Swagger)

@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { AppException } from './exceptions.js';
-import { type PartialEnvelope, withMeta } from './response.js';
 
 /** Phân trang cursor (created_at, id), không OFFSET. Mẫu dùng: LocationService.list. */
 export const CursorSchema = z.object({ createdAt: z.iso.datetime(), id: z.uuid() });
@@ -29,10 +28,10 @@ export function decodeCursor(raw: string | undefined): Cursor | undefined {
   throw new AppException('BAD_REQUEST', { field: 'cursor' });
 }
 
-/** Repository lấy `limit + 1` dòng; hàm này cắt về `limit` và tính nextCursor từ dòng cuối. */
-export function pageOf<T>(rows: T[], limit: number, toCursor: (row: T) => Cursor): PartialEnvelope<T[]> {
+/** Repository lấy `limit + 1` dòng; hàm này cắt về `limit` và tính nextCursor từ dòng cuối (ResponseInterceptor thêm requestId). */
+export function pageOf<T>(rows: T[], limit: number, toCursor: (row: T) => Cursor) {
   const hasMore = rows.length > limit;
   const data = hasMore ? rows.slice(0, limit) : rows;
   const last = data.at(-1);
-  return withMeta(data, { nextCursor: hasMore && last ? encodeCursor(toCursor(last)) : null });
+  return { data, meta: { nextCursor: hasMore && last ? encodeCursor(toCursor(last)) : null } };
 }

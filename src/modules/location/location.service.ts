@@ -16,7 +16,8 @@ import { LocationRepository } from './location.repository.js';
 /** Luật nghiệp vụ của location. Không biết HTTP, không viết SQL. Lỗi → AppException với mã trong ErrorCodes. */
 @Injectable()
 export class LocationService {
-  constructor(private readonly repo: LocationRepository) {}
+  constructor(private readonly repo: LocationRepository,
+  ) { }
 
   /** Tạo địa điểm; vượt 20 → CONFLICT LIMIT_REACHED. */
   async create(userId: string, input: CreateLocation): Promise<LocationResponse> {

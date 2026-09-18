@@ -1,8 +1,8 @@
-import './config/load-env.js'; // PHẢI đứng đầu: nạp .env trước khi app.module được import
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { createApp } from './app.js';
 import { OPENAPI_DOCS } from './app.module.js';
-import { loadEnv } from './config/env.js';
+import type { Env } from './config/env.js';
 import { setupOpenApi } from './config/openapi.js';
 
 /** Điểm vào server: tạo app (app.ts), gắn Swagger, listen. */
@@ -16,14 +16,14 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-const env = loadEnv();
 const app = await createApp();
-setupOpenApi(app, OPENAPI_DOCS, env);
-await app.listen(env.PORT);
+const config = app.get(ConfigService<Env, true>);
+setupOpenApi(app, OPENAPI_DOCS, config);
+await app.listen(config.get('PORT', { infer: true }));
 
 // Phải lớn hơn keepalive_timeout của nginx (60 s), nếu không nginx gặp ECONNRESET ngẫu nhiên
 const server = app.getHttpServer();
 server.keepAliveTimeout = 65_000;
 server.headersTimeout = 66_000;
 
-logger.log(`c9_map listening on :${env.PORT} instance=${env.INSTANCE_ID} env=${env.NODE_ENV} docs=/docs`);
+logger.log(`c9_map listening on :${config.get('PORT', { infer: true })} instance=${config.get('INSTANCE_ID', { infer: true })} env=${config.get('NODE_ENV', { infer: true })} docs=/docs`);

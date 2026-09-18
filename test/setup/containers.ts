@@ -1,4 +1,4 @@
-import '../../src/config/load-env.js'; // globalSetup chạy ngoài worker → tự nạp .env cho TEST_REUSE_INFRA=1
+import { existsSync } from 'node:fs';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis';
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -22,6 +22,7 @@ let pg: StartedPostgreSqlContainer | undefined;
 let redis: StartedRedisContainer | undefined;
 
 export async function setup(project: TestProject): Promise<void> {
+  if (existsSync('.env')) process.loadEnvFile('.env'); // cho TEST_REUSE_INFRA=1 (globalSetup chạy ngoài worker)
   let databaseUrl = process.env.DATABASE_URL;
   let redisUrl = process.env.REDIS_URL;
 
