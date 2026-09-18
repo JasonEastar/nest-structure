@@ -12,11 +12,9 @@ export const PinoLoggerModule = LoggerModule.forRootAsync({
     return {
       pinoHttp: {
         level: config.get('LOG_LEVEL', { infer: true }),
+        base: { instance }, // mọi dòng log (kể cả ngoài request) có instance; bỏ pid/hostname mặc định cho gọn
         genReqId: (req) => resolveRequestId(req as Parameters<typeof resolveRequestId>[0]),
-        customProps: (req) => ({
-          instance,
-          userId: (req as unknown as { user?: { id?: string } }).user?.id,
-        }),
+        customProps: (req) => ({ userId: (req as unknown as { user?: { id?: string } }).user?.id }),
         autoLogging: {
           ignore: (req) => (req.url ?? '').startsWith('/health'),
         },
