@@ -4,7 +4,7 @@ import { AppException } from '../../common/http/exceptions.js';
 import { CACHE, CacheService } from '../../common/redis/cache.js';
 import { SUPABASE_ADMIN, type SupabaseAdminPort, type SupabaseClaims } from '../../common/auth/supabase.js';
 import { type MeResponse, toMeResponse } from './dto/me.dto.js';
-import type { RoleCode } from './dto/role.dto.js';
+import type { RoleCode, UserRoles } from './dto/role.dto.js';
 import { UserRepository } from './user.repository.js';
 
 /** Nghiệp vụ user: profile lần đầu, quyền (RBAC + cache), /me, gán role, xoá tài khoản. Là AUTH_USER cho guard. */
@@ -70,7 +70,7 @@ export class UserService implements AuthUserPort {
   }
 
   /** Thay toàn bộ role; xoá cache quyền để hiệu lực ngay. */
-  async setUserRoles(userId: string, codes: RoleCode[]): Promise<{ id: string; roles: RoleCode[] }> {
+  async setUserRoles(userId: string, codes: RoleCode[]): Promise<UserRoles> {
     if (!(await this.repo.profileExists(userId))) {
       throw new AppException('NOT_FOUND', { resource: 'profile', id: userId });
     }

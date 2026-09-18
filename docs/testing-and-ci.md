@@ -10,7 +10,7 @@ Tầng kiểm thử, kịch bản lõi, môi trường, pipeline và secrets. Qu
 | Tầng | Công cụ | Phạm vi | Chạy ở |
 |---|---|---|---|
 | Unit | Vitest project `unit` — `test/unit/*.spec.ts` | Logic thuần, không hạ tầng: env schema, error shape, cursor, zod helper, EWKT/EWKB, PermissionGuard; sau này rep, tier, quantize bbox, state machine pin | Mỗi commit (`npm run test:unit`) |
-| **Integration + E2E** | Vitest project `integration` — `test/integration/*.spec.ts`, testcontainers `postgis/postgis:16-3.4` + `redis:7-alpine` (globalSetup tự dựng + migrate), supertest qua `AppModule` thật | Geo repository, BullMQ scheduler/processor, cache/throttle, auth JWKS + RBAC (JWKS server trong test), Bull Board; `test/integration/supabase-real.spec.ts` chạy với Supabase thật khi có khoá | Mỗi PR (`npm run test:integration`) |
+| **Integration + E2E** | Vitest project `integration` — `test/integration/*.spec.ts`, testcontainers `postgis/postgis:16-3.4` + `redis:7-alpine` (globalSetup tự dựng + migrate), supertest qua `AppModule` thật | Geo repository (PostGIS), cache dùng chung + rate limit qua 2 instance, auth JWKS + RBAC (JWKS giả trong test), Bull Board; `test/integration/supabase-real.spec.ts` chạy với Supabase thật khi có khoá. Job BullMQ: thêm test khi có queue đầu tiên | Mỗi PR (`npm run test:integration`) |
 | Đa instance | `scripts/smoke-multi-instance.sh` (5 kiểm tra) trên `docker compose --profile full` | LB đến 2 instance, Redis chung, rate limit chung + `Retry-After`, JWT trên cả 2 instance, `X-Request-Id` giữ/sinh | Trước deploy (`TOKEN=$(node scripts/dev-token.mjs) npm run smoke`) |
 | Load | k6 | Viewport 300 req/s p95 < 100 ms; "500 người mở app sau 1 push" | Hàng tuần |
 
@@ -89,7 +89,7 @@ MUST   pino redact: authorization, cookie, token, otp, phone, lat/lng chính xá
 | Gate | Ngưỡng |
 |---|---|
 | Coverage service logic (unit) | ≥ 80 % |
-| Coverage `*-geo.repository.ts` (integration) | 100 % hàm có test biên |
+| Coverage repository có SQL PostGIS (integration) | 100 % hàm có test biên |
 | Viewport p95 | < 100 ms @ 300 req/s (k6, staging) |
 | SOS fan-out (gđ 2) | < 5 s tới 500 recipients |
 | Đa instance smoke | 5/5 pass trước mỗi deploy |

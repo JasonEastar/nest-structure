@@ -47,12 +47,12 @@ Cây đầy đủ: [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md).
 |---|---|---|
 | **Env** | `config/env.ts`: zod schema → `ConfigModule.forRoot({ isGlobal, cache, validationSchema })`; thiếu biến → thoát ngay | Fail-fast lúc boot, không lỗi ngầm lúc chạy; Nest 12 nhận zod trực tiếp |
 | **DB** | `postgres` driver, `prepare: true`, `DB_POOL_MAX` 10 mỗi instance; migration = bước riêng (`drizzle-kit migrate`) bằng role `c9_migrate`; app chạy role `c9_app` (không DDL) | Không pooler nên prepared statement dùng được; migration tự chạy lúc boot × 2 replica = race |
-| **Auth** | Supabase chỉ Auth: JWKS `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`, `aud=authenticated`, token 3600 s; `SUPABASE_SERVICE_ROLE_KEY` chỉ server | Không tự làm auth; token 1 giờ chấp nhận được vì quyền không nằm trong token |
+| **Auth** | Supabase chỉ Auth: JWKS `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`, `aud=authenticated`, token 3600 s; `SUPABASE_SECRET_KEY` chỉ server | Không tự làm auth; token 1 giờ chấp nhận được vì quyền không nằm trong token |
 | **Profile** | Upsert phía app ở request đầu tiên (`ON CONFLICT DO NOTHING` + role `user`), flag Redis 1 giờ | DB riêng nên không có trigger `auth.users`; upsert idempotent, an toàn đa instance |
 | **RBAC** | Bảng `roles/permissions/role_permissions/user_roles`, cache `c9:perms:{id}` 300 s, `DEL` khi admin đổi | Thu hồi tức thì, không đợi token hết hạn |
 | **Validation** | `StandardSchemaValidationPipe` (`APP_PIPE`), `@Body({ schema })` | Có sẵn Nest 12, zod làm luôn coerce/default/strip HTML |
 | **Swagger** | Một định nghĩa mỗi module nghiệp vụ (`/docs`, dropdown) qua `include:`; quyền/public tự ghi từ metadata guard; export `openapi/<key>.json` trong CI | Mobile codegen; admin API không lộ cho app |
-| **Redis** | DB 0 cache (`allkeys-lru`), DB 1 BullMQ (không eviction, `maxRetriesPerRequest: null`), `appendonly yes` | Eviction làm mất job; tách DB tránh nhầm |
+| **Redis** | DB 0 cache (đặt `allkeys-lru` khi lên prod), DB 1 BullMQ (không eviction, `maxRetriesPerRequest: null`), `appendonly yes` | Eviction làm mất job; tách DB tránh nhầm |
 | **Rate limit** | Throttler Redis, tracker `u:` → `d:` → `ip:`, `trust proxy` 1 | Đếm chung qua 2 instance; user có token bị giới hạn theo user, không theo IP của nginx |
 | **Queue/cron** | BullMQ `upsertJobScheduler(id cố định, tz Asia/Ho_Chi_Minh)` | Chạy đúng 1 lần dù N replica |
 | **Log** | pino JSON, redact token/phone/toạ độ, `requestId` + `instance` mọi dòng | Gộp log 2 instance vẫn truy được request |
@@ -67,11 +67,11 @@ Cây đầy đủ: [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md).
 | 1 | `nest new` + `config/env.ts` (zod) + `/health/live` | Mọi thứ sau cần chỗ đặt; env fail-fast phải có trước khi thêm dịch vụ nào | `nest start --watch` lên |
 | 2 | Docker 2 replica + nginx + postgres(postgis) + redis | Bắt lỗi "state trong RAM" **trước** khi có business code; `select postgis_version()` chứng minh geo sẵn sàng | 10 curl thấy 2 `X-Instance-Id` |
 | 3 | Drizzle + migration 0000 (postgis, unaccent, pg_trgm) + schema user/RBAC + `/health/ready` | Bảng `profiles`/roles là nền cho auth; extension phải có trước schema geo | `drizzle-kit migrate` ok, ready 200 |
-| 4 | `common/`: exceptions + validation + response + pino + versioning + Swagger + i18n | Shape lỗi/response phải chốt trước khi viết endpoint đầu tiên, nếu không mobile phải sửa lại | `/docs/app` mở, lỗi đúng shape |
+| 4 | `common/`: exceptions + validation + response + pino + versioning + Swagger + i18n | Shape lỗi/response phải chốt trước khi viết endpoint đầu tiên, nếu không mobile phải sửa lại | `/docs` mở, mọi response đúng shape `{ success, code, msg, data, meta }` |
 | 5 | Redis + throttler + BullMQ scheduler + Bull Board | Guard chain cần throttler; auth cần cache permission | rate limit đếm chung 2 instance; job 1 dòng/phút |
 | 6 | Supabase JWKS guard + profile upsert + RBAC guard + admin roles API | Tới đây mới có "user" thật để gắn vào pin | E2E `/me`, 403 đúng, gán role tức thì |
 | 7 | Vitest + testcontainers + smoke đa instance + CI | Có auth và DB thật rồi mới test được luồng đầy đủ; CI trước business module để mọi PR sau đều xanh | `npm test` xanh, CI xanh |
-| 8 | Pin core (schema markers, geo repository, viewport cache, upload R2) | Business module đầu tiên, dựa trên tất cả ở trên | Integration geo với 10k seed |
+| 8 | Pin core (schema markers, repository PostGIS, viewport cache, upload R2) | Business module đầu tiên, dựa trên tất cả ở trên | Integration geo với 10k seed |
 
 Nguyên tắc: **hạ tầng → cross-cutting → auth → test → nghiệp vụ**. Đảo thứ tự (viết pin trước) thì mỗi bước sau phải quay lại sửa pin.
 
@@ -89,7 +89,7 @@ Vì sao Supabase dev project thay `supabase start`: Google OAuth cần project t
 
 ## 6. Việc cần bạn làm tay trước phase 1
 
-1. Tạo Supabase project `c9-map-dev`, bật provider **Google** (Client ID/Secret từ Google Cloud Console, redirect `https://<ref>.supabase.co/auth/v1/callback`). Lấy `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+1. Tạo Supabase project `c9-map-dev`, bật provider **Google** (Client ID/Secret từ Google Cloud Console, redirect `https://<ref>.supabase.co/auth/v1/callback`). Lấy `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`.
 2. Cài `@nestjs/cli@12` global: `npm i -g @nestjs/cli@12.0.1` (Node 24 local đủ).
 3. Câu còn lại trong `plans/.../plan.md` §6: Bull Board bảo vệ bằng permission `queue:read` (khuyến nghị: có). `APP_ROLE` đã bỏ (ADR-0006).
 

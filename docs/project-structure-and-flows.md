@@ -61,7 +61,7 @@ c9_map/
 │       │   └── schema/location.schema.ts                          # saved_locations (geography + GIST)
 │       └── queue-board/
 │           └── queue-board.module.ts # /admin/queues (Bull Board) + middleware JWT + queue:read; tắt khi test
-├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac · 0003_location (SQL)
+├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac · 0003_location · 0004_location-public
 ├── drizzle.config.ts                 # schema: 'src/**/*.schema.ts'
 ├── test/
 │   ├── unit/*.spec.ts                # logic thuần, không hạ tầng (env · exceptions · columns · permission.guard · pagination · validation · location.service)
@@ -73,25 +73,25 @@ c9_map/
 └── package.json · tsconfig.json · nest-cli.json
 ```
 
-Người mới đọc [code-walkthrough.md](./code-walkthrough.md) trước. Module mới = copy cấu trúc `user/` (`nest g resource <x> modules` sinh đúng bố cục này, chỉ đổi `entities/` → `schema/`).
+Người mới đọc [code-walkthrough.md](./code-walkthrough.md) trước. Module mới = copy cấu trúc `location/` (`nest g resource <x> modules` sinh đúng bố cục này, chỉ đổi `entities/` → `schema/`).
 
 ## 2. File — có gì, chặn lỗi gì
 
 | File | Có gì | Chặn lỗi gì / vì sao |
 |---|---|---|
-| `config/env.ts` | zod schema, `env` parse 1 lần, `ConfigModule.forRoot({ validationSchema })` | Thiếu/sai biến → thoát lúc boot với tên biến; mọi nơi đọc `env.X` có kiểu, không `process.env` rải rác |
+| `config/env.ts` | zod schema + `ConfigModule.forRoot({ validationSchema })` | Thiếu/sai biến → thoát lúc boot với tên biến; mọi nơi đọc qua `ConfigService.get(..., { infer: true })`, không `process.env` rải rác |
 | `app.module.ts` | Import modules + **toàn bộ** enhancer toàn cục theo thứ tự | Thứ tự guard nhìn thấy một chỗ; test `overrideProvider` được vì dùng token `APP_*`, không `app.useGlobal*` |
 | `common/common.module.ts` | `@Global()` gom provider hạ tầng | Feature module không phải import 6 module hạ tầng; chỉ 1 chỗ được `@Global` |
-| `common/redis/cache.ts` | 2 connection db0/db1 | Eviction cache không được đụng job BullMQ |
+| `common/redis/redis.provider.ts` · `queue.ts` | db0 cho cache, db1 cho BullMQ | Eviction cache không được đụng job BullMQ |
 | `common/http/exceptions.ts` | `ErrorCodes` + filter dịch `msg` qua i18n | Mọi response cùng shape `{ success, code, msg, data, meta }`; câu chữ chỉ ở `i18n/*/errors.json`, không trong service |
 | `common/http/validation.ts` | pipe zod có sẵn Nest 12 | Không class-validator, không nestjs-zod; schema đặt trên `@Body({ schema })` |
-| `config/openapi.ts` | 2 document qua `include:` | Admin API không lộ cho app; `openapi/*.json` cho mobile |
+| `config/openapi.ts` | Một document mỗi module qua `include:` | Dropdown chọn module; `openapi/<module>.json` cho mobile codegen |
 | `modules/<x>/<x>.schema.ts` | Bảng Drizzle của module | Mở thư mục module thấy đủ bảng + DTO + logic; `drizzle-kit` gom bằng glob |
 | `modules/<x>/<x>.jobs.ts` | Processor + scheduler | Cùng process với API (all-in-one); `upsertJobScheduler` id cố định → N instance chỉ 1 lịch |
 | `drizzle/*.sql` | Migration | Chạy bằng `npm run db:migrate` **trước** deploy, không lúc boot (N instance sẽ đua) |
 | `docker-compose.yml` | postgres + redis + api ×2 + nginx | Dev luôn ≥ 2 instance để bug "state trong RAM" lộ ngay; PostGIS vì dữ liệu vị trí |
 | `nginx.conf` | `least_conn`, sinh `$request_id` | Không `ip_hash` (che bug); request-id có từ biên |
-| `vitest.config.ts` | unit / integration / e2e | Integration dùng PostGIS thật; unit không cần Docker |
+| `vitest.config.ts` | 2 project: unit / integration | Integration dùng PostGIS thật; unit không cần Docker |
 | `.github/workflows/ci.yml` | lint → typecheck → unit → integration → build → openapi | Mọi PR xanh trước khi có business module |
 
 ## 3. Luồng 1 — Bootstrap (một process làm tất cả)
@@ -103,7 +103,7 @@ flowchart TD
   B -->|ok| C["NestFactory.create(AppModule, { rawBody: true })"]
   C --> D["CommonModule @Global khởi tạo<br/>Drizzle pool · Redis db0/db1 · BullMQ · JWKS client"]
   D --> F["main.ts: helmet · trust proxy · setGlobalPrefix 'api' (exclude health, docs)<br/>enableVersioning v1 · SwaggerModule.setup ×2 · keepAliveTimeout 65s · enableShutdownHooks"]
-  F --> G["listen :3000 — HTTP + worker trong cùng process"]
+  F --> G["listen :3000 — HTTP + worker (khi có queue) trong cùng process"]
 ```
 
 Không có nhánh vai trò. Mỗi container giống hệt nhau; thêm tải = thêm container sau nginx.

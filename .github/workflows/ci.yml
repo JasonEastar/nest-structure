@@ -52,7 +52,7 @@ jobs:
       - run: npm run test:unit
       - run: npm run test:integration
       - run: npm run build
-      - name: Export OpenAPI (app + admin)
+      - name: Export OpenAPI (mỗi module một file)
         run: node dist/openapi-export.js
       - uses: actions/upload-artifact@v4
         with:

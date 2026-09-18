@@ -7,7 +7,7 @@ Cấu trúc skeleton trước có `APP_ROLE` (all/api/worker/admin), ba module w
 
 ## Quyết định
 1. **All-in-one:** một process chạy cả HTTP lẫn BullMQ processor. Không `APP_ROLE`, không `WorkerModule`/`ApiModule`. Scale bằng **số instance** (`docker compose --scale api=N` sau nginx). Tách worker khi đo được push fan-out làm chậm API — lúc đó thêm một biến env, không đổi cấu trúc.
-2. **Một project `nest new` tiêu chuẩn**, không monorepo mode, không `libs/`. Cây thư mục:
+2. **Một project `nest new` tiêu chuẩn**, không monorepo mode, không `libs/`. Cây thư mục *lúc ra quyết định* (đã được cập nhật ở mục "Sửa đổi 2026-09-17" cuối file; cây hiện tại xem [code-standards.md §3](../code-standards.md)):
 
 ```
 c9_map/

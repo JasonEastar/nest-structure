@@ -1,6 +1,6 @@
 # Hiện trạng codebase — C9 Map
 
-**Cập nhật:** 2026-09-17 · **Trạng thái:** Active · **Chủ sở hữu:** Tech Lead
+**Cập nhật:** 2026-09-18 · **Trạng thái:** Active · **Chủ sở hữu:** Tech Lead
 Ảnh chụp repo tại thời điểm cập nhật. Cập nhật sau mỗi bước trong [project-roadmap.md](./project-roadmap.md).
 
 ---
@@ -11,8 +11,9 @@
 |---|---|
 | Roadmap | Bước 0–6 ✅ (skeleton + auth + RBAC + test/CI). Tiếp theo: bước 7 Pin core, chưa lập plan |
 | Module | `health`, `user` (/me, /admin/roles), `location` (module mẫu: CRUD + public nearby PostGIS), `queue-board` (Bull Board). Chưa có queue nào đăng ký |
-| Test | 66 (unit 28 · integration 38) trên PostGIS + Redis thật qua testcontainers; smoke đa instance 5 kiểm tra; CI GitHub Actions chưa chạy trên remote |
-| Git | Nhánh `main`, 33 commit tới 2026-09-17. Mốc: 7469607 phase 07 · 9e00612 cấu trúc mới · 26d30ee module mẫu location · 7335b51 Swagger theo module · 33253c3 identity → user · eb0d162 rút gọn comment |
+| Test | 66 (unit 28 · integration 38) trên PostGIS + Redis thật (testcontainers); smoke Docker 2 instance 6/6; mọi endpoint đã đối chiếu shape response; CI chưa chạy trên GitHub |
+| API | Một shape response duy nhất `{ success, code, msg, data, meta }`; Swagger `/docs` chia theo module, `openapi/{users,locations,health}.json` |
+| Git | Nhánh `main`, 41 commit tới 2026-09-18. Mốc: 7469607 phase 07 · 9e00612 cấu trúc mới · 26d30ee module mẫu location · 33253c3 identity → user · 2d45e4b đơn giản hoá theo chuẩn NestJS · 72517cf format response thống nhất |
 | Kế hoạch | `plans/260916-1500-c9-map-backend-skeleton/` ✅ · `plans/260917-1000-restructure-src-layout/` ✅ · `plans/260917-1130-location-reference-module/` ✅ |
 
 ## 2. Cây thư mục hiện tại
@@ -24,6 +25,7 @@ c9_backend/
 ├── docs/                     # tài liệu dự án (quy chuẩn: code-standards.md §6)
 │   ├── adr/                  # 0001 tên, 0002 Supabase auth, 0003 bỏ social, 0004 polling, 0005 Postgres riêng, 0006 all-in-one + cấu trúc
 │   ├── archive/              # brief gốc
+│   ├── code-walkthrough.md · api-cookbook.md   # 2 file người mới đọc trước
 │   ├── project-overview-pdr.md · system-architecture.md · code-standards.md
 │   ├── project-roadmap.md · testing-and-ci.md · project-analysis.md
 │   ├── decisions-pending.md · codebase-summary.md · nestjs-guide.md · setup-strategy.md · project-structure-and-flows.md
@@ -47,7 +49,7 @@ c9_map/
 │   ├── openapi-export.ts             # `npm run openapi:export` → openapi/<key>.json mỗi định nghĩa (users, locations, health)
 │   ├── config/                       # cấu hình app — không nghiệp vụ, không hạ tầng
 │   │   ├── env.ts                    # zod schema; ConfigModule đọc .env + validate, dùng qua ConfigService
-│   │   ├── logger.ts                 # nestjs-pino: genReqId · redact · bỏ log /health
+│   │   ├── logger.ts                 # nestjs-pino → stdout (+ Axiom khi có AXIOM_TOKEN/DATASET) · redact · bỏ log /health
 │   │   ├── i18n.ts                   # nestjs-i18n vi/en, resolver Accept-Language
 │   │   └── openapi.ts                # định nghĩa theo module (OPENAPI_DOCS) · tự ghi quyền/public · envelope() · exportOpenApi()
 │   ├── common/                       # hạ tầng dùng chung, gom theo mối quan tâm — KHÔNG import modules/
@@ -92,7 +94,7 @@ c9_map/
 │       │   └── schema/location.schema.ts                          # saved_locations (geography + GIST)
 │       └── queue-board/
 │           └── queue-board.module.ts # /admin/queues (Bull Board) + middleware JWT + queue:read; tắt khi test
-├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac · 0003_location (SQL)
+├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac · 0003_location · 0004_location-public
 ├── drizzle.config.ts                 # schema: 'src/**/*.schema.ts'
 ├── test/
 │   ├── unit/*.spec.ts                # logic thuần, không hạ tầng (env · exceptions · columns · permission.guard · pagination · validation · location.service)

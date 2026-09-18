@@ -12,7 +12,7 @@ Quy tắc bắt buộc khi viết code cho `c9_map`: nguyên tắc bất biến,
 | **YAGNI** | Không xây trước thứ chưa cần: không WebSocket, không microservice, không Elasticsearch, không module ngoài roadmap |
 | **KISS** | Một cách làm cho một việc. Cache = Redis, queue = BullMQ, auth = Supabase. Không có "lựa chọn thứ hai" trong code |
 | **DRY** | Schema zod, ErrorCodes, hằng số (tuổi thọ pin, tier rep, rate limit) chỉ khai báo một chỗ: `*.dto.ts` / `*.constants.ts` của module sở hữu, `common/http/exceptions.ts` (ErrorCodes) |
-| **File < 200 dòng** | Tách theo trách nhiệm: controller / service / repository / geo-repository / jobs |
+| **File < 200 dòng** | Tách theo trách nhiệm: controller / service / repository / jobs |
 | **kebab-case + hậu tố** | Tên file tự mô tả mục đích, đọc được bằng `grep` mà không cần mở |
 | **Không mock để qua test** | PostGIS, Redis, BullMQ test trên container thật. Xem [testing-and-ci](./testing-and-ci.md) |
 
@@ -54,7 +54,7 @@ MUST   khoá chính UUID v7 (time-ordered) cho mọi bảng nghiệp vụ — ng
 MUST   TIMESTAMPTZ, luôn UTC — NEVER dùng TIMESTAMP không TZ
 MUST   cột toạ độ: geography(Point, 4326) + index GIST
 MUST   ST_DWithin cho tìm bán kính — NEVER ST_Distance(...) < x (không dùng index)
-MUST   mọi SQL không gian nằm trong *-geo.repository.ts — NEVER rải trong service
+MUST   mọi SQL (kể cả PostGIS) nằm trong <x>.repository.ts — NEVER rải trong service
 MUST   phân trang bằng cursor (created_at, id) — NEVER OFFSET
 MUST   bảng user_locations: một dòng mỗi user, UPSERT — NEVER bảng lịch sử có GIST
 MUST   notifications partition theo tháng
@@ -76,7 +76,7 @@ MUST   SĐT thô chỉ nằm ở Supabase Auth; public.* chỉ giữ HMAC + last
 MUST   push_token gắn với devices(user_id, device_id) — NEVER gắn trực tiếp vào profiles
 MUST   strip EXIF (GPS) mọi ảnh trong job media trước khi public
 NEVER  log: token, OTP, mật khẩu, toạ độ chính xác của user, nội dung riêng tư
-NEVER  dùng SUPABASE_SERVICE_ROLE_KEY ở client hoặc trong log/response
+NEVER  dùng SUPABASE_SECRET_KEY ở client hoặc trong log/response
 ```
 
 ### 2.5 API
@@ -85,7 +85,7 @@ NEVER  dùng SUPABASE_SERVICE_ROLE_KEY ở client hoặc trong log/response
 MUST   MỌI response cùng 5 field { success, code, msg, data, meta }; lỗi: success=false, data=null, code là mã chữ (NEVER số HTTP), msg đã dịch theo Accept-Language, chi tiết trong meta từ i18n/<lang>/errors.json — NEVER hard-code câu chữ trong service
 MUST   response shape DUY NHẤT cho cả thành công lẫn lỗi: { success, code, msg, data, meta }
 MUST   AuthGuard global; route mở dùng @Public()
-MUST   mọi route ghi có @RequirePermissions('<resource>:<action>') — quyền nằm trong DB + Redis, NEVER trong JWT
+MUST   route cần quyền có @RequirePermissions(['<resource>:<action>']) — quyền nằm trong DB + Redis, NEVER trong JWT
 MUST   SOS (gđ 2) có @RequirePhoneVerified() — không global; MVP đăng nhập chỉ Google, không cần SĐT
 MUST   rate limit khoá theo user → x-device-id → IP (thứ tự đó)
 MUST   POST tạo tài nguyên nhạy cảm (SOS, thanh toán, pin, reply) nhận Idempotency-Key
@@ -181,7 +181,7 @@ c9_map/
 │       │   └── schema/location.schema.ts                          # saved_locations (geography + GIST)
 │       └── queue-board/
 │           └── queue-board.module.ts # /admin/queues (Bull Board) + middleware JWT + queue:read; tắt khi test
-├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac · 0003_location (SQL)
+├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac · 0003_location · 0004_location-public
 ├── drizzle.config.ts                 # schema: 'src/**/*.schema.ts'
 ├── test/
 │   ├── unit/*.spec.ts                # logic thuần, không hạ tầng (env · exceptions · columns · permission.guard · pagination · validation · location.service)
@@ -209,7 +209,7 @@ Nguồn: [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md) (sửa đổi 20
 
 | Loại | Quy ước | Ví dụ |
 |---|---|---|
-| File | kebab-case + hậu tố | `pin-geo.repository.ts` |
+| File | kebab-case + hậu tố | `location.repository.ts` |
 | Bảng Drizzle | `schema/<module>.schema.ts` | `schema/user.schema.ts` |
 | Zod DTO | `<module>.dto.ts` | `pin.dto.ts` |
 | Processor + scheduler | `<module>.jobs.ts` | `pin.jobs.ts` |
@@ -224,10 +224,10 @@ Nguồn: [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md) (sửa đổi 20
 | Error code | SCREAMING_SNAKE | `PIN_DUPLICATE_NEARBY` |
 | i18n key | `module.action.key` | `alert.push.pin_nearby.title` |
 | Env | SCREAMING_SNAKE, validate zod lúc boot | `DATABASE_URL`, `REDIS_URL` |
-| Env Supabase | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_ISSUER` | |
-| Decorator auth | `@Public()`, `@RequirePermissions('pin.delete')`, `@RequirePhoneVerified()` | không còn `@AllowUnverified()` |
-| Guard | `AuthGuard` → `PermissionGuard` → `PhoneVerifiedGuard` (thứ tự) | |
-| Permission | `{domain}.{action}` | `pin.moderate`, `promoted.refund` |
+| Env Supabase | `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_JWKS_URL` | |
+| Decorator auth | `@Public()`, `@RequirePermissions(['pin:delete_any'])`, `@RequirePhoneVerified()` | không còn `@AllowUnverified()` |
+| Guard | `AppThrottlerGuard` → `AuthGuard` → `PermissionGuard` (thứ tự trong app.module.ts) | |
+| Permission | `resource:action` | `pin:create`, `role:manage` |
 | Header | `X-Request-Id`, `X-Instance-Id`, `x-device-id`, `Idempotency-Key` | |
 | Commit | Conventional Commits | `feat(pin): viewport clustering` |
 | Branch | trunk-based, feature branch ngắn | `feat/pin-viewport` |
@@ -239,11 +239,11 @@ Nguồn: [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md) (sửa đổi 20
 | Thành phần | Quy tắc |
 |---|---|
 | `*.module.ts` | Chỉ `exports: [XService]`. Import module khác, không import file |
-| `*.controller.ts` | Thin: parse DTO → gọi service → trả `{ data, meta }`. Không logic, không SQL |
+| `*.controller.ts` | Thin: parse DTO → gọi service → trả dữ liệu thuần (interceptor bọc thành `{ success, code, msg, data, meta }`). Không logic, không SQL |
 | `*.service.ts` | Nghiệp vụ, transaction, ghi outbox trong cùng `tx`. Không `sql` template |
 | `*.repository.ts` | Sở hữu mọi truy vấn Drizzle của module. Không gọi service |
-| `*-geo.repository.ts` | Sở hữu mọi SQL PostGIS (`ST_DWithin`, cluster). Có test biên |
-| `*.dto.ts` | Mọi zod schema request/response của module. Controller dùng `@Body({ schema })`; kiểu = `z.infer`. Không thư mục `dto/` |
+| `<x>.repository.ts` | Sở hữu mọi SQL của module, kể cả PostGIS (`ST_DWithin`). SQL không gian phải có test biên |
+| `*.dto.ts` | Mọi zod schema request/response của module. Controller dùng `@Body({ schema })`; kiểu = `z.infer`. dto đặt trong `dto/<use-case>.dto.ts` |
 | `*.schema.ts` | Bảng Drizzle của module; `drizzle.config.ts` gom bằng glob `src/**/*.schema.ts` |
 | `*.constants.ts` | Hằng số nghiệp vụ (tuổi thọ pin, tier rep, rate limit) — một chỗ duy nhất |
 | `*.jobs.ts` | `@Processor` + `upsertJobScheduler` (id cố định); chạy trên mọi instance |

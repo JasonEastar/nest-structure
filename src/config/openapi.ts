@@ -23,26 +23,25 @@ export interface OpenApiDefinition {
 
 type DocEnv = ConfigService<Env, true>;
 
-/** Shape lỗi thống nhất (khớp ErrorEnvelope trong exceptions.ts); id → Schemas: ErrorResponse. */
+const MetaSchema = z
+  .object({ requestId: z.string().describe('Gửi kèm khi báo lỗi để tra log') })
+  .loose()
+  .describe('Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)');
+
+/** Response lỗi: cùng 5 field với response thành công, data = null. id → mục Schemas: ErrorResponse. */
 const ErrorResponseSchema = z
   .object({
-    error: z.object({
-      code: z.string().describe('Mã lỗi SCREAMING_SNAKE, client rẽ nhánh theo mã này'),
-      message: z.string().describe('Đã dịch theo header Accept-Language (vi mặc định, en)'),
-      params: z.record(z.string(), z.unknown()).describe('Dữ liệu phụ: resource, retryAfter, issues…'),
-      requestId: z.string().describe('Gửi kèm khi báo lỗi để tra log'),
-    }),
+    success: z.literal(false),
+    code: z.string().describe('Mã lỗi SCREAMING_SNAKE, client rẽ nhánh theo mã này'),
+    msg: z.string().describe('Câu đã dịch theo header Accept-Language (vi mặc định, en)'),
+    data: z.null(),
+    meta: MetaSchema,
   })
   .meta({ id: 'ErrorResponse' });
 
-const MetaSchema = z.object({
-  requestId: z.string(),
-  nextCursor: z.string().nullable().optional().describe('Chỉ có ở endpoint list: null = hết trang'),
-});
-
-/** Bọc schema dữ liệu thành envelope { data, meta } cho @ApiOkResponse/@ApiCreatedResponse({ standardSchema }). */
+/** Bọc schema dữ liệu thành response chuẩn cho @ApiOkResponse/@ApiCreatedResponse({ standardSchema }). */
 export function envelope<T extends z.ZodType>(data: T) {
-  return z.object({ data, meta: MetaSchema });
+  return z.object({ success: z.literal(true), code: z.literal('OK'), msg: z.literal(''), data, meta: MetaSchema });
 }
 
 /** Một dòng nối vào cuối mô tả mọi định nghĩa. Cách gửi token đã có nút Authorize; shape response xem mục Schemas. */

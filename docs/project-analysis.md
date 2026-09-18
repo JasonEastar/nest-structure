@@ -1,6 +1,7 @@
 # C9 Map — Phân tích dự án (PM · QA · Tech Lead)
 
-**Cập nhật:** 2026-09-16 · **Trạng thái:** Active · **Chủ sở hữu:** Tech Lead
+**Cập nhật:** 2026-09-16 · **Trạng thái:** Lịch sử (không cập nhật theo code) · **Chủ sở hữu:** Tech Lead
+⚠️ Tài liệu LỊCH SỬ, viết trước khi có code. Một số mô tả kỹ thuật ở đây (APP_ROLE, `libs/contracts`, PhoneVerifiedGuard) đã bị thay bởi ADR-0006 và code hiện tại — xem [codebase-summary.md](./codebase-summary.md) để biết hiện trạng.
 Phân tích ban đầu khi README và prototype còn mâu thuẫn. Phần lớn mục 1 và 5 **đã được xử lý cùng ngày** (xem ghi chú đầu mục). Giữ lại làm bối cảnh cho các quyết định.
 
 > **Trạng thái sau chuẩn hoá 2026-09-16:** tên `c9_map` (ADR-0001), stack NestJS + Supabase (ADR-0002), bỏ Social (ADR-0003), polling (ADR-0004). PRD hợp nhất = [project-overview-pdr.md](./project-overview-pdr.md); lộ trình = [project-roadmap.md](./project-roadmap.md); quyết định chờ = [decisions-pending.md](./decisions-pending.md). Bước A, B, D của mục 5 đã xong; bước C (traceability màn hình → endpoint) và E (PLAN) nằm trong `plans/`.

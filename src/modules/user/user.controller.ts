@@ -5,7 +5,7 @@ import type { AuthUser } from '../../common/auth/auth.guard.js';
 import { CurrentUser, RequirePermissions } from '../../common/auth/decorators.js';
 import { envelope } from '../../config/openapi.js';
 import { MeResponseSchema } from './dto/me.dto.js';
-import { RoleSchema, type SetUserRoles, SetUserRolesSchema } from './dto/role.dto.js';
+import { RoleSchema, type SetUserRoles, SetUserRolesSchema, UserRolesSchema } from './dto/role.dto.js';
 import { UserService } from './user.service.js';
 
 /** Route của module user: (1) /me hồ sơ của user đang đăng nhập, (2) /admin/... quản trị role, cần permission. */
@@ -59,6 +59,7 @@ export class UserAdminController {
 
   @Get('users/:id/roles')
   @ApiOperation({ summary: 'Role hiện tại của một user' })
+  @ApiOkResponse({ standardSchema: envelope(UserRolesSchema) })
   async getUserRoles(@Param('id', { schema: z.uuid() }) id: string) {
     return { id, roles: await this.users.listUserRoles(id) };
   }
@@ -68,6 +69,7 @@ export class UserAdminController {
     summary: 'Gán lại role cho user',
     description: 'Thay toàn bộ role. Hiệu lực ngay trên mọi instance vì cache permission của user bị xoá.',
   })
+  @ApiOkResponse({ standardSchema: envelope(UserRolesSchema) })
   setUserRoles(@Param('id', { schema: z.uuid() }) id: string, @Body({ schema: SetUserRolesSchema }) body: SetUserRoles) {
     return this.users.setUserRoles(id, body.roles);
   }

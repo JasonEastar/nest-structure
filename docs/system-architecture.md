@@ -17,7 +17,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 ```
 
 - **Modular monolith all-in-one**, một image, một process chạy cả HTTP lẫn BullMQ processor; scale bằng số instance stateless sau nginx. Không `APP_ROLE` ([ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md)); tách worker khi đo được push fan-out làm chậm API.
-- Mobile chỉ cần OpenAPI: backend xuất `openapi/app.json` trong CI, app tự sinh client (Dart hoặc TS).
+- Mobile chỉ cần OpenAPI: backend xuất `openapi/<module>.json` trong CI, app tự sinh client (Dart hoặc TS).
 - Không WebSocket ([ADR-0004](./adr/0004-polling-thay-realtime.md)).
 
 ## 2. Quyết định đã chốt — KHÔNG mở lại
@@ -59,7 +59,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 |---|---|
 | Entry | `main.ts` duy nhất, không `APP_ROLE`; mọi instance giống nhau |
 | Module gốc | `AppModule` = `CommonModule` (`@Global`: Config, Database, Redis, Cache, Queue, Supabase, Logger, I18n) + feature modules; providers `APP_GUARD/APP_PIPE/APP_FILTER/APP_INTERCEPTOR` khai báo ngay trong `AppModule` |
-| Global (token `APP_*` trong module, không `app.useGlobal*`) | `APP_GUARD`: Throttler → Auth → Permission; `APP_PIPE`: `StandardSchemaValidationPipe`; `APP_FILTER`: `AllExceptionsFilter`; `APP_INTERCEPTOR`: envelope `{data, meta}`; `LoggerModule` (pino) |
+| Global (token `APP_*` trong module, không `app.useGlobal*`) | `APP_GUARD`: Throttler → Auth → Permission; `APP_PIPE`: `StandardSchemaValidationPipe`; `APP_FILTER`: `AllExceptionsFilter`; `APP_INTERCEPTOR`: bọc `{ success, code, msg, data, meta }`; `LoggerModule` (pino) |
 | Header | Mọi response: `X-Instance-Id`, `X-Request-Id` |
 | Shutdown | `enableShutdownHooks()`; worker `worker.close()` đợi job xong |
 | Versioning | URI `/api/v1` |
@@ -74,7 +74,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 | Phương thức | **Chỉ Google sign-in** (Supabase provider `google`) ở MVP. Apple thêm khi lên App Store (bắt buộc nếu có social login). Phone OTP **không dùng để đăng nhập**; gđ 2 chỉ dùng để *liên kết* SĐT (`updateUser({phone})` + `verifyOtp`) cho SOS |
 | Token | Supabase phát hành JWT **ES256**; access token **3600 s (mặc định, user chốt)**; refresh rotation bật. Thu hồi quyền không phụ thuộc token vì permission đọc từ DB/Redis |
 | Xác thực ở NestJS | `jose.createRemoteJWKSet(SUPABASE_JWKS_URL)` (mặc định `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`), kiểm `iss`, `aud = authenticated`, `exp`. NEVER HS256/JWT secret → **project phải bật JWT Signing Keys (ES256) VÀ Rotate** để khoá ES256 là current (chỉ bật = standby, token vẫn HS256 → 401) |
-| Claims dùng | `sub` (user id), `session_id`, `aal`, `is_anonymous`. NEVER đưa role/permission vào JWT |
+| Claims dùng | `sub` (user id), `email`, `is_anonymous`, `user_metadata` (tên, avatar). NEVER đưa role/permission vào JWT |
 | Guard | `AuthGuard` (global, `@Public()` mở) → `PermissionGuard` (`@RequirePermissions`) → `@RequirePhoneVerified()` theo hành động |
 | Admin API | `@supabase/supabase-js` với `SUPABASE_SECRET_KEY` (khoá mới `sb_secret_…`), chỉ server, sau port `SUPABASE_ADMIN`: `deleteUser`, `getUserById` |
 | Đăng xuất thiết bị | Xoá session qua Admin API; app-side `devices` chỉ giữ push token |
@@ -88,7 +88,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 | Bảng | `roles(key, name)`, `permissions(key, description)`, `role_permissions(role_id, permission_id)`, `user_roles(user_id, role_id, city_code?)` — schema `public`, seed bằng migration |
 | Role seed | `user` (gán khi app upsert profile lần đầu), `moderator`, `venue`, `admin` |
 | Permission | Chuỗi `resource:action`, ví dụ `pin:create`, `pin:delete_any`, `report:review`, `user:ban`, `landmark:manage`, `promoted:manage`, `queue:read`, `role:manage` |
-| Kiểm tra | `@RequirePermissions('report:review')` → `PermissionGuard` đọc `c9:perms:{userId}` (Set, TTL 300 s), miss → query `user_roles ⋈ role_permissions ⋈ permissions` |
+| Kiểm tra | `@RequirePermissions('report:review')` → `PermissionGuard` đọc `c9:v1:perms:{userId}` (Set, TTL 300 s), miss → query `user_roles ⋈ role_permissions ⋈ permissions` |
 | Quyền sở hữu | Không mã hoá trong permission. Service kiểm `author_id === user.id` hoặc permission `*_any` |
 | Thu hồi | Admin đổi role/permission → `DEL c9:perms:{userId}` ngay; JWT không chứa role nên không cần đợi token hết hạn |
 | Admin API | `/api/v1/admin/roles`, `/admin/users/:id/roles` — cùng định nghĩa Swagger "User & Auth", permission `role:manage` tự ghi vào mô tả |
@@ -106,7 +106,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 | `profiles.id` | = `sub` Supabase (uuid v4), **không FK** (khác database) |
 | Xoá tài khoản | Tx local (ẩn danh hoá pin/thread, xoá profile/devices) → `auth.admin.deleteUser`; idempotent |
 | RLS | Không (NestJS là client duy nhất) |
-| Toạ độ | `geography(Point, 4326)` qua `customType` + `USING gist`; `ST_DWithin` trong `*-geo.repository.ts` |
+| Toạ độ | `geography(Point, 4326)` qua `customType` + `USING gist`; `ST_DWithin` trong repository của module |
 | Pin | Một bảng `markers`: `type`, `status`, `source`, `attrs` JSONB (zod discriminated union), `expires_at`, `confirm_count`, `gone_count`, `report_count`, `author_rep_at_post` |
 | Vị trí user | `user_locations(user_id PK, geom, updated_at, sos_alerts_enabled)` UPSERT, partial GIST |
 | Cảnh báo | `user_alert_areas(user_id, name, geom, radius_m, schedule, categories[])` + GIST |
@@ -116,15 +116,15 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 | Backup | Tự lo: `pg_dump` hàng ngày → S3 (14 ngày) từ staging; WAL archiving (WAL-G/pgBackRest) cho PITR khi có user thật; diễn tập restore trước prod. Local không backup |
 
 ### 5.3 Local dev
-- **Auth:** hosted Supabase **dev project** (free tier), bật provider Google, lấy `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` vào `.env`. Không `supabase start` (tuỳ chọn khi offline).
-- **DB:** container `postgis/postgis:16-3.4` trong docker-compose, port 5432, volume `pgdata`. Kiểm: `psql $DATABASE_URL -c 'select postgis_version()'`.
+- **Auth:** hosted Supabase **dev project** (free tier), bật provider Google, lấy `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY` vào `.env`. Không `supabase start` (tuỳ chọn khi offline).
+- **DB:** container `postgis/postgis:16-3.4` trong docker-compose, port 5432, volume `pg-data`. Kiểm: `psql $DATABASE_URL -c 'select postgis_version()'`.
 - `npm run dev:infra` = `docker compose up -d postgres redis`; thêm `api-1 api-2 nginx` khi test đa instance.
 
 ## 6. Drizzle
 
 | Khía cạnh | Cấu hình |
 |---|---|
-| Schema | `src/modules/<x>/<x>.schema.ts` cạnh module; `drizzle.config.ts` gom bằng glob `src/**/*.schema.ts` |
+| Schema | `src/modules/<x>/schema/<x>.schema.ts` cạnh module; `drizzle.config.ts` gom bằng glob `src/**/*.schema.ts` |
 | Migration | `drizzle-kit generate` → review → commit → `drizzle-kit migrate` là **bước riêng** trước deploy |
 | Geo | `customType` cho `geography`; hàm không gian qua `sql` template |
 | Điều kiện động | `and(...)` với `undefined` — NEVER `:x IS NULL OR col = :x` |
@@ -140,7 +140,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 | Đếm like/confirm/unread | `INCR` | `c9:cnt:{kind}:{id}` | Không TTL, dựng lại từ PG |
 | Thống kê promoted | Hash `HINCRBY` | `c9:stats:{marker}:{date}` | Gộp PG mỗi giờ |
 | Rate limit | Throttler storage | tự quản | theo rule |
-| Permission cache | Set | `c9:perms:{userId}` | 5 phút |
+| Permission cache | Set | `c9:v1:perms:{userId}` | 5 phút |
 | Idempotency | String | `c9:idem:{userId}:{key}` | 24 h |
 | SOS live location | String + TTL | `c9:sos:{id}:loc` | 60 s |
 | User online | Sorted Set | `c9:online` | dọn theo score |
@@ -162,7 +162,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 | `ingest` | Nguồn tự động (gđ 2) | 1/nguồn | — |
 | `outbox` | Drain outbox → queue (gđ 3) | 1 | — |
 
-Processor chạy trên **mọi** instance (all-in-one); một job chỉ được một worker nhận. Repeatable: `upsertJobScheduler(id cố định, { pattern, tz: 'Asia/Ho_Chi_Minh' })` — N instance cùng upsert vẫn chỉ một lịch. Fan-out 2 tầng (planner → sender lô 500). Chống trùng: `jobId` cố định + PK `(notification_id, user_id)`. Bull Board `/admin/queues` sau `AuthGuard` + permission `admin.queues`.
+Processor chạy trên **mọi** instance (all-in-one); một job chỉ được một worker nhận. Repeatable: `upsertJobScheduler(id cố định, { pattern, tz: 'Asia/Ho_Chi_Minh' })` — N instance cùng upsert vẫn chỉ một lịch. Fan-out 2 tầng (planner → sender lô 500). Chống trùng: `jobId` cố định + PK `(notification_id, user_id)`. Bull Board `/admin/queues` có middleware riêng (ngoài Nest pipeline) + permission `queue:read`.
 
 ## 9. Rate limit
 
@@ -170,7 +170,7 @@ Processor chạy trên **mọi** instance (all-in-one); một job chỉ được
 
 ## 10. API docs & codegen
 
-- Một định nghĩa mỗi module nghiệp vụ (User & Auth, Locations, Health, sau này Pins, Engagement…) qua `include:`, dropdown "Select a definition" tại `/docs`. Route admin nằm cùng định nghĩa với module của nó, mô tả tự ghi "Quyền cần có" từ `@RequirePermissions`. UI: Swagger UI đi kèm `SwaggerModule.setup()`, theo đúng tài liệu NestJS (https://docs.nestjs.com/openapi/introduction). `jsonDocumentUrl` → `/docs/app-json`, `/docs/admin-json`.
+- Một định nghĩa mỗi module nghiệp vụ (User & Auth, Locations, Health, sau này Pins, Engagement…) qua `include:`, dropdown "Select a definition" tại `/docs`. Route admin nằm cùng định nghĩa với module của nó, mô tả tự ghi "Quyền cần có" từ `@RequirePermissions`. UI: Swagger UI đi kèm `SwaggerModule.setup()`, theo đúng tài liệu NestJS (https://docs.nestjs.com/openapi/introduction). `jsonDocumentUrl` → `/docs/<module>-json`.
 - Schema zod đặt trên decorator (`@Body({ schema })`) → Swagger 12 tự sinh request body/params (zod 4.6 có `~standard.jsonSchema`). Không cần `nestjs-zod`, không bật CLI plugin. Chi tiết: [nestjs-guide.md §6](./nestjs-guide.md).
 - CI xuất `openapi/<key>.json` (users, locations, health…) làm artifact. Mobile: Dart `openapi-generator` (dart-dio) hoặc TS `orval` / `@hey-api/openapi-ts`.
 
@@ -184,7 +184,7 @@ Presigned PUT R2, 5 phút, ≤ 10 MB, `image/jpeg|png|webp|heic`. Backend xác n
 
 ## 13. Logging & giám sát
 
-`nestjs-pino` JSON, redact `authorization`, `*.token`, `*.phone`, toạ độ user. Mọi dòng có `requestId`, `instance`, `userId?`; `requestId` truyền vào job data. Sentry cho 5xx. Prometheus `/metrics`: p95 viewport, push delivery, SOS latency, queue depth, pool usage.
+`nestjs-pino` JSON, redact `authorization`, `*.token`, `*.phone`, toạ độ user. Mọi dòng có `requestId`, `instance`, `userId?`; `requestId` truyền vào job data. Log đẩy thêm lên Axiom khi có `AXIOM_TOKEN` + `AXIOM_DATASET`. Metrics (Prometheus) và Sentry: chưa có, thêm khi lên staging.
 
 ## 14. Docker & môi trường
 
@@ -202,10 +202,10 @@ Health cho compose: `/health/live` + `/health/ready`; không có service worker 
 |---|---|
 | `NODE_ENV`, `PORT` (3000), `INSTANCE_ID` (mặc định hostname container), `TRUST_PROXY_HOPS` (nginx 1, ALB+nginx 2), `LOG_LEVEL` | Chuẩn |
 | `DATABASE_URL` | `postgres://c9:…@postgres:5432/c9_map` (container) / `127.0.0.1:5432` (host) |
-| `DATABASE_MIGRATE_URL` | Prod: role `c9_migrate`; local = `DATABASE_URL` |
+| `DATABASE_URL` (migration chạy bằng CLI riêng) | Prod: role `c9_migrate`; local = `DATABASE_URL` |
 | `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_JWKS_URL?` | Admin API + JWKS; publishable key chỉ cho `scripts/dev-token.mjs` và E2E |
-| `SUPABASE_JWT_ISSUER` | `${SUPABASE_URL}/auth/v1` |
+| `SUPABASE_JWKS_URL` | mặc định `${SUPABASE_URL}/auth/v1/.well-known/jwks.json` |
 | `REDIS_URL` | DB 0 cache; queue dùng `/1` |
 | `R2_*`, `FCM_*`, `SENTRY_DSN` | Theo giai đoạn |
 
-Toàn bộ validate bằng zod lúc boot (`config/env.schema.ts`); thiếu → process thoát.
+Toàn bộ validate bằng zod lúc boot (`config/env.ts`); thiếu → process thoát.

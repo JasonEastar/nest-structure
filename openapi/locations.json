@@ -23,6 +23,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "OK"
+                      ]
+                    },
+                    "msg": {
+                      "type": "string",
+                      "enum": [
+                        ""
+                      ]
+                    },
                     "data": {
                       "$ref": "#/components/schemas/Location"
                     },
@@ -30,21 +48,21 @@
                       "type": "object",
                       "properties": {
                         "requestId": {
-                          "type": "string"
-                        },
-                        "nextCursor": {
-                          "description": "Chỉ có ở endpoint list: null = hết trang",
-                          "nullable": true,
-                          "type": "string"
+                          "type": "string",
+                          "description": "Gửi kèm khi báo lỗi để tra log"
                         }
                       },
                       "required": [
                         "requestId"
                       ],
-                      "additionalProperties": false
+                      "additionalProperties": {},
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
                     }
                   },
                   "required": [
+                    "success",
+                    "code",
+                    "msg",
                     "data",
                     "meta"
                   ],
@@ -145,6 +163,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "OK"
+                      ]
+                    },
+                    "msg": {
+                      "type": "string",
+                      "enum": [
+                        ""
+                      ]
+                    },
                     "data": {
                       "type": "array",
                       "items": {
@@ -155,21 +191,21 @@
                       "type": "object",
                       "properties": {
                         "requestId": {
-                          "type": "string"
-                        },
-                        "nextCursor": {
-                          "description": "Chỉ có ở endpoint list: null = hết trang",
-                          "nullable": true,
-                          "type": "string"
+                          "type": "string",
+                          "description": "Gửi kèm khi báo lỗi để tra log"
                         }
                       },
                       "required": [
                         "requestId"
                       ],
-                      "additionalProperties": false
+                      "additionalProperties": {},
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
                     }
                   },
                   "required": [
+                    "success",
+                    "code",
+                    "msg",
                     "data",
                     "meta"
                   ],
@@ -263,6 +299,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "OK"
+                      ]
+                    },
+                    "msg": {
+                      "type": "string",
+                      "enum": [
+                        ""
+                      ]
+                    },
                     "data": {
                       "$ref": "#/components/schemas/Location"
                     },
@@ -270,21 +324,21 @@
                       "type": "object",
                       "properties": {
                         "requestId": {
-                          "type": "string"
-                        },
-                        "nextCursor": {
-                          "description": "Chỉ có ở endpoint list: null = hết trang",
-                          "nullable": true,
-                          "type": "string"
+                          "type": "string",
+                          "description": "Gửi kèm khi báo lỗi để tra log"
                         }
                       },
                       "required": [
                         "requestId"
                       ],
-                      "additionalProperties": false
+                      "additionalProperties": {},
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
                     }
                   },
                   "required": [
+                    "success",
+                    "code",
+                    "msg",
                     "data",
                     "meta"
                   ],
@@ -478,6 +532,24 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "OK"
+                      ]
+                    },
+                    "msg": {
+                      "type": "string",
+                      "enum": [
+                        ""
+                      ]
+                    },
                     "data": {
                       "type": "array",
                       "items": {
@@ -488,21 +560,21 @@
                       "type": "object",
                       "properties": {
                         "requestId": {
-                          "type": "string"
-                        },
-                        "nextCursor": {
-                          "description": "Chỉ có ở endpoint list: null = hết trang",
-                          "nullable": true,
-                          "type": "string"
+                          "type": "string",
+                          "description": "Gửi kèm khi báo lỗi để tra log"
                         }
                       },
                       "required": [
                         "requestId"
                       ],
-                      "additionalProperties": false
+                      "additionalProperties": {},
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
                     }
                   },
                   "required": [
+                    "success",
+                    "code",
+                    "msg",
                     "data",
                     "meta"
                   ],
@@ -605,38 +677,48 @@
       "ErrorResponse": {
         "type": "object",
         "properties": {
-          "error": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "code": {
+            "type": "string",
+            "description": "Mã lỗi SCREAMING_SNAKE, client rẽ nhánh theo mã này"
+          },
+          "msg": {
+            "type": "string",
+            "description": "Câu đã dịch theo header Accept-Language (vi mặc định, en)"
+          },
+          "data": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          },
+          "meta": {
             "type": "object",
             "properties": {
-              "code": {
-                "type": "string",
-                "description": "Mã lỗi SCREAMING_SNAKE, client rẽ nhánh theo mã này"
-              },
-              "message": {
-                "type": "string",
-                "description": "Đã dịch theo header Accept-Language (vi mặc định, en)"
-              },
-              "params": {
-                "type": "object",
-                "additionalProperties": {},
-                "description": "Dữ liệu phụ: resource, retryAfter, issues…"
-              },
               "requestId": {
                 "type": "string",
                 "description": "Gửi kèm khi báo lỗi để tra log"
               }
             },
             "required": [
-              "code",
-              "message",
-              "params",
               "requestId"
             ],
-            "additionalProperties": false
+            "additionalProperties": {},
+            "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
           }
         },
         "required": [
-          "error"
+          "success",
+          "code",
+          "msg",
+          "data",
+          "meta"
         ],
         "additionalProperties": false
       },

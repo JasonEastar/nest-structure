@@ -3,7 +3,7 @@
 ## ⚠️ Dự án này: c9_map (C9 Map backend) — ĐỌC TRƯỚC
 
 - **Là gì:** API backend (NestJS 12 modular monolith, đa instance) cho bản đồ đời sống thời gian thực TP.HCM. Mobile là repo riêng, chỉ dùng OpenAPI.
-- **Stack đã chốt, KHÔNG mở lại:** Supabase Auth (chỉ auth, Google) + PostgreSQL 16/PostGIS riêng (ADR-0005), Drizzle, Redis 7 (cache · throttler · BullMQ), zod 4 qua `StandardSchemaValidationPipe` (có sẵn trong Nest 12), Swagger/OpenAPI (`@nestjs/swagger`, đọc schema zod tự động), một project NestJS all-in-one, không APP_ROLE, cấu trúc theo ADR-0006 sửa đổi 2026-09-17 (`src/{config,common/{auth,database,redis,http},modules/<x>/{dto,schema}}`, test ở `test/{unit,integration,setup}`; xem `docs/code-standards.md` §3), nestjs-i18n, R2, FCM. Không WebSocket. Xem `docs/system-architecture.md` §2 và `docs/adr/`.
+- **Stack đã chốt, KHÔNG mở lại:** Supabase Auth (chỉ auth, Google) + PostgreSQL 16/PostGIS riêng (ADR-0005), Drizzle, Redis 7 (cache · throttler · BullMQ), zod 4 qua `StandardSchemaValidationPipe` (có sẵn trong Nest 12), Swagger/OpenAPI (`@nestjs/swagger`, đọc schema zod tự động), một project NestJS all-in-one, không APP_ROLE, cấu trúc: `src/{config,common/{auth,database,redis,http},modules/<x>/{dto,schema}}`, test ở `test/{unit,integration,setup}` (ADR-0006 + sửa đổi 2026-09-17; cây đầy đủ ở `docs/code-standards.md` §3), nestjs-i18n, R2, FCM. Không WebSocket. Xem `docs/system-architecture.md` §2 và `docs/adr/`.
 - **MUST đọc trước khi làm:** `docs/code-walkthrough.md` (đọc code từ đâu, file nào làm gì, request đi qua đâu), `docs/api-cookbook.md` (cách viết một API: tên, input, zod, response, lỗi, Swagger), `docs/nestjs-guide.md` (cách dùng NestJS 12 đúng docs, gotchas), `docs/code-standards.md` (nguyên tắc bất biến MUST/NEVER — vi phạm là bug), `docs/project-roadmap.md` (làm từng bước, dừng review), `docs/decisions-pending.md` (quyết định chưa chốt → dùng khuyến nghị tạm, hỏi khi chạm tới).
 - **NEVER** thêm dependency, xoá file, sửa schema DB, hoặc thêm tính năng ngoài bước đang làm mà không hỏi. Sau mỗi bước: liệt kê file tạo/sửa + chạy lệnh "done".
 - **Tự vấn khi viết bất kỳ biến nào:** "Instance 2 có cần biết cái này không?" Có → Redis hoặc Postgres, không RAM.
@@ -31,21 +31,15 @@ ClaudeKit Engineer is a comprehensive boilerplate for building professional soft
 
 ### Testing & Quality
 ```bash
-npm test          # Run test suite (exits 0 with warning)
-npm run lint      # Run linting checks
+npm test          # unit + integration (Vitest, tự dựng PostGIS + Redis bằng testcontainers)
+npm run lint      # oxlint
+npm run typecheck # tsc --noEmit
 ```
-
-### Release Management
-```bash
-npm run semantic-release    # Generate release with conventional commits
-npm run prepare            # Install Husky git hooks
-```
+Danh sách lệnh đầy đủ: [README](./README.md#lệnh).
 
 ### Git Workflow
-- Uses **Commitlint** with conventional commits (feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert)
-- Max header length: 100 characters
-- Subject case: kebab-case, camel-case, or lower-case (no sentence-case, start-case, pascal-case, upper-case)
-- **Semantic Release** automated on `main` branch with CHANGELOG generation
+- Conventional commits (feat, fix, docs, refactor, perf, test, build, ci, chore). Header ≤ 100 ký tự, subject lower-case.
+- Commit một lần cho mỗi tính năng hoàn chỉnh (code + test + docs), không commit vụn.
 
 ### Date Formatting
 ```bash

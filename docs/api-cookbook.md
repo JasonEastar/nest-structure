@@ -34,7 +34,7 @@ Trong Swagger bấm **Authorize**, dán token → gọi thử mọi API. Tài kh
 | API quản trị | `/admin/...`: class thứ hai `<X>AdminController` trong cùng `<x>.controller.ts`, `@RequirePermissions([...])` ở class. Swagger tự ghi "Quyền cần có" | tự viết "cần quyền X" vào mô tả (sẽ lệch với guard) |
 | Version | tự động `/api/v1/...` (`app.ts`), controller không ghi `v1` | `@Controller('v1/locations')` |
 
-Tên hàm trong controller = `operationId` trong OpenAPI (mobile codegen dùng tên này): `list`, `get`, `create`, `update`, `remove`, `nearby`. Tên method HTTP: `GET` đọc · `POST` tạo hoặc hành động · `PUT` thay toàn bộ · `PATCH` sửa một phần · `DELETE` xoá.
+`operationId` = `<Controller bỏ hậu tố>.<tên hàm>` (`Location.list`, `User.me`) — mobile codegen dùng tên này. Đặt tên hàm: `list`, `get`, `create`, `update`, `remove`, hoặc tên hành động. Tên method HTTP: `GET` đọc · `POST` tạo hoặc hành động · `PUT` thay toàn bộ · `PATCH` sửa một phần · `DELETE` xoá.
 
 ## 3. Bộ file cho một API mới
 
@@ -101,14 +101,15 @@ export const CreateLocationSchema = z.object({
   name: zText(LOCATION_LIMITS.nameMaxLength),   // trim, bỏ thẻ HTML, 1..60 ký tự
   ...zLatLng.shape,                              // lat -90..90, lng -180..180
   radiusMeters: z.number().int().min(100).max(5_000).default(500),
-});
+  isPublic: z.boolean().default(false),
+}).meta({ id: 'CreateLocation' });               // id → hiện ở mục Schemas
 export type CreateLocation = z.infer<typeof CreateLocationSchema>;
 
 // dto/location.dto.ts
 export const LocationResponseSchema = z.object({
   id: z.uuid(), name: z.string(), lat: z.number(), lng: z.number(),
-  radiusMeters: z.number().int(), createdAt: z.iso.datetime(),
-});
+  radiusMeters: z.number().int(), isPublic: z.boolean(), createdAt: z.iso.datetime(),
+}).meta({ id: 'Location' });
 export const ListLocationsQuerySchema = PaginationQuerySchema;                 // ?cursor=&limit=
 export const NearbyLocationsQuerySchema = z.object({                          // GET /public/locations/nearby
   lat: z.coerce.number().min(-90).max(90),                                     // query là string → coerce
@@ -119,7 +120,7 @@ export const NearbyLocationsQuerySchema = z.object({                          //
 
 Sai → **422**, danh sách field hỏng nằm ở `meta.issues` (xem mục 6).
 
-`message` dịch theo ngôn ngữ request; `issues[].message` là câu kỹ thuật của zod (tiếng Anh) để dev debug, không hiển thị cho người dùng. Số giới hạn để trong `<x>.constants.ts`, không viết số trong schema. Helper có sẵn: `zText(max, min?)`, `zLatLng`, `PaginationQuerySchema`. Cần enum: `z.enum(['traffic_jam', 'flooding'])`. Cần field tuỳ chọn: `.optional()` (không gửi) khác `.nullable()` (gửi `null`).
+`msg` dịch theo ngôn ngữ request; `meta.issues[].message` là câu kỹ thuật của zod (tiếng Anh) để dev debug, không hiển thị cho người dùng. Số giới hạn để trong `<x>.constants.ts`, không viết số trong schema. Helper có sẵn: `zText(max, min?)`, `zLatLng`, `PaginationQuerySchema`. Cần enum: `z.enum(['traffic_jam', 'flooding'])`. Cần field tuỳ chọn: `.optional()` (không gửi) khác `.nullable()` (gửi `null`).
 
 ## 6. Trả response và ném lỗi
 
@@ -175,11 +176,11 @@ list(...) {}
 Để schema hiện trong mục **Schemas** (và mobile codegen sinh đúng tên type), đặt `.meta({ id: 'Location' })` ở cuối schema body/response trong file dto. **Không** đặt `meta` cho query schema: query phải inline thì Swagger mới tách được thành từng tham số `?lat=&lng=`. `operationId` tự sinh dạng `Location.list` (tên class bỏ `Controller` + tên hàm) nên không trùng giữa module.
 
 - 401/403/422/429/500 đã khai toàn cục trong `config/openapi.ts` với schema `ErrorResponse`, không lặp lại.
-- **Servers**: `/` (máy đang mở trang) và `http://localhost:PORT`; deploy đặt `PUBLIC_URL` trong env để có thêm server public. **Select a definition** ở góc trên chuyển giữa App và Admin.
+- **Servers**: `/` (máy đang mở trang) và `http://localhost:PORT`; deploy đặt `PUBLIC_URL` trong env để có thêm server public. **Select a definition** ở góc trên chuyển giữa các module.
 - Tài liệu chia theo module nghiệp vụ (`OPENAPI_DOCS` trong `app.module.ts`): mỗi mục một định nghĩa trong dropdown, JSON `/docs/<key>-json`, file `openapi/<key>.json`. Không chia app/admin.
 - **Quyền và public tự ghi vào mô tả** từ `@RequirePermissions` / `@Public()`: "Quyền cần có: `role:manage`" hoặc "Không cần đăng nhập" (bỏ ổ khoá). Không viết tay các câu này.
 - `@ApiOperation({ summary, description })`: `summary` một câu ngắn, `description` giải thích hành vi (trả gì khi rỗng, side effect, giới hạn) như ví dụ "Trả null nếu user chưa tham gia".
-- `npm run openapi:export` → `openapi/app.json`, `openapi/admin.json` cho mobile codegen. CI tự xuất.
+- `npm run openapi:export` → `openapi/users.json`, `openapi/locations.json`, `openapi/health.json` cho mobile codegen. CI tự xuất.
 - Kiểm nhanh: mở `/docs`, chọn định nghĩa, tìm tag, xem "Example Value" của request và response có đúng ý không.
 
 ## 8. Auth và quyền

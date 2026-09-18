@@ -25,9 +25,9 @@ Thứ tự chạy cho **mọi** request: middleware → guard → pipe → contr
 
 ## 2. Đọc theo thứ tự này (10 phút)
 
-1. `src/main.ts` (25 dòng): nạp `.env`, tạo app, gắn Swagger, listen. Hết.
-2. `src/app.ts` (30 dòng): app được cấu hình gì: helmet, prefix `/api`, version `v1`, shutdown hooks.
-3. `src/app.module.ts` (60 dòng): danh sách module và 6 "lớp bọc" chạy cho mọi request (3 guard, 1 pipe, 1 filter, 1 interceptor). Đây là bản đồ toàn dự án.
+1. `src/main.ts` (29 dòng): tạo app, gắn Swagger, listen. Hết. `.env` do `ConfigModule` đọc.
+2. `src/app.ts` (28 dòng): app được cấu hình gì: helmet, prefix `/api`, version `v1`, shutdown hooks.
+3. `src/app.module.ts`: danh sách module, danh sách tài liệu Swagger, và 6 "lớp bọc" chạy cho mọi request (3 guard, 1 pipe, 1 filter, 1 interceptor). Đây là bản đồ toàn dự án.
 4. `src/modules/location/`: module mẫu, đọc `location.controller.ts` → `location.service.ts` → `location.repository.ts` → `schema/location.schema.ts` → `dto/`. Một feature hoàn chỉnh từ URL tới bảng DB, kể cả PostGIS và phân trang. Module mới copy y hệt (mục 6).
 5. `src/common/auth/auth.guard.ts`: cách một token Google của Supabase biến thành `req.user`.
 6. `src/config/env.ts`: toàn bộ biến môi trường, mỗi biến có chú thích.
@@ -73,7 +73,7 @@ Chưa có module nào dùng. Khi cần việc chạy nền hoặc theo lịch (v
 | `common/database/drizzle.ts` | Kết nối Postgres + Drizzle client | Hiếm |
 | `common/database/columns.ts` | Cột dùng chung cho schema: timestamps, uuid v7, toạ độ `geography(Point)` | Thêm kiểu cột mới |
 | `common/database/schema.ts` | Gom mọi `*.schema.ts` cho Drizzle | Thêm module có bảng |
-| `common/redis/redis.provider.ts` | Kết nối Redis db0, đóng khi tắt | Hiếm |
+| `common/redis/redis.provider.ts` | Kết nối Redis db0 | Hiếm |
 | `common/redis/cache.ts` | Bảng `CACHE` (key + TTL từng mục) + `CacheService` 5 thao tác | Thêm key cache |
 | `common/redis/queue.ts` | Kết nối BullMQ + tên các queue | Thêm queue |
 | `common/redis/throttler.guard.ts` | Rate limit đếm chung mọi instance | Đổi giới hạn |

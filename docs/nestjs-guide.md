@@ -33,32 +33,32 @@ Middleware → Guards → Interceptors (trước) → Pipes → Controller → S
 
 | NestJS cung cấp | C9 Map dùng | Vì sao |
 |---|---|---|
-| `nest new` (project đơn, mặc định) | Một project, all-in-one, cấu trúc [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md): `src/{main.ts, app.module.ts, config/, common/, health/, modules/}` | Ít file wiring nhất; mobile chỉ cần OpenAPI nên không cần `libs/` |
-| `nest g resource <name>` | Scaffold module rồi đổi tên file theo ADR-0006 (`<x>.dto.ts`, `<x>.schema.ts`; bỏ `dto/`, `entities/`, spec mặc định) | Nhanh, đúng convention |
-| `@Module({ imports, providers, controllers, exports })`, `@Global()` | Module theo nghiệp vụ; `@Global()` chỉ cho `ConfigModule`, `DatabaseModule`, `RedisModule`, `SupabaseModule`, `AuthModule` | Ranh giới module = quy tắc bất biến |
-| Dynamic module `forRoot/forRootAsync`, `ConfigurableModuleBuilder` | Chỉ khi module cần cấu hình từ env (`DatabaseModule.forRootAsync`) | YAGNI |
+| `nest new` (project đơn, mặc định) | Một project, all-in-one, cấu trúc [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md): `src/{main.ts, app.ts, app.module.ts, config/, common/, modules/}` | Ít file wiring nhất; mobile chỉ cần OpenAPI nên không cần `libs/` |
+| `nest g resource <name>` | Scaffold module rồi sửa theo quy ước dự án (`dto/<use-case>.dto.ts`, `schema/<x>.schema.ts` thay `entities/`; bỏ spec mặc định, test nằm ở `test/`) | Nhanh, đúng convention |
+| `@Module({ imports, providers, controllers, exports })`, `@Global()` | Module theo nghiệp vụ; `@Global()` chỉ cho `CommonModule` (gom DB, Redis, cache, queue, Supabase) và `ConfigModule` | Ranh giới module = quy tắc bất biến |
+| Dynamic module `forRoot/forRootAsync`, `ConfigurableModuleBuilder` | Chỉ khi module cần cấu hình từ env (`BullModule.forRootAsync`, `ThrottlerModule.forRootAsync`); provider thường thì dùng `useFactory` + `ConfigService` | YAGNI |
 | Injection scope `DEFAULT / REQUEST / TRANSIENT` | **Chỉ singleton**. NEVER `Scope.REQUEST` | Request scope lan lên toàn cây phụ thuộc, tốn hiệu năng, không cần vì app stateless |
 | `forwardRef`, `ModuleRef` | Tránh; vòng phụ thuộc = thiết kế sai. `ModuleRef.get` chỉ trong test | Đơn giản |
 | Lazy-loading module | Không | Monolith boot nhanh |
 | Lifecycle: `onModuleInit → onApplicationBootstrap → onModuleDestroy → beforeApplicationShutdown → onApplicationShutdown` | `app.enableShutdownHooks()`; `@nestjs/bullmq` tự `close()` worker khi shutdown | Graceful shutdown khi `docker compose stop` |
 | Standalone `createApplicationContext` | Không dùng (all-in-one) | Processor sống trong process HTTP; job data vẫn validate bằng zod trong `*.jobs.ts` |
-| `DiscoveryService` | Không ở gđ 1 | YAGNI |
+| `DiscoveryService` | Có: `config/openapi.ts` đọc metadata guard để ghi quyền vào Swagger | Docs không lệch với code |
 
 ## 4. Enhancer toàn cục — đăng ký bằng token trong module, không `app.useGlobal*`
 
 ```ts
 // src/app.module.ts (providers)
-{ provide: APP_GUARD,       useClass: ThrottlerGuard }      // 1. rate limit trước khi tốn CPU verify JWT
+{ provide: APP_GUARD,       useClass: AppThrottlerGuard }   // 1. rate limit trước khi tốn CPU verify JWT
 { provide: APP_GUARD,       useClass: AuthGuard }           // 2. Bearer → JWKS → req.user; @Public() bỏ qua
-{ provide: APP_GUARD,       useClass: PermissionGuard }     // 3. @RequirePermissions('pin:create')
+{ provide: APP_GUARD,       useClass: PermissionGuard }     // 3. @RequirePermissions(['pin:create'])
 { provide: APP_PIPE,        useFactory: () => new StandardSchemaValidationPipe({ exceptionFactory }) }
 { provide: APP_FILTER,      useClass: AllExceptionsFilter } // { success:false, code, msg, data:null, meta }
-{ provide: APP_INTERCEPTOR, useClass: ResponseEnvelopeInterceptor } // { data, meta } — không bọc StreamableFile
+{ provide: APP_INTERCEPTOR, useClass: ResponseInterceptor } // { success, code, msg, data, meta } — không bọc StreamableFile
 ```
 
 - Lý do dùng token: test override được bằng `Test.createTestingModule().overrideProvider()`; enhancer nhận DI.
 - Middleware cần DI (request-id, pino) → class middleware `configure(consumer).apply(...).forRoutes('*')`, không `app.use()`.
-- `main.ts` chỉ còn: tạo app (`rawBody: true`), `setGlobalPrefix('api', { exclude: health })`, `enableVersioning({ type: VersioningType.URI, defaultVersion: '1' })`, helmet, cors, swagger, `keepAliveTimeout`, listen.
+- `app.ts` tạo app: `rawBody: true`, helmet, `trust proxy`, `setGlobalPrefix('api', { exclude })`, `enableVersioning`, `enableShutdownHooks`. `main.ts` chỉ: gọi `createApp()`, gắn Swagger, `keepAliveTimeout`, listen. CORS chưa bật (mobile không cần).
 
 ## 5. Validation & DTO (schema-first, không class-validator)
 
@@ -66,22 +66,22 @@ Middleware → Guards → Interceptors (trước) → Pipes → Controller → S
 |---|---|
 | `ValidationPipe` (class-validator) | **Không** |
 | `StandardSchemaValidationPipe({ transform: true })` toàn cục qua `APP_PIPE` | Có. `exceptionFactory` → `AppException('VALIDATION_FAILED', { issues })` |
-| `@Body({ schema: CreatePinSchema })`, `@Query({ schema })`, `@Param('id', { schema: z.uuid() })` | Có. Schema import từ `<module>.dto.ts`; kiểu handler = `z.infer<typeof CreatePinSchema>` |
+| `@Body({ schema: CreatePinSchema })`, `@Query({ schema })`, `@Param('id', { schema: z.uuid() })` | Có. Schema import từ `modules/<x>/dto/<use-case>.dto.ts`; kiểu handler = `z.infer<typeof CreatePinSchema>` |
 | `ParseUUIDPipe`, `ParseIntPipe`… | Không cần — zod `coerce` làm việc đó |
 | `ClassSerializerInterceptor` | Không — service trả plain object đã lọc, response schema cũng là zod trong contracts |
 
-Quy tắc: mỗi endpoint có **RequestSchema** và **ResponseSchema** trong `src/modules/<x>/<x>.dto.ts`; controller không tự viết type.
+Quy tắc: mỗi use case có **RequestSchema**, **ResponseSchema** và mapper `toXxxResponse` trong `src/modules/<x>/dto/<use-case>.dto.ts`; controller không tự viết type.
 
 ## 6. OpenAPI (`@nestjs/swagger`, theo docs.nestjs.com/openapi)
 
-- `DocumentBuilder().setTitle().setVersion('1').addBearerAuth().addGlobalResponse(401|403|429|500 → ErrorEnvelope)`.
+- `DocumentBuilder().setTitle().setVersion('1').addBearerAuth().addGlobalResponse(401|403|422|429|500 → ErrorResponse)`.
 - `SwaggerModule.createDocument(app, cfg, { include: [<module>], operationIdFactory: (c, m) => `${c.replace(/Controller$/, '')}.${m}` })` một lần mỗi định nghĩa (theo module nghiệp vụ, `OPENAPI_DOCS`).
 - `SwaggerModule.setup('docs', app, doc, { explorer: true, swaggerOptions: { urls }, jsonDocumentUrl: 'docs/<key>-json', useGlobalPrefix: false })` → dropdown chuyển định nghĩa.
 - Sau `createDocument`: duyệt `paths`, tra `Reflector` (`@Public`, `@RequirePermissions`) qua `DiscoveryService.getControllers()` để ghi "Quyền cần có"/"Không cần đăng nhập" vào description (config/openapi.ts `annotateAccess`).
 - Request body/query/param lấy từ `schema` trên decorator — **không** cần `@ApiProperty` cho DTO zod. Response: `@ApiOkResponse({ standardSchema: envelope(ZodSchema) })`; schema có `.meta({ id })` → `components.schemas` + `$ref`.
 - Fallback nếu schema sinh sai: `zod-openapi` + `standardSchemaConverter` (chỉ khi cần).
 - CLI plugin `@nestjs/swagger` trong `nest-cli.json`: **không bật** (dành cho class DTO).
-- Script `openapi:export` tạo app không `listen`, ghi `openapi/app.json`, `openapi/admin.json` → CI artifact → mobile codegen.
+- Script `openapi:export` tạo app không `listen`, ghi `openapi/<module>.json` → CI artifact → mobile codegen.
 
 ## 7. Bảo mật
 
@@ -89,8 +89,8 @@ Quy tắc: mỗi endpoint có **RequestSchema** và **ResponseSchema** trong `sr
 |---|---|
 | Authentication chapter (JwtModule, Passport) | **Không** phát hành token. `AuthGuard` tự viết: `Reflector` + `IS_PUBLIC`, tách `Bearer`, `jose.jwtVerify` với JWKS Supabase |
 | Authorization chapter (`RolesGuard`, CASL, `PoliciesGuard`) | Permission string `resource:action` + `PermissionGuard` + cache Redis; ownership kiểm trong service. Không CASL |
-| `@nestjs/throttler` (`ThrottlerModule.forRoot`, `@Throttle`, `@SkipThrottle`, `getTracker`, storage) | Có, Redis storage; `@SkipThrottle()` cho health; tracker user → device → ip; Express `trust proxy` = 1 (nginx) |
-| Helmet, CORS | `helmet()` trước mọi `app.use`; `enableCors` whitelist origin admin web; mobile không cần CORS |
+| `@nestjs/throttler` (`ThrottlerModule.forRoot`, `@Throttle`, `@SkipThrottle`, `getTracker`, storage) | Có, Redis storage (Lua, tự viết); bỏ qua `/health` và `/docs` bằng `skipIf`; tracker user → device → ip; Express `trust proxy` = 1 (nginx) |
+| Helmet, CORS | `helmet()` trước mọi `app.use`; CORS chưa bật (mobile không cần), thêm khi có web admin |
 | CSRF, cookie, session | Không — Bearer stateless |
 | Encryption/hashing | Không lưu mật khẩu (Supabase); HMAC cho SĐT ở `public.*` nếu cần |
 
@@ -116,14 +116,14 @@ Quy tắc: mỗi endpoint có **RequestSchema** và **ResponseSchema** trong `sr
 
 ## 9. Recipes & FAQ áp dụng
 
-- **Terminus**: `HealthModule` với `DrizzleHealthIndicator`, `RedisHealthIndicator` (inject `HealthIndicatorService`); `/health/live` không check gì, `/health/ready` check DB + Redis, `.withTimeout(2000)`.
-- **Global prefix**: `setGlobalPrefix('api', { exclude: ['health/live', 'health/ready', 'docs/(.*)'] })` — kiểm cú pháp exclude khi làm (v12 không dùng `*` trần).
+- **Terminus**: `HealthModule` với `DrizzleHealthIndicator`, `RedisHealthIndicator` (inject `HealthIndicatorService`); `/health/live` không check gì (trả `{ status, instance }`), `/health/ready` check DB + Redis.
+- **Global prefix**: `setGlobalPrefix('api', { exclude: GLOBAL_PREFIX_EXCLUDE })` với dạng object `{ path: 'health/{*splat}', method }` (v12 dùng `{*splat}`, không phải `*`).
 - **Keep-alive**: `httpAdapter.getHttpServer().keepAliveTimeout = 65_000` (> nginx `keepalive_timeout 60`); `headersTimeout = 66_000`.
 - **REPL**: `nest start --entryFile repl` để gọi service tay khi debug.
 - **AsyncLocalStorage / `nestjs-cls`**: chưa; `nestjs-pino` đã gắn requestId vào log; thêm khi cần truyền context sang job.
 - **Hybrid app / microservices**: không.
 - **Devtools**: bật `snapshot: true` chỉ local khi cần soi graph.
-- **Route conflicts**: bật `routeConflictPolicy: { duplicate: 'error', shadow: 'warn' }` từ đầu để bắt lỗi `:id` che `me`.
+- **Route conflicts**: chưa bật `routeConflictPolicy`; hiện tránh bằng quy ước khai path tĩnh trước `:id`.
 
 ## 10. Testing (chương Fundamentals › Testing)
 
@@ -157,7 +157,7 @@ Ký hiệu: ✅ áp dụng nguyên · ⚠️ áp dụng nguyên tắc, đổi c�
 |---|---|---|
 | arch-feature-modules | ✅ | `modules/<nghiệp vụ>/` (code-standards §3) |
 | arch-module-sharing | ✅ | Chỉ export service; `@Global()` cho Config/Database/Redis/Supabase/Auth |
-| arch-single-responsibility | ✅ | Service < 200 dòng, tách `*-geo.repository`, `*.jobs.ts` |
+| arch-single-responsibility | ✅ | Service < 200 dòng; SQL ở `<x>.repository.ts`, job ở `<x>.jobs.ts` |
 | arch-avoid-circular-deps | ✅ | Không `forwardRef`; vòng = tách module thứ ba hoặc outbox |
 | arch-use-repository-pattern | ✅ | `*.repository.ts` sở hữu Drizzle SQL; service không viết SQL |
 | arch-use-events | ⚠️ | `EventEmitter2` chỉ cho side-effect **trong-process, mất được** (vd log audit). Việc phải xảy ra (rep, badge, push) → outbox → BullMQ vì đa instance |
@@ -167,7 +167,7 @@ Ký hiệu: ✅ áp dụng nguyên · ⚠️ áp dụng nguyên tắc, đổi c�
 | di-use-interfaces-tokens | ✅ **mới** | Adapter ngoài sau Symbol token: `PUSH_SENDER`, `PAYMENT_GATEWAY`, `SMS_SENDER`, `OBJECT_STORAGE` (R2), `SUPABASE_ADMIN` |
 | di-interface-segregation | ✅ **mới** | Mỗi token một interface nhỏ (`PushSender.send`, không "NotificationService" 8 method) |
 | di-liskov-substitution | ✅ **mới** | Mock adapter (FCM/R2/payment) phải qua **cùng bộ contract test** với bản thật |
-| error-use-exception-filters | ⚠️ | `AllExceptionsFilter` qua `APP_FILTER` (không `useGlobalFilters`); shape `{error:{code,params,requestId}}` |
+| error-use-exception-filters | ⚠️ | `AllExceptionsFilter` qua `APP_FILTER` (không `useGlobalFilters`); shape `{ success, code, msg, data, meta }` |
 | error-throw-http-exceptions | ⚠️ | Service ném `AppException(ErrorCodes.X, params)`; không ném `NotFoundException('User #1 not found')` (không echo input, không câu tiếng Việt) |
 | error-handle-async-errors | ⚠️ | Giữ: `.catch()` bắt buộc cho fire-and-forget (`touchDevice`), `process.on('unhandledRejection')` log; **bỏ** ví dụ `@Cron` |
 | security-validate-all-input | ⚠️ | `StandardSchemaValidationPipe` + zod (không class-validator); zod `.strict()` thay `forbidNonWhitelisted` |
@@ -186,7 +186,7 @@ Ký hiệu: ✅ áp dụng nguyên · ⚠️ áp dụng nguyên tắc, đổi c�
 | db-avoid-n-plus-one | ✅ | Một query/list endpoint: join hoặc `inArray` batch; bật log query ở dev để bắt N+1 |
 | db-use-migrations | ✅ | `drizzle-kit generate` → review → `migrate` bước riêng; không `push` ở prod |
 | api-use-dto-serialization | ⚠️ | Không class-transformer. Nguyên tắc giữ: **không trả raw row** — service map sang `ResponseSchema` zod trong contracts |
-| api-use-interceptors | ✅ | Envelope `{data, meta}`; cân nhắc `TimeoutInterceptor` 15 s cho route ngoài health |
+| api-use-interceptors | ✅ | Bọc `{ success, code, msg, data, meta }`; cân nhắc `TimeoutInterceptor` 15 s cho route ngoài health |
 | api-use-pipes | ⚠️ | Không `ParseUUIDPipe`/`DefaultValuePipe`; zod `z.uuid()`, `.default()`, `z.coerce` làm việc đó |
 | api-versioning | ✅ | `VersioningType.URI`, `defaultVersion: '1'` |
 | micro-use-patterns | ❌ | Không microservices |

@@ -13,6 +13,10 @@ export const RoleSchema = z.object({
 }).meta({ id: 'Role' });
 export type Role = z.infer<typeof RoleSchema>;
 
+/** Response của GET/PUT /admin/users/:id/roles. */
+export const UserRolesSchema = z.object({ id: z.uuid(), roles: z.array(RoleCodeSchema) }).meta({ id: 'UserRoles' });
+export type UserRoles = z.infer<typeof UserRolesSchema>;
+
 export const SetUserRolesSchema = z.object({
   roles: z.array(RoleCodeSchema).min(1).max(ROLE_CODES.length),
 }).meta({ id: 'SetUserRoles' });

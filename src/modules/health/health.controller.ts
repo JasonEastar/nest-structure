@@ -1,12 +1,20 @@
 import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { z } from 'zod';
 import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
 import { Public } from '../../common/auth/decorators.js';
 import type { Env } from '../../config/env.js';
 import { DrizzleHealthIndicator, RedisHealthIndicator } from './health.indicators.js';
 
-/** /health/live (process sống) · /health/ready (DB + Redis, 503 khi down hoặc đang shutdown). Ngoài prefix /api và versioning. */
+/**
+ * /health/live (process sống) · /health/ready (DB + Redis, 503 khi down hoặc đang shutdown).
+ * Dành cho Docker/nginx/load balancer, KHÔNG theo shape { success, code, msg, data, meta } của API app
+ * (ResponseInterceptor bỏ qua /health) — probe đọc `status`, và /ready giữ nguyên shape của Terminus.
+ */
+const LiveResponseSchema = z.object({ status: z.literal('ok'), instance: z.string() }).meta({ id: 'LiveResponse' });
+type Live = z.infer<typeof LiveResponseSchema>;
+
 @ApiTags('Health')
 @Public()
 @Controller({ path: 'health', version: VERSION_NEUTRAL })
@@ -20,11 +28,9 @@ export class HealthController {
 
   @Get('live')
   @ApiOperation({ summary: 'Process còn sống', description: 'Không kiểm dependency. Docker HEALTHCHECK và nginx dùng endpoint này.' })
-  @ApiOkResponse({ description: '{ data: { status: "ok", instance } }' })
-  live(): { data: { status: 'ok'; instance: string } } {
-    return {
-      data: { status: 'ok', instance: this.config.get('INSTANCE_ID', { infer: true }) },
-    };
+  @ApiOkResponse({ standardSchema: LiveResponseSchema })
+  live(): Live {
+    return { status: 'ok', instance: this.config.get('INSTANCE_ID', { infer: true }) };
   }
 
   @Get('ready')
