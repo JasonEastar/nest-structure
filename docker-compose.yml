@@ -2,7 +2,8 @@
 #   npm run dev:infra        → postgres + redis (rồi `npm run dev` trên host)
 #   npm run dev:infra:full   → thêm api-1, api-2, nginx (test đa instance)
 # Chỉ nginx publish ra ngoài (3000); các service khác bind 127.0.0.1.
-# Trùng port với Postgres/Redis khác trên máy? Đặt PG_HOST_PORT / REDIS_HOST_PORT / NGINX_HOST_PORT trong .env.
+# Máy đã có Postgres/Redis khác chiếm 5432/6379? Đặt PG_HOST_PORT / REDIS_HOST_PORT trong .env (vd 5433/6380)
+# VÀ sửa DATABASE_URL / REDIS_URL trỏ theo port đó. Máy bình thường không cần.
 #
 # Lưu ý YAML: `environment:` ở service THAY THẾ (không merge) map trong anchor → anchor không khai environment;
 # biến chung lấy từ .env (env_file), mỗi service chỉ ghi đè 3 biến phụ thuộc mạng compose.
