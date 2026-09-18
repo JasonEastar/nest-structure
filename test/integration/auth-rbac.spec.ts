@@ -68,7 +68,6 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
     issuer = supabase.issuer;
     // Ghi đè env TRƯỚC khi import AppModule (ConfigModule chụp process.env lúc module được evaluate)
     supabase.applyEnv();
-    process.env.NODE_ENV = 'development'; // để Bull Board được mount (tắt khi NODE_ENV=test)
     const { AppModule, GLOBAL_PREFIX_EXCLUDE } = await import('../../src/app.module.js');
     admin = new InMemorySupabaseAdmin();
 

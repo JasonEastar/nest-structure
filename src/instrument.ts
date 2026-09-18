@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/nestjs';
 /**
  * Khởi tạo Sentry. Nạp bằng cờ Node `--import ./dist/instrument.js` (scripts dev/start:prod, Dockerfile) để Sentry móc vào
  * pino và http TRƯỚC khi app được nạp — với ESM, import trong main.ts là quá muộn cho log và trace.
- * Chỉ bật khi có SENTRY_DSN; không có thì mọi lệnh Sentry là no-op. Đọc .env trực tiếp vì chạy trước ConfigModule.
+ * Chỉ bật khi có SENTRY_DSN (local để trống = tắt). Đọc .env trực tiếp vì chạy trước ConfigModule.
  */
 if (existsSync('.env')) process.loadEnvFile('.env');
 
@@ -17,6 +17,5 @@ if (process.env.SENTRY_DSN && !Sentry.isInitialized()) {
     // Trace (timeline từng bước của request): dev ghi 100 % để soi ngay; prod 10 % vì trace nặng và tốn quota
     tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1,
     sendDefaultPii: false,
-    debug: process.env.SENTRY_DEBUG === '1', // in ra những gì SDK gửi, dùng khi nghi Sentry không nhận
   });
 }

@@ -196,16 +196,19 @@ Presigned PUT R2, 5 phút, ≤ 10 MB, `image/jpeg|png|webp|heic`. Backend xác n
 
 Health cho compose: `/health/live` + `/health/ready`; không có service worker riêng — mọi `api` chạy cả processor nên `stop_grace_period` 60 s cho `api` để job đang chạy kịp xong. Secrets: `.env.example` commit; prod dùng AWS Secrets Manager / Docker secrets; NEVER trong image.
 
-## 15. Biến môi trường chính
+## 15. Biến môi trường
 
-| Tên | Ghi chú |
+| Phải điền | Ghi chú |
 |---|---|
-| `NODE_ENV`, `PORT` (3000), `INSTANCE_ID` (mặc định hostname container), `TRUST_PROXY_HOPS` (nginx 1, ALB+nginx 2), `LOG_LEVEL` | Chuẩn |
-| `DATABASE_URL` | `postgres://c9:…@postgres:5432/c9_map` (container) / `127.0.0.1:5432` (host) |
-| `DATABASE_URL` (migration chạy bằng CLI riêng) | Prod: role `c9_migrate`; local = `DATABASE_URL` |
-| `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_JWKS_URL?` | Admin API + JWKS; publishable key chỉ cho `scripts/dev-token.mjs` và E2E |
-| `SUPABASE_JWKS_URL` | mặc định `${SUPABASE_URL}/auth/v1/.well-known/jwks.json` |
-| `REDIS_URL` | DB 0 cache; queue dùng `/1` |
-| `R2_*`, `FCM_*`, `SENTRY_DSN` | Theo giai đoạn |
+| `DATABASE_URL`, `REDIS_URL` | Compose ghi đè theo tên service (`postgres`, `redis`); host dev dùng `127.0.0.1` + `PG_HOST_PORT`/`REDIS_HOST_PORT` |
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY` | Auth. Publishable key chỉ cho `scripts/dev-token.mjs` và test Supabase thật |
+| `NODE_ENV` | `production` trên server: log JSON, trace 10 % |
+
+| Tuỳ chọn (có mặc định trong `config/env.ts`) | Mặc định |
+|---|---|
+| `PORT`, `INSTANCE_ID`, `LOG_LEVEL`, `TRUST_PROXY_HOPS`, `DB_POOL_MAX` | 3000 · hostname · info · 1 · 10 |
+| `THROTTLE_SHORT_LIMIT`, `THROTTLE_LONG_LIMIT` | 10/giây · 100/phút |
+| `PUBLIC_URL`, `SENTRY_DSN` | trống = tắt; chỉ đặt khi deploy |
+| `SUPABASE_JWKS_URL` | suy từ `SUPABASE_URL`; test trỏ vào JWKS giả |
 
 Toàn bộ validate bằng zod lúc boot (`config/env.ts`); thiếu → process thoát.

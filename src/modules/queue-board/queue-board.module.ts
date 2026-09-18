@@ -10,7 +10,7 @@ import { requestIdOf } from '../../common/http/request-context.middleware.js';
 import { QUEUES } from '../../common/redis/queue.js';
 import { UserModule } from '../user/user.module.js';
 
-/** Bull Board /admin/queues (công cụ ops). Mount ngoài Nest pipeline nên tự kiểm token + quyền queue:read. Tắt khi test. */
+/** Bull Board /admin/queues (công cụ ops). Mount ngoài Nest pipeline nên tự kiểm token + quyền queue:read. */
 export const QUEUE_BOARD_ROUTE = '/admin/queues';
 const QUEUE_BOARD_PERMISSION = 'queue:read';
 const COOKIE = 'c9_board_token';
@@ -58,11 +58,7 @@ const root = BullBoardModule.forRootAsync({
 const queueNames = Object.values(QUEUES) as string[];
 
 @Module({
-  // Tắt khi chạy test (Bull Board mount ngoài Nest). Đọc lúc import nên NODE_ENV phải là biến môi trường thật, không phải chỉ trong .env.
-  // Chưa có queue thì chỉ mount trang trống.
-  imports:
-    process.env.NODE_ENV === 'test'
-      ? []
-      : [root, ...(queueNames.length ? [BullBoardModule.forFeature(...queueNames.map((name) => ({ name, adapter: BullMQAdapter })))] : [])],
+  // Chưa có queue thì chỉ mount trang trống
+  imports: [root, ...(queueNames.length ? [BullBoardModule.forFeature(...queueNames.map((name) => ({ name, adapter: BullMQAdapter })))] : [])],
 })
 export class QueueBoardModule {}

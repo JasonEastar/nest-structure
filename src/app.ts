@@ -12,8 +12,6 @@ export async function createApp(): Promise<NestExpressApplication> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true, // cho verify chữ ký webhook thanh toán sau này
     bufferLogs: true, // giữ log lúc boot cho tới khi pino sẵn sàng
-    // Chỉ dev: tắt nhanh khi Ctrl+C. Prod phải để request đang chạy hoàn tất (option này destroy cả socket đang phục vụ).
-    forceCloseConnections: process.env.NODE_ENV === 'development',
   });
   app.useLogger(app.get(PinoLogger));
 
