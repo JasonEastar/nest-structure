@@ -217,4 +217,4 @@ this.logger.error(`fcm failed`, err.stack);              // stack ở tham số 
 - Không log token, cookie, mật khẩu, SĐT, toạ độ chính xác của user: pino đã redact các key này thành `[redacted]`, nhưng đừng ghép chúng vào chuỗi message.
 - Mức log: `LOG_LEVEL` trong `.env` (`info` mặc định, `debug` khi cần soi, `warn` trên test). `/health/*` không log.
 
-Xem log: dev `npm run dev` in thẳng terminal; Docker `docker compose logs -f api-1` (mỗi container giữ tối đa 3 × 20 MB); production thu log từ stdout của container lên CloudWatch/Loki, chưa cần ở MVP.
+Xem log: dev `npm run dev` in thẳng terminal; Docker `docker compose logs -f api-1` (mỗi container giữ tối đa 3 × 20 MB). Tập trung nhiều instance: đặt `AXIOM_TOKEN` + `AXIOM_DATASET` trong env là pino gửi thêm mọi dòng lên Axiom (`logger.ts`), xem tại app.axiom.co → dataset. Token cần quyền Ingest.

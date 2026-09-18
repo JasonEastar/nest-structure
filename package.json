@@ -26,8 +26,8 @@
     "db:studio": "drizzle-kit studio",
     "openapi:export": "nest build && node dist/openapi-export.js"
   },
-
   "dependencies": {
+    "@axiomhq/pino": "^2.0.0",
     "@bull-board/api": "^9.10.1",
     "@bull-board/express": "^9.10.1",
     "@bull-board/nestjs": "^9.10.1",

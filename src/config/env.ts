@@ -9,6 +9,8 @@ export const envSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1), // nginx = 1; thêm ALB phía trước = 2
   PUBLIC_URL: z.url({ protocol: /^https?$/ }).optional(), // URL công khai của API (staging/prod) → mục Servers trong Swagger
+  AXIOM_TOKEN: z.string().min(10).optional(), // đặt cả 2 biến Axiom → log gửi thêm lên Axiom (xem logger.ts)
+  AXIOM_DATASET: z.string().min(1).optional(),
 
   // Postgres 16 + PostGIS (tự host)
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
