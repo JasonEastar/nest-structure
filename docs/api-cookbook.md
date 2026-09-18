@@ -117,31 +117,40 @@ export const NearbyLocationsQuerySchema = z.object({                          //
 });
 ```
 
-Sai → **422** với body:
-
-```json
-{ "error": { "code": "VALIDATION_FAILED", "message": "Dữ liệu gửi lên không hợp lệ",
-             "params": { "issues": [{ "path": "lat", "message": "Too big: expected number to be <=90" }] }, "requestId": "…" } }
-```
+Sai → **422**, danh sách field hỏng nằm ở `meta.issues` (xem mục 6).
 
 `message` dịch theo ngôn ngữ request; `issues[].message` là câu kỹ thuật của zod (tiếng Anh) để dev debug, không hiển thị cho người dùng. Số giới hạn để trong `<x>.constants.ts`, không viết số trong schema. Helper có sẵn: `zText(max, min?)`, `zLatLng`, `PaginationQuerySchema`. Cần enum: `z.enum(['traffic_jam', 'flooding'])`. Cần field tuỳ chọn: `.optional()` (không gửi) khác `.nullable()` (gửi `null`).
 
 ## 6. Trả response và ném lỗi
 
-Controller `return` dữ liệu thuần, interceptor bọc thành envelope. Client luôn đọc `body.data`.
+Controller `return` dữ liệu thuần, interceptor bọc thành response chuẩn. **Mọi response, thành công hay lỗi, đều đúng 5 field.**
 
 ```json
-{ "data": { "id": "…", "name": "Nhà", "lat": 10.7798, "lng": 106.699, "radiusMeters": 500, "createdAt": "2026-09-17T04:00:00.000Z" },
-  "meta": { "requestId": "01a0…" } }
+// thành công
+{ "success": true, "code": "OK", "msg": "",
+  "data": { "id": "…", "name": "Nhà", "lat": 10.7798, "lng": 106.699 },
+  "meta": { "requestId": "01a0…", "nextCursor": null } }
+
+// lỗi
+{ "success": false, "code": "VALIDATION_FAILED", "msg": "Dữ liệu gửi lên không hợp lệ", "data": null,
+  "meta": { "issues": [{ "path": "lat", "message": "Too big: expected number to be <=90" }], "requestId": "01a0…" } }
 ```
+
+| Field | Thành công | Lỗi |
+|---|---|---|
+| `success` | `true` | `false` |
+| `code` | `"OK"` | mã lỗi: `VALIDATION_FAILED`, `NOT_FOUND`… client rẽ nhánh theo đây |
+| `msg` | `""` | câu đã dịch theo `Accept-Language`, hiện thẳng cho người dùng |
+| `data` | dữ liệu | `null` |
+| `meta` | luôn có `requestId`; list thêm `nextCursor` | `requestId` + chi tiết lỗi (`issues`, `reason`, `max`, `retryAfter`…) |
 
 | Tình huống | Viết | Kết quả |
 |---|---|---|
-| Tạo | `@Post()` return object | 201 + envelope |
+| Tạo | `@Post()` return object | 201 + response chuẩn |
 | Đọc | `@Get()` return object | 200 |
 | Xoá / không có gì trả | `@HttpCode(HttpStatus.NO_CONTENT)` + `Promise<void>` | 204 |
-| Danh sách phân trang | service: `return pageOf(rows, query.limit, (r) => ({ createdAt: r.createdAt, id: r.id }))` sau khi repository lấy `limit + 1` dòng | Trả `{ data, meta: { nextCursor } }`; interceptor thêm `requestId`. Client gửi lại `?cursor=` |
-| Lỗi nghiệp vụ | `throw new AppException('NOT_FOUND', { resource: 'location', id })` | `{ error: { code, message, params, requestId } }` đúng HTTP status; `message` = câu trong `i18n/<lang>/errors.json` (`NOT_FOUND` + `resource.location` → "Không tìm thấy địa điểm") |
+| Danh sách phân trang | service: `return pageOf(rows, query.limit, (r) => ({ createdAt: r.createdAt, id: r.id }))` sau khi repository lấy `limit + 1` dòng | `meta.nextCursor`; client gửi lại `?cursor=` |
+| Lỗi nghiệp vụ | `throw new AppException('NOT_FOUND', { resource: 'location', id })` | `success=false`, `code`, `msg` dịch từ `i18n/<lang>/errors.json`, params vào `meta`, đúng HTTP status |
 | Lỗi mới chưa có mã | thêm vào `ErrorCodes` trong `common/http/exceptions.ts` kèm status, thêm câu cùng tên vào `i18n/vi/errors.json` và `i18n/en/errors.json` | Cần câu riêng theo tình huống: `params.reason` + key `CODE_REASON` (vd `CONFLICT_LIMIT_REACHED`) |
 
 Ngôn ngữ: chỉ header `Accept-Language: vi | en` (mặc định vi), client tự gắn header khi gọi; không nhận qua query hay body. Mã lỗi hiện có: `VALIDATION_FAILED` 422 · `NOT_FOUND` 404 · `UNAUTHENTICATED` 401 · `FORBIDDEN` 403 · `RATE_LIMITED` 429 · `CONFLICT` 409 · `BAD_REQUEST` 400 · `PAYLOAD_TOO_LARGE` 413 · `SERVICE_UNAVAILABLE` 503 · `INTERNAL` 500. Lỗi 5xx bất ngờ (throw Error thường) tự thành `INTERNAL`, stack chỉ ghi log.
@@ -196,7 +205,7 @@ npm test                            # unit + integration (testcontainers tự d�
 - [ ] Path danh từ số nhiều, path tĩnh trước `:id`, tên hàm = `list|get|create|update|remove|<hành động>`
 - [ ] Schema zod trên `@Param/@Query/@Body`, số giới hạn ở constants, query dùng `coerce`
 - [ ] Service ném `AppException` với mã trong `ErrorCodes`; của người khác → `NOT_FOUND`
-- [ ] Response map ở một hàm; list dùng `pageOf`; 204 cho xoá
+- [ ] Response map ở một hàm; list dùng `pageOf`; 204 cho xoá (204 không có body)
 - [ ] `@ApiTags` · `@ApiOperation({ summary })` · `@ApiOkResponse/@ApiCreatedResponse({ standardSchema: envelope(...) })` · schema body/response có `.meta({ id })``
 - [ ] Module trong `app.module.ts` imports và một mục `OPENAPI_DOCS`
 - [ ] Unit + integration test, `npm test` xanh, mở `/docs` xem lại

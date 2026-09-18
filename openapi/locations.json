@@ -573,7 +573,7 @@
   },
   "info": {
     "title": "C9 Map · Locations",
-    "description": "Địa điểm user tự lưu (tên, toạ độ, bán kính) và truy vấn địa điểm công khai quanh một toạ độ (PostGIS).\n\nNgôn ngữ: header `Accept-Language: vi | en` (mặc định vi).",
+    "description": "Địa điểm user tự lưu (tên, toạ độ, bán kính) và truy vấn địa điểm công khai quanh một toạ độ (PostGIS).\n\nMọi response có cùng 5 field: `success`, `code`, `msg`, `data`, `meta`. Khi lỗi: `success=false`, `data=null`, `code` là mã lỗi, `msg` là câu đã dịch.\n\nNgôn ngữ: header `Accept-Language: vi | en` (mặc định vi).",
     "version": "1",
     "contact": {}
   },

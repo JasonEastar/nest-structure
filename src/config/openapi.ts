@@ -46,7 +46,9 @@ export function envelope<T extends z.ZodType>(data: T) {
 }
 
 /** Một dòng nối vào cuối mô tả mọi định nghĩa. Cách gửi token đã có nút Authorize; shape response xem mục Schemas. */
-const COMMON_DESCRIPTION = '\n\nNgôn ngữ: header `Accept-Language: vi | en` (mặc định vi).';
+const COMMON_DESCRIPTION =
+  '\n\nMọi response có cùng 5 field: `success`, `code`, `msg`, `data`, `meta`. Khi lỗi: `success=false`, `data=null`, `code` là mã lỗi, `msg` là câu đã dịch.' +
+  '\n\nNgôn ngữ: header `Accept-Language: vi | en` (mặc định vi).';
 
 function buildOne(app: INestApplication, def: OpenApiDefinition, env: DocEnv): OpenAPIObject {
   const builder = new DocumentBuilder()

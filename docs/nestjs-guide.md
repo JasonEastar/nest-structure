@@ -52,7 +52,7 @@ Middleware → Guards → Interceptors (trước) → Pipes → Controller → S
 { provide: APP_GUARD,       useClass: AuthGuard }           // 2. Bearer → JWKS → req.user; @Public() bỏ qua
 { provide: APP_GUARD,       useClass: PermissionGuard }     // 3. @RequirePermissions('pin:create')
 { provide: APP_PIPE,        useFactory: () => new StandardSchemaValidationPipe({ exceptionFactory }) }
-{ provide: APP_FILTER,      useClass: AllExceptionsFilter } // { error: { code, params, requestId } }
+{ provide: APP_FILTER,      useClass: AllExceptionsFilter } // { success:false, code, msg, data:null, meta }
 { provide: APP_INTERCEPTOR, useClass: ResponseEnvelopeInterceptor } // { data, meta } — không bọc StreamableFile
 ```
 

@@ -50,7 +50,7 @@ describe('Locations (e2e)', () => {
   it('không token → 401; body sai (lat 91, name rỗng, radius quá nhỏ) → 422 kèm path', async () => {
     await api().post('/api/v1/locations').send({}).expect(401);
     const res = await create(tokenA, { name: '  ', lat: 91, lng: 106.7, radiusMeters: 10 }).expect(422);
-    const paths = res.body.error.params.issues.map((i: { path: string }) => i.path);
+    const paths = res.body.meta.issues.map((i: { path: string }) => i.path);
     expect(paths).toEqual(expect.arrayContaining(['name', 'lat', 'radiusMeters']));
   });
 
@@ -104,7 +104,7 @@ describe('Locations (e2e)', () => {
     expect(seen).toEqual(['L5', 'L4', 'L3', 'L2', 'L1']);
 
     const bad = await api().get('/api/v1/locations?cursor=!!!').set('authorization', `Bearer ${tokenC}`).expect(400);
-    expect(bad.body.error).toMatchObject({ code: 'BAD_REQUEST', params: { field: 'cursor' } });
+    expect(bad.body).toMatchObject({ success: false, code: 'BAD_REQUEST', data: null, meta: { field: 'cursor' } });
   });
 
   it('giới hạn 20 / user → 409 CONFLICT LIMIT_REACHED; xoá → 204 rồi 404', async () => {
@@ -115,7 +115,7 @@ describe('Locations (e2e)', () => {
       ids.push(r.body.data.id);
     }
     const over = await create(tokenD, { name: 'thừa', lat: 10.7, lng: 106.7 }).expect(409);
-    expect(over.body.error).toMatchObject({ code: 'CONFLICT', params: { reason: 'LIMIT_REACHED', max: 20 } });
+    expect(over.body).toMatchObject({ success: false, code: 'CONFLICT', meta: { reason: 'LIMIT_REACHED', max: 20 } });
 
     await api().delete(`/api/v1/locations/${ids[0]}`).set('authorization', `Bearer ${tokenD}`).expect(204);
     await api().get(`/api/v1/locations/${ids[0]}`).set('authorization', `Bearer ${tokenD}`).expect(404);

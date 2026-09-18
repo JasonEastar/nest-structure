@@ -82,8 +82,8 @@ NEVER  dùng SUPABASE_SERVICE_ROLE_KEY ở client hoặc trong log/response
 ### 2.5 API
 
 ```
-MUST   lỗi trả { code, message, params, requestId }: client rẽ nhánh theo code; message đã dịch theo header Accept-Language (vi mặc định, en) — cách DUY NHẤT chọn ngôn ngữ, không nhận qua query/body từ i18n/<lang>/errors.json — NEVER hard-code câu chữ trong service
-MUST   response shape: { data, meta } / { error: { code, params, requestId } }
+MUST   MỌI response cùng 5 field { success, code, msg, data, meta }; lỗi: success=false, data=null, code là mã chữ (NEVER số HTTP), msg đã dịch theo Accept-Language, chi tiết trong meta từ i18n/<lang>/errors.json — NEVER hard-code câu chữ trong service
+MUST   response shape DUY NHẤT cho cả thành công lẫn lỗi: { success, code, msg, data, meta }
 MUST   AuthGuard global; route mở dùng @Public()
 MUST   mọi route ghi có @RequirePermissions('<resource>:<action>') — quyền nằm trong DB + Redis, NEVER trong JWT
 MUST   SOS (gđ 2) có @RequirePhoneVerified() — không global; MVP đăng nhập chỉ Google, không cần SĐT
@@ -156,8 +156,8 @@ c9_map/
 │   │   │   ├── queue.ts              # BullModule.forRoot (db1, prefix c9) · QUEUES
 │   │   │   └── throttler.guard.ts    # RedisThrottlerStorage (Lua) · AppThrottlerGuard tracker u:/d:/ip:
 │   │   └── http/
-│   │       ├── exceptions.ts         # ErrorCodes · AppException · AllExceptionsFilter → { error: { code, params, requestId } }
-│   │       ├── response.ts           # ResponseInterceptor { data, meta: { requestId, nextCursor? } }
+│   │       ├── exceptions.ts         # ErrorCodes · AppException · AllExceptionsFilter → { success:false, code, msg, data:null, meta }
+│   │       ├── response.ts           # ResponseInterceptor → { success, code, msg, data, meta }
 │   │       ├── pagination.ts         # cursor (created_at, id) · PaginationQuerySchema · pageOf()
 │   │       ├── validation.ts         # APP_PIPE StandardSchemaValidationPipe (zod) → 422 · zText · zLatLng
 │   │       ├── request-context.middleware.ts  # X-Instance-Id · X-Request-Id

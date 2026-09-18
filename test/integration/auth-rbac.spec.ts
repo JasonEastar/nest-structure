@@ -94,7 +94,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
 
   it('không token → 401 UNAUTHENTICATED; @Public() vẫn mở', async () => {
     const res = await request(app.getHttpServer()).get('/api/v1/probe/secure').expect(401);
-    expect(res.body.error.code).toBe('UNAUTHENTICATED');
+    expect(res.body.code).toBe('UNAUTHENTICATED');
     await request(app.getHttpServer()).get('/api/v1/probe/open').expect(200);
   });
 
@@ -177,7 +177,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
       .get('/api/v1/probe/needs-perm')
       .set('authorization', `Bearer ${token}`)
       .expect(403);
-    expect(denied.body.error).toMatchObject({ code: 'FORBIDDEN', params: { missing: ['report:review'] } });
+    expect(denied.body).toMatchObject({ success: false, code: 'FORBIDDEN', data: null, meta: { missing: ['report:review'] } });
 
     await users.setUserRoles(sub, ['moderator']);
     await request(app.getHttpServer())
@@ -241,7 +241,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
       .set('authorization', `Bearer ${adminToken}`)
       .send({ roles: ['moderator'] })
       .expect(404);
-    expect(notFound.body.error.code).toBe('NOT_FOUND');
+    expect(notFound.body.code).toBe('NOT_FOUND');
   });
 
   it('x-device-id → ghi devices (1 lần/5 phút)', async () => {
@@ -271,7 +271,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
 
     // Token còn hạn KHÔNG được làm profile sống lại: tombstone → 401, và không có dòng profile mới
     const after = await request(app.getHttpServer()).get('/api/v1/me').set('authorization', `Bearer ${token}`).expect(401);
-    expect(after.body.error.code).toBe('UNAUTHENTICATED');
+    expect(after.body.code).toBe('UNAUTHENTICATED');
     await expect(users.getMe(sub)).rejects.toMatchObject({ code: 'NOT_FOUND' });
     expect(await cache.has(CACHE.deleted.key(sub))).toBe(true);
   });
@@ -302,7 +302,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
       .get('/admin/queues/api/queues')
       .set('authorization', `Bearer ${token}`)
       .expect(403);
-    expect(denied.body.error.code).toBe('FORBIDDEN');
+    expect(denied.body.code).toBe('FORBIDDEN');
 
     await users.setUserRoles(sub, ['admin']); // admin có queue:read
     const ok = await request(app.getHttpServer())

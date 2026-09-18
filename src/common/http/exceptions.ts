@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import { DEFAULT_LOCALE } from '../../config/i18n.js';
 import { requestIdOf } from './request-context.middleware.js';
+import type { ApiResponse } from './response.js';
 
 /** Mã lỗi + HTTP status mặc định. Thêm mã mới → thêm câu dịch cùng tên trong i18n/{vi,en}/errors.json. */
 export const ErrorCodes = {
@@ -20,16 +21,6 @@ export const ErrorCodes = {
 
 export type ErrorCode = keyof typeof ErrorCodes;
 export type ErrorParams = Record<string, unknown>;
-
-/** Shape lỗi thống nhất cho mọi API. */
-export interface ErrorEnvelope {
-  error: {
-    code: ErrorCode; // client rẽ nhánh theo mã này
-    message: string; // đã dịch (vi/en) theo request, hiển thị thẳng cho người dùng
-    params: ErrorParams; // dữ liệu phụ để client tự dịch lại nếu muốn (resource, retryAfter, issues…)
-    requestId: string; // gửi kèm khi báo lỗi để tra log
-  };
-}
 
 /** Lỗi nghiệp vụ: service ném `new AppException('NOT_FOUND', { resource: 'pin' })`. */
 export class AppException extends HttpException {
@@ -56,7 +47,8 @@ const STATUS_TO_CODE: Partial<Record<number, ErrorCode>> = {
 };
 
 /**
- * Filter toàn cục: mọi lỗi → ErrorEnvelope. AppException giữ code/status; HttpException Nest map status → code; lỗi lạ → 500.
+ * Filter toàn cục: mọi lỗi → ApiResponse (response.ts) với success=false, data=null, chi tiết trong meta.
+ * AppException giữ code/status; HttpException Nest map status → code; lỗi lạ → 500.
  * message dịch theo Accept-Language: `CODE_<reason>` → `CODE` → mã lỗi. 5xx log stack, không lộ ra client.
  */
 @Catch()
@@ -113,7 +105,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return;
     }
     const lang = I18nContext.current(host)?.lang ?? DEFAULT_LOCALE;
-    const body: ErrorEnvelope = { error: { code, message: this.translate(lang, code, params), params, requestId } };
+    // params trải vào meta (issues, reason, retryAfter…); requestId đặt sau cùng để không bị params ghi đè
+    const body: ApiResponse<never> = {
+      success: false,
+      code,
+      msg: this.translate(lang, code, params),
+      data: null,
+      meta: { ...params, requestId },
+    };
     res.status(status).json(body);
   }
 }

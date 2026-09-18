@@ -66,7 +66,11 @@ describe('AllExceptionsFilter', () => {
     filter.catch(new AppException('FORBIDDEN', { missing: ['pin:create'] }), host(req, res));
     expect(calls.status).toBe(403);
     expect(calls.body).toEqual({
-      error: { code: 'FORBIDDEN', message: 'Không có quyền', params: { missing: ['pin:create'] }, requestId: 'req-1' },
+      success: false,
+      code: 'FORBIDDEN',
+      msg: 'Không có quyền',
+      data: null,
+      meta: { missing: ['pin:create'], requestId: 'req-1' },
     });
   });
 
@@ -82,7 +86,7 @@ describe('AllExceptionsFilter', () => {
     const { res, calls } = fakeRes();
     filter.catch(new NotFoundException('Cannot GET /x'), host(req, res));
     expect(calls.status).toBe(404);
-    expect((calls.body as { error: { code: string } }).error.code).toBe('NOT_FOUND');
+    expect((calls.body as { code: string }).code).toBe('NOT_FOUND');
   });
 
   it('lỗi lạ → 500 INTERNAL, không lộ message', () => {
@@ -90,7 +94,7 @@ describe('AllExceptionsFilter', () => {
     filter.catch(new Error('db password leaked'), host(req, res));
     expect(calls.status).toBe(500);
     expect(JSON.stringify(calls.body)).not.toContain('leaked');
-    expect((calls.body as { error: { code: string } }).error.code).toBe('INTERNAL');
+    expect((calls.body as { code: string }).code).toBe('INTERNAL');
   });
 
   it('headers đã gửi → không ghi thêm', () => {

@@ -17,7 +17,7 @@ Tài liệu cho người mới mở repo lần đầu (kể cả dev React chưa
 | Guard | Route protection: cho vào hay chặn (401/403/429) | `common/auth/*.guard.ts`, `common/redis/throttler.guard.ts` |
 | Pipe | Validate form: body/query/param sai → 422 trước khi tới handler | `common/http/validation.ts` |
 | Interceptor | Giống axios interceptor phía server: bọc response chung một shape | `common/http/response.ts` |
-| Filter | Error boundary: mọi lỗi ném ra đều thành `{ error: { code } }` | `common/http/exceptions.ts` |
+| Filter | Error boundary: mọi lỗi ném ra đều thành `{ success: false, code, msg, … }` | `common/http/exceptions.ts` |
 | DTO | Kiểu dữ liệu vào/ra, ở đây viết bằng zod và Swagger tự đọc | `modules/user/dto/*.dto.ts` |
 | Schema (Drizzle) | Định nghĩa bảng DB bằng TypeScript, sinh migration SQL | `modules/user/schema/user.schema.ts` |
 
@@ -45,8 +45,8 @@ Chưa cần đọc ngay: `common/redis/throttler.guard.ts` (rate limit, có Lua)
 7. `user.controller.ts` hàm `me()`: gọi `users.getMe(user.id)`.
 8. `user.service.ts` hàm `getMe()`: gọi repository lấy profile, role, permission; ghép thành object đúng `MeResponseSchema`.
 9. `user.repository.ts`: các câu `select` Drizzle trên bảng `profiles`, `user_roles`, `roles`.
-10. `common/http/response.ts`: bọc kết quả thành `{ data: {...}, meta: { requestId } }`.
-11. Nếu bước nào ném lỗi: `common/http/exceptions.ts` biến thành `{ error: { code: 'NOT_FOUND', message: 'Không tìm thấy địa điểm', params, requestId } }` với đúng HTTP status. `message` dịch theo header `Accept-Language` của request (mặc định vi). Client rẽ nhánh theo `error.code`, hiển thị `error.message`.
+10. `common/http/response.ts`: bọc kết quả thành `{ success: true, code: "OK", msg: "", data, meta: { requestId } }`.
+11. Nếu bước nào ném lỗi: `common/http/exceptions.ts` trả **cùng 5 field** với `success: false`, `code: 'NOT_FOUND'`, `msg` đã dịch theo `Accept-Language`, `data: null`, chi tiết trong `meta`. HTTP status vẫn đúng (404). Client rẽ nhánh theo `code`, hiển thị `msg`.
 
 Đăng nhập: backend **không** làm OAuth. App gọi Supabase để đăng nhập Google, nhận token, gửi token cho backend. Backend chỉ xác minh.
 
@@ -77,8 +77,8 @@ Chưa có module nào dùng. Khi cần việc chạy nền hoặc theo lịch (v
 | `common/redis/cache.ts` | Bảng `CACHE` (key + TTL từng mục) + `CacheService` 5 thao tác | Thêm key cache |
 | `common/redis/queue.ts` | Kết nối BullMQ + tên các queue | Thêm queue |
 | `common/redis/throttler.guard.ts` | Rate limit đếm chung mọi instance | Đổi giới hạn |
-| `common/http/exceptions.ts` | Bảng mã lỗi + filter dịch `message` | Thêm mã lỗi (kèm câu trong `i18n/*/errors.json`) |
-| `common/http/response.ts` | Bọc `{ data, meta }` | Hiếm |
+| `common/http/exceptions.ts` | Bảng mã lỗi + filter dịch `msg` | Thêm mã lỗi (kèm câu trong `i18n/*/errors.json`) |
+| `common/http/response.ts` | Bọc mọi response thành `{ success, code, msg, data, meta }` | Hiếm |
 | `common/http/pagination.ts` | Cursor phân trang + `pageOf()` | Viết endpoint list |
 | `common/http/validation.ts` | Pipe zod toàn cục | Hiếm |
 | `common/http/request-context.middleware.ts` | `X-Request-Id`, `X-Instance-Id` | Hiếm |

@@ -73,10 +73,10 @@ describe('Cross-cutting (e2e): validation · envelope · errors · i18n · prefi
 
   it('body sai → 422 VALIDATION_FAILED với issues[path,message]', async () => {
     const res = await request(app.getHttpServer()).post('/api/v1/probe').send({ age: -1 }).expect(422);
-    expect(res.body.error.code).toBe('VALIDATION_FAILED');
-    const paths = res.body.error.issues ?? res.body.error.params.issues.map((i: { path: string }) => i.path);
+    expect(res.body.code).toBe('VALIDATION_FAILED');
+    const paths = res.body.meta.issues.map((i: { path: string }) => i.path);
     expect(paths).toEqual(expect.arrayContaining(['name', 'age']));
-    expect(res.body.error.requestId).toBeTruthy();
+    expect(res.body.meta.requestId).toBeTruthy();
   });
 
   it('query coerce + envelope: mảng trả về nằm trong data, meta chỉ có requestId', async () => {
@@ -90,19 +90,20 @@ describe('Cross-cutting (e2e): validation · envelope · errors · i18n · prefi
     const res = await request(app.getHttpServer())
       .get('/api/v1/probe/00000000-0000-7000-8000-000000000000')
       .expect(404);
-    expect(res.body.error).toEqual({
+    expect(res.body).toEqual({
+      success: false,
       code: 'NOT_FOUND',
-      message: 'Không tìm thấy probe',
-      params: { resource: 'probe', id: '00000000-0000-7000-8000-000000000000' },
-      requestId: expect.any(String),
+      msg: 'Không tìm thấy probe',
+      data: null,
+      meta: { resource: 'probe', id: '00000000-0000-7000-8000-000000000000', requestId: expect.any(String) },
     });
   });
 
   it('route không tồn tại → 404 NOT_FOUND; lỗi lạ → 500 INTERNAL không lộ message', async () => {
     const nf = await request(app.getHttpServer()).get('/api/v1/__nope').expect(404);
-    expect(nf.body.error.code).toBe('NOT_FOUND');
+    expect(nf.body.code).toBe('NOT_FOUND');
     const boom = await request(app.getHttpServer()).get('/api/v1/probe/boom').expect(500);
-    expect(boom.body.error.code).toBe('INTERNAL');
+    expect(boom.body.code).toBe('INTERNAL');
     expect(JSON.stringify(boom.body)).not.toContain('kaboom');
   });
 
@@ -122,13 +123,13 @@ describe('Cross-cutting (e2e): validation · envelope · errors · i18n · prefi
   it('lỗi có message đã dịch: NOT_FOUND vi/en với resource, VALIDATION_FAILED, 404 route lạ', async () => {
     const id = '00000000-0000-7000-8000-000000000000';
     const vi = await request(app.getHttpServer()).get(`/api/v1/probe/${id}`).expect(404);
-    expect(vi.body.error.message).toBe('Không tìm thấy probe'); // resource 'probe' không có câu dịch → giữ nguyên
+    expect(vi.body.msg).toBe('Không tìm thấy probe'); // resource 'probe' không có câu dịch → giữ nguyên
     const en = await request(app.getHttpServer()).get(`/api/v1/probe/${id}`).set('Accept-Language', 'en').expect(404);
-    expect(en.body.error.message).toBe('probe not found');
+    expect(en.body.msg).toBe('probe not found');
     const bad = await request(app.getHttpServer()).post('/api/v1/probe').send({}).set('Accept-Language', 'en').expect(422);
-    expect(bad.body.error.message).toBe('The submitted data is invalid');
+    expect(bad.body.msg).toBe('The submitted data is invalid');
     const nf = await request(app.getHttpServer()).get('/api/v1/__nope').expect(404);
-    expect(nf.body.error).toMatchObject({ code: 'NOT_FOUND', message: 'Không tìm thấy dữ liệu' }); // Nest 404: không có params.resource → câu mặc định
+    expect(nf.body).toMatchObject({ success: false, code: 'NOT_FOUND', msg: 'Không tìm thấy dữ liệu', data: null }); // Nest 404: không có resource
   });
 
   it('/health/ready giữ shape Terminus, không bị bọc envelope', async () => {

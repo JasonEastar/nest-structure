@@ -360,7 +360,7 @@
   },
   "info": {
     "title": "C9 Map · Health",
-    "description": "Liveness/readiness cho Docker, nginx, load balancer. Không cần đăng nhập, nằm ngoài prefix /api.\n\nNgôn ngữ: header `Accept-Language: vi | en` (mặc định vi).",
+    "description": "Liveness/readiness cho Docker, nginx, load balancer. Không cần đăng nhập, nằm ngoài prefix /api.\n\nMọi response có cùng 5 field: `success`, `code`, `msg`, `data`, `meta`. Khi lỗi: `success=false`, `data=null`, `code` là mã lỗi, `msg` là câu đã dịch.\n\nNgôn ngữ: header `Accept-Language: vi | en` (mặc định vi).",
     "version": "1",
     "contact": {}
   },

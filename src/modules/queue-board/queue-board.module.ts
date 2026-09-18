@@ -25,7 +25,7 @@ function cookieOf(req: Request, name: string): string | undefined {
 export function queueBoardAuth(jwt: SupabaseJwtService, users: AuthUserPort) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const deny = (code: 'UNAUTHENTICATED' | 'FORBIDDEN'): void => {
-      res.status(ErrorCodes[code]).json({ error: { code, message: code, params: {}, requestId: requestIdOf(req) } });
+      res.status(ErrorCodes[code]).json({ success: false, code, msg: code, data: null, meta: { requestId: requestIdOf(req) } });
     };
     const [scheme, bearer] = (req.header('authorization') ?? '').split(' ');
     const fromQuery = typeof req.query.access_token === 'string' ? req.query.access_token : undefined;

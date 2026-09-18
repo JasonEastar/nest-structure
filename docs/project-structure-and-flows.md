@@ -36,8 +36,8 @@ c9_map/
 │   │   │   ├── queue.ts              # BullModule.forRoot (db1, prefix c9) · QUEUES
 │   │   │   └── throttler.guard.ts    # RedisThrottlerStorage (Lua) · AppThrottlerGuard tracker u:/d:/ip:
 │   │   └── http/
-│   │       ├── exceptions.ts         # ErrorCodes · AppException · AllExceptionsFilter → { error: { code, params, requestId } }
-│   │       ├── response.ts           # ResponseInterceptor { data, meta: { requestId, nextCursor? } }
+│   │       ├── exceptions.ts         # ErrorCodes · AppException · AllExceptionsFilter → { success:false, code, msg, data:null, meta }
+│   │       ├── response.ts           # ResponseInterceptor → { success, code, msg, data, meta }
 │   │       ├── pagination.ts         # cursor (created_at, id) · PaginationQuerySchema · pageOf()
 │   │       ├── validation.ts         # APP_PIPE StandardSchemaValidationPipe (zod) → 422 · zText · zLatLng
 │   │       ├── request-context.middleware.ts  # X-Instance-Id · X-Request-Id
@@ -83,7 +83,7 @@ Người mới đọc [code-walkthrough.md](./code-walkthrough.md) trước. Mod
 | `app.module.ts` | Import modules + **toàn bộ** enhancer toàn cục theo thứ tự | Thứ tự guard nhìn thấy một chỗ; test `overrideProvider` được vì dùng token `APP_*`, không `app.useGlobal*` |
 | `common/common.module.ts` | `@Global()` gom provider hạ tầng | Feature module không phải import 6 module hạ tầng; chỉ 1 chỗ được `@Global` |
 | `common/redis/cache.ts` | 2 connection db0/db1 | Eviction cache không được đụng job BullMQ |
-| `common/http/exceptions.ts` | `ErrorCodes` + filter dịch `message` qua i18n | Mọi lỗi cùng shape `{ code, message, params, requestId }`; câu chữ chỉ ở `i18n/*/errors.json`, không trong service |
+| `common/http/exceptions.ts` | `ErrorCodes` + filter dịch `msg` qua i18n | Mọi response cùng shape `{ success, code, msg, data, meta }`; câu chữ chỉ ở `i18n/*/errors.json`, không trong service |
 | `common/http/validation.ts` | pipe zod có sẵn Nest 12 | Không class-validator, không nestjs-zod; schema đặt trên `@Body({ schema })` |
 | `config/openapi.ts` | 2 document qua `include:` | Admin API không lộ cho app; `openapi/*.json` cho mobile |
 | `modules/<x>/<x>.schema.ts` | Bảng Drizzle của module | Mở thư mục module thấy đủ bảng + DTO + logic; `drizzle-kit` gom bằng glob |
@@ -144,8 +144,8 @@ sequenceDiagram
   R-->>S: rows
   S-->>C: object theo ResponseSchema
   C-->>I: return
-  I-->>M: 2xx { data, meta: { requestId } }
-  F-->>M: { error: { code, params, requestId } }
+  I-->>M: 2xx { success:true, code:'OK', msg:'', data, meta }
+  F-->>M: { success:false, code, msg, data:null, meta }
 ```
 
 ## 5. Luồng 3 — Đăng nhập Google, profile lần đầu

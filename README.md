@@ -63,7 +63,7 @@ Mỗi module: `x.module.ts`, `x.controller.ts`, `x.service.ts`, `x.repository.ts
 ## Quy ước API
 
 - Đường dẫn `/api/v1/<resource>` danh từ số nhiều. Route công khai: `/api/v1/public/...`. Route quản trị: `/api/v1/admin/...`, cần permission.
-- Thành công: `{ "data": ..., "meta": { "requestId" } }`. Lỗi: `{ "error": { "code", "message", "params", "requestId" } }`, `message` đã dịch theo `Accept-Language`.
+- Mọi response cùng 5 field: `success`, `code`, `msg`, `data`, `meta`. Thành công `code="OK"`, `msg=""`. Lỗi `success=false`, `data=null`, `code` là mã lỗi, `msg` đã dịch theo `Accept-Language`, chi tiết lỗi trong `meta`.
 - Token: `Authorization: Bearer <access_token của Supabase>`.
 
 ## Tài liệu
