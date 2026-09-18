@@ -65,12 +65,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   constructor(@Inject(I18nService) private readonly i18n: Pick<I18nService, 't'>) {}
 
-  /** Câu lỗi theo ngôn ngữ; params.resource dịch qua errors.resource.<tên> nếu có. */
+  /** Câu lỗi theo ngôn ngữ; `params.resource` dịch qua `errors.resource.<tên>`, không có thì dùng `resource.default`. */
   translate(lang: string, code: ErrorCode, params: ErrorParams): string {
     const args = { ...params };
-    if (typeof params.resource === 'string') {
-      args.resource = this.lookup(lang, `errors.resource.${params.resource}`) ?? params.resource;
-    }
+    const resource = typeof params.resource === 'string' ? params.resource : 'default';
+    args.resource = this.lookup(lang, `errors.resource.${resource}`) ?? resource;
     const byReason = typeof params.reason === 'string' ? this.lookup(lang, `errors.${code}_${params.reason}`, args) : undefined;
     return byReason ?? this.lookup(lang, `errors.${code}`, args) ?? code;
   }

@@ -11,6 +11,7 @@
   "SERVICE_UNAVAILABLE": "The service is busy, please try again later",
   "INTERNAL": "Something went wrong, please try again later",
   "resource": {
+    "default": "Resource",
     "profile": "Profile",
     "location": "Location",
     "pin": "Pin"

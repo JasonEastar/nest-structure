@@ -11,6 +11,7 @@
   "SERVICE_UNAVAILABLE": "Hệ thống đang bận, vui lòng thử lại sau",
   "INTERNAL": "Có lỗi xảy ra, vui lòng thử lại sau",
   "resource": {
+    "default": "dữ liệu",
     "profile": "hồ sơ",
     "location": "địa điểm",
     "pin": "pin"

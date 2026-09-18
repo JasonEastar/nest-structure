@@ -128,7 +128,7 @@ describe('Cross-cutting (e2e): validation · envelope · errors · i18n · prefi
     const bad = await request(app.getHttpServer()).post('/api/v1/probe').send({}).set('Accept-Language', 'en').expect(422);
     expect(bad.body.error.message).toBe('The submitted data is invalid');
     const nf = await request(app.getHttpServer()).get('/api/v1/__nope').expect(404);
-    expect(nf.body.error).toMatchObject({ code: 'NOT_FOUND', message: 'Không tìm thấy ' }); // HttpException Nest: không có resource
+    expect(nf.body.error).toMatchObject({ code: 'NOT_FOUND', message: 'Không tìm thấy dữ liệu' }); // Nest 404: không có params.resource → câu mặc định
   });
 
   it('/health/ready giữ shape Terminus, không bị bọc envelope', async () => {
