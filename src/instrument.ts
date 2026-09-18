@@ -14,7 +14,8 @@ if (process.env.SENTRY_DSN && !Sentry.isInitialized()) {
     environment: process.env.NODE_ENV ?? 'development',
     enableLogs: true, // Sentry Logs: mọi dòng pino (info trở lên) lên Sentry, tìm theo requestId/userId
     integrations: [Sentry.pinoIntegration({ log: { levels: ['info', 'warn', 'error', 'fatal'] } })],
-    tracesSampleRate: 0.1, // 10 % request có trace (thời gian từng bước); tăng khi cần soi hiệu năng
+    // Trace (timeline từng bước của request): dev ghi 100 % để soi ngay; prod 10 % vì trace nặng và tốn quota
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1,
     sendDefaultPii: false,
     debug: process.env.SENTRY_DEBUG === '1', // in ra những gì SDK gửi, dùng khi nghi Sentry không nhận
   });

@@ -58,7 +58,7 @@ Chưa có module nào dùng. Khi cần việc chạy nền hoặc theo lịch (v
 
 | File | Làm gì (một câu) | Mở khi |
 |---|---|---|
-| `instrument.ts` | Bật Sentry khi có `SENTRY_DSN` (lỗi, log, trace); nạp bằng `node --import` | Đổi tỉ lệ trace, tắt bớt |
+| `instrument.ts` | Bật Sentry khi có `SENTRY_DSN` (lỗi, log, trace dev 100 % · prod 10 %); nạp bằng `node --import` | Đổi tỉ lệ trace, tắt bớt |
 | `main.ts` | Chạy server | Gần như không bao giờ |
 | `app.ts` | Cấu hình app dùng chung cho server và lệnh xuất OpenAPI | Đổi prefix, version, helmet |
 | `app.module.ts` | Nối module + 6 lớp bọc toàn cục | Thêm module mới |
