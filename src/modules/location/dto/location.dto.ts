@@ -1,0 +1,58 @@
+import { z } from 'zod';
+import { PaginationQuerySchema } from '../../../common/http/pagination.js';
+import type { LatLng } from '../../../common/database/columns.js';
+import type { SavedLocationRow } from '../schema/location.schema.js';
+import { LOCATION_LIMITS } from '../location.constants.js';
+
+/** Response của một địa điểm — dùng cho GET/POST/list. Ngày giờ ở dạng ISO string (UTC). */
+export const LocationResponseSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  lat: z.number(),
+  lng: z.number(),
+  radiusMeters: z.number().int(),
+  isPublic: z.boolean(),
+  createdAt: z.iso.datetime(),
+}).meta({ id: 'Location' });
+export type LocationResponse = z.infer<typeof LocationResponseSchema>;
+
+/** Row DB → Location (tách lat/lng khỏi point, ISO date). Mapper đặt cạnh schema: đổi shape thì sửa một chỗ. */
+export function toLocationResponse(row: SavedLocationRow): LocationResponse {
+  return {
+    id: row.id,
+    name: row.name,
+    lat: row.point.lat,
+    lng: row.point.lng,
+    radiusMeters: row.radiusMeters,
+    isPublic: row.isPublic,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+/** GET /locations?cursor=&limit= */
+export const ListLocationsQuerySchema = PaginationQuerySchema;
+export type ListLocationsQuery = z.infer<typeof ListLocationsQuerySchema>;
+
+/** GET /public/locations/nearby?lat=&lng=&radiusMeters= — địa điểm CÔNG KHAI trong bán kính quanh một điểm, không cần đăng nhập. */
+export const NearbyLocationsQuerySchema = z.object({
+  lat: z.coerce.number().min(-90).max(90),
+  lng: z.coerce.number().min(-180).max(180),
+  radiusMeters: z.coerce.number().int().min(1).max(LOCATION_LIMITS.nearbyMaxMeters).default(1_000),
+}); // query schema KHÔNG đặt meta id: Swagger cần object inline để tách thành từng tham số ?lat=&lng=
+export type NearbyLocationsQuery = z.infer<typeof NearbyLocationsQuerySchema>;
+
+/** Response public: chỉ trường an toàn (không chủ, không bán kính riêng), kèm khoảng cách (mét) từ điểm truy vấn. */
+export const PublicLocationResponseSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  lat: z.number(),
+  lng: z.number(),
+  distanceMeters: z.number(),
+}).meta({ id: 'PublicLocation' });
+export type PublicLocationResponse = z.infer<typeof PublicLocationResponseSchema>;
+
+/** Kết quả nearby (id, name, point, distance) → PublicLocation; khoảng cách làm tròn mét. */
+export function toPublicLocationResponse(row: { id: string; name: string; point: LatLng; distanceMeters: number }): PublicLocationResponse {
+  return { id: row.id, name: row.name, lat: row.point.lat, lng: row.point.lng, distanceMeters: Math.round(row.distanceMeters) };
+}
+
