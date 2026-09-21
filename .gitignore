@@ -1,0 +1,20 @@
+# dependencies
+/node_modules
+
+# build
+/dist
+*.tsbuildinfo
+
+# env — chỉ commit .env.example
+.env
+.env.*
+!.env.example
+.claude/.env
+.claude/settings.local.json
+
+# tests
+/coverage
+
+# misc
+*.log
+.DS_Store
