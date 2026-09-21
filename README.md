@@ -57,7 +57,7 @@ Mỗi module: `x.module.ts`, `x.controller.ts`, `x.service.ts`, `x.repository.ts
 | Chạy | `npm run dev` · `npm run build` · `npm run start:prod` |
 | Kiểm tra | `npm run lint` · `npm run typecheck` · `npm test` (unit + integration, tự dựng PostGIS + Redis, ~15 s) |
 | Hạ tầng | `npm run dev:infra` · `npm run dev:infra:full` (2 instance + nginx) · `npm run dev:tools` · `npm run dev:infra:down` |
-| Database | `npm run db:generate` (schema → SQL) · `npm run db:migrate` · `npm run db:studio` |
+| Database | `npm run db:generate` (schema → SQL) · `npm run db:migrate` · `npm run db:studio` · trên server: `node dist/migrate.js` |
 | API docs | `npm run openapi:export` → `openapi/<module>.json` |
 | Đa instance | `TOKEN=$(node scripts/dev-token.mjs) npm run smoke` |
 
@@ -69,4 +69,4 @@ Mỗi module: `x.module.ts`, `x.controller.ts`, `x.service.ts`, `x.repository.ts
 
 ## Tài liệu
 
-Bắt đầu với [docs/code-walkthrough.md](./docs/code-walkthrough.md) (đọc code từ đâu, request đi qua đâu) và [docs/api-cookbook.md](./docs/api-cookbook.md) (cách viết một API). Toàn bộ tài liệu khác nằm trong [docs/](./docs/): kiến trúc, quy chuẩn code, roadmap, test, quyết định.
+Bắt đầu với [docs/code-walkthrough.md](./docs/code-walkthrough.md) (đọc code từ đâu, request đi qua đâu) và [docs/api-cookbook.md](./docs/api-cookbook.md) (cách viết một API). Deploy staging: [docs/deploy-staging.md](./docs/deploy-staging.md). Toàn bộ tài liệu khác nằm trong [docs/](./docs/): kiến trúc, quy chuẩn code, roadmap, test, quyết định.

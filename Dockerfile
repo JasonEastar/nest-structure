@@ -31,8 +31,10 @@ COPY --from=build --chown=node:node /app/package.json ./package.json
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --from=build --chown=node:node /app/i18n ./i18n
+COPY --from=build --chown=node:node /app/drizzle ./drizzle
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
   CMD wget -qO- http://127.0.0.1:3000/health/live >/dev/null || exit 1
 CMD ["node", "--import", "./dist/instrument.js", "dist/main.js"]
+# Migration: docker compose run --rm api node dist/migrate.js

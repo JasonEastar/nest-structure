@@ -47,6 +47,7 @@ c9_map/
 │   ├── main.ts                       # điểm vào server: createApp → Swagger UI → listen
 │   ├── app.ts                        # createApp(): helmet · trust proxy · prefix /api · version v1 · shutdown hooks (dùng chung với openapi-export)
 │   ├── app.module.ts                 # imports ConfigModule + CommonModule + modules; providers APP_GUARD Throttler → Auth → Permission · APP_PIPE · APP_FILTER · APP_INTERCEPTOR
+│   ├── migrate.ts                    # `node dist/migrate.js`: chạy drizzle/*.sql trên server (image runtime không có drizzle-kit)
 │   ├── openapi-export.ts             # `npm run openapi:export` → openapi/<key>.json mỗi định nghĩa (users, locations, health)
 │   ├── config/                       # cấu hình app — không nghiệp vụ, không hạ tầng
 │   │   ├── env.ts                    # zod schema; ConfigModule đọc .env + validate, dùng qua ConfigService
@@ -107,6 +108,7 @@ c9_map/
 │   ├── unit/*.spec.ts                # logic thuần, không hạ tầng (env · exceptions · columns · permission.guard · pagination · validation · location.service)
 │   ├── integration/*.spec.ts         # AppModule thật trên testcontainers (app · cross-cutting · geography · redis-queue · auth-rbac · location · supabase-real)
 │   └── setup/{containers,env,jwks}.ts # globalSetup testcontainers + migrate · setupFiles inject URL · Supabase JWKS giả (ES256)
+├── docker-compose.staging.yml        # staging 1 máy: nginx → api-1, api-2 (runtime) → postgres, redis (docs/deploy-staging.md)
 ├── scripts/                          # smoke-multi-instance.sh · dev-token.mjs · grant-role.mjs · verify-auth.mjs
 ├── i18n/{vi,en}/*.json · openapi/{users,locations,health}.json
 ├── Dockerfile · docker-compose.yml · nginx.conf · vitest.config.ts · .env.example · .github/workflows/ci.yml
