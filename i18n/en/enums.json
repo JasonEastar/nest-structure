@@ -1,0 +1,8 @@
+{
+  "user": {
+    "status": { "active": "Active", "blocked": "Blocked" }
+  },
+  "role": {
+    "code": { "user": "User", "moderator": "Moderator", "venue": "Venue owner", "admin": "Admin" }
+  }
+}
