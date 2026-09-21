@@ -17,8 +17,7 @@ class ProbeController {
 @Module({ controllers: [ProbeController] })
 class ProbeModule {}
 
-async function boot(instanceId: string): Promise<INestApplication> {
-  process.env.INSTANCE_ID = instanceId;
+async function boot(): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule, ProbeModule] }).compile();
   const app = moduleRef.createNestApplication();
   app.setGlobalPrefix('api', { exclude: GLOBAL_PREFIX_EXCLUDE });
@@ -35,8 +34,8 @@ describe('Redis · throttler (e2e, 2 instance)', () => {
   let b: INestApplication;
 
   beforeAll(async () => {
-    a = await boot('test-a');
-    b = await boot('test-b');
+    a = await boot();
+    b = await boot();
   });
   afterAll(async () => {
     await Promise.all([a.close(), b.close()]);

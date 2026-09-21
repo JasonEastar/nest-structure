@@ -17,10 +17,9 @@ describe('App (e2e)', () => {
     await app.close();
   });
 
-  it('GET /health/live trả status ok và instance id', async () => {
+  it('GET /health/live trả status ok và hostname', async () => {
     const res = await request(app.getHttpServer()).get('/health/live').expect(200);
     expect(res.body).toEqual({ status: 'ok', instance: expect.any(String) }); // probe: không theo shape API app
-    expect(res.headers['x-instance-id']).toBe(res.body.instance);
   });
 
   it('GET /health/ready báo db up khi Postgres chạy', async () => {

@@ -44,7 +44,6 @@ src/
     ├── user/      /me (xem, sửa, xoá hồ sơ) · /admin/users (tạo tài khoản email+mật khẩu, danh sách, khoá) · /admin/roles
     ├── location/  /locations · /public/locations/nearby — module mẫu, copy để tạo module mới
     ├── app-config/  /public/configs — enum hệ thống + nhãn đa ngôn ngữ cho web/app
-    └── queue-board/  /admin/queues (Bull Board)
 test/  unit/ · integration/ · setup/        drizzle/  migration SQL        i18n/  vi, en        openapi/  JSON xuất cho mobile
 ```
 

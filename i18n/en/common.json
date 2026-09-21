@@ -1,6 +1,0 @@
-{
-  "hello": "Hello",
-  "push": {
-    "pin_nearby": "New {type} near {area}"
-  }
-}

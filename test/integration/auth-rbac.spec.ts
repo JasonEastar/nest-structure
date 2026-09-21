@@ -266,20 +266,6 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
     expect(notFound.body.code).toBe('NOT_FOUND');
   });
 
-  it('x-device-id → ghi devices (1 lần/5 phút)', async () => {
-    const sub = newUser();
-    const token = await signToken({ sub });
-    admin.seed(sub);
-    const deviceId = `dev-${Date.now()}`;
-    await request(app.getHttpServer())
-      .get('/api/v1/me')
-      .set('authorization', `Bearer ${token}`)
-      .set('x-device-id', deviceId)
-      .expect(200);
-    await new Promise((r) => setTimeout(r, 300)); // fire-and-forget
-    expect(await cache.has(`c9:v1:device-seen:${sub}:${deviceId}`)).toBe(true);
-  });
-
   it('PATCH /me: sửa từng field, null xoá field, username không sửa được, body rỗng/sai → 422', async () => {
     const a = newUser();
     const b = newUser();
@@ -448,7 +434,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
     await request(app.getHttpServer()).get('/api/v1/probe/secure').set('authorization', `Bearer ${header}.${body}.`).expect(401);
   });
 
-  it('rate limit khoá theo IP: đếm chung mọi user/thiết bị từ cùng một IP, chặn trước cả khi verify token', async () => {
+  it('rate limit khoá theo IP: đếm chung mọi user từ cùng một IP, chặn trước cả khi verify token', async () => {
     const token = await signToken({ sub: newUser() });
     const hit = (extra: Record<string, string> = {}) => {
       const req = request(app.getHttpServer()).get('/api/v1/probe/limited');
@@ -458,47 +444,10 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
 
     const codes: number[] = [];
     codes.push((await hit({ authorization: `Bearer ${token}` })).status);
-    codes.push((await hit({ authorization: `Bearer ${token}`, 'x-device-id': 'device-khac-1' })).status);
+    codes.push((await hit({ authorization: `Bearer ${token}` })).status);
     codes.push((await hit()).status); // không token: vẫn cùng bucket IP
     codes.push((await hit({ authorization: 'Bearer sai-be-bet' })).status); // token sai → 429 chứ không phải 401
     expect(codes).toEqual([200, 200, 401, 429]);
   });
 
-  it('Bull Board /admin/queues: không token 401, user thường 403, có queue:read → 200, bị khoá → 403', async () => {
-    await request(app.getHttpServer()).get('/admin/queues/api/queues').expect(401);
-
-    const sub = newUser();
-    const token = await signToken({ sub });
-    admin.seed(sub);
-    await request(app.getHttpServer()).get('/api/v1/me').set('authorization', `Bearer ${token}`).expect(200);
-    const denied = await request(app.getHttpServer())
-      .get('/admin/queues/api/queues')
-      .set('authorization', `Bearer ${token}`)
-      .expect(403);
-    expect(denied.body.code).toBe('FORBIDDEN');
-
-    await users.setUserRoles(sub, ['admin']); // admin có queue:read
-    const ok = await request(app.getHttpServer())
-      .get('/admin/queues/api/queues')
-      .set('authorization', `Bearer ${token}`)
-      .expect(200);
-    expect(Array.isArray(ok.body.queues)).toBe(true); // chưa có queue nào đăng ký → mảng rỗng
-
-    // Mở bằng trình duyệt: ?access_token= → 200 + cookie HttpOnly giới hạn path; UI gọi API tiếp bằng cookie (không query) → 200
-    const page = await request(app.getHttpServer()).get(`/admin/queues?access_token=${token}`).expect(200);
-    const cookie = (page.headers['set-cookie'] as unknown as string[])[0]!;
-    expect(cookie).toMatch(/^c9_board_token=.+; Path=\/admin\/queues; HttpOnly; SameSite=Lax; Max-Age=3600$/);
-    await request(app.getHttpServer()).get('/admin/queues/api/queues').set('cookie', cookie.split(';')[0]!).expect(200);
-    await request(app.getHttpServer()).get('/admin/queues/api/queues').expect(401); // không cookie, không token vẫn chặn
-
-    // Bị khoá → Bull Board cũng chặn ngay (cùng ensureProfile với AuthGuard), dù vẫn có queue:read
-    const blocker = newUser();
-    const blockerToken = await signToken({ sub: blocker });
-    admin.seed(blocker);
-    await request(app.getHttpServer()).get('/api/v1/me').set('authorization', `Bearer ${blockerToken}`).expect(200);
-    await users.setUserRoles(blocker, ['admin']);
-    await users.setUserStatus(blocker, sub, { status: 'blocked' });
-    const blocked = await request(app.getHttpServer()).get('/admin/queues/api/queues').set('authorization', `Bearer ${token}`).expect(403);
-    expect(blocked.body.code).toBe('FORBIDDEN');
-  });
 });

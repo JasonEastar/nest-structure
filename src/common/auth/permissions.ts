@@ -15,7 +15,6 @@ export const PERMISSIONS = {
   'report:review': 'Xử lý báo cáo',
   'landmark:manage': 'Quản lý landmark',
   'promoted:manage': 'Quản lý promoted pin',
-  'queue:read': 'Xem Bull Board',
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;

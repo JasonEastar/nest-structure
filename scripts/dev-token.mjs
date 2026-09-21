@@ -18,7 +18,7 @@ if (!SUPABASE_URL || !SUPABASE_SECRET_KEY || !SUPABASE_PUBLISHABLE_KEY) {
   process.exit(1);
 }
 
-// Mặc định MỘT user cố định để role đã gán (admin, queue:read…) giữ nguyên giữa các lần lấy token.
+// Mặc định MỘT user cố định để role đã gán (admin…) giữ nguyên giữa các lần lấy token.
 // Muốn user mới tinh: node scripts/dev-token.mjs someone@c9map.test
 const email = process.argv[2]?.includes('@') ? process.argv[2] : 'dev@c9map.test';
 const asJson = process.argv.includes('--json');

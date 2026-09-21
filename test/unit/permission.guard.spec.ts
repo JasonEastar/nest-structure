@@ -16,7 +16,6 @@ function ctx(handler: object, cls: object, user?: { id: string }): ExecutionCont
 const users = (granted: string[]): AuthUserPort => ({
   ensureProfile: async () => ({ id: 'u' }),
   getPermissions: async () => granted,
-  touchDevice: async () => {},
 });
 
 describe('PermissionGuard', () => {
@@ -41,15 +40,15 @@ describe('PermissionGuard', () => {
   });
 
   it('đủ quyền → true; không có req.user → UNAUTHENTICATED', async () => {
-    @RequirePermission('queue:read')
+    @RequirePermission('pin:create')
     class Ctl {
       handler() {}
     }
     await expect(
-      new PermissionGuard(reflector, users(['queue:read'])).canActivate(ctx(Ctl.prototype.handler, Ctl, { id: 'u' })),
+      new PermissionGuard(reflector, users(['pin:create'])).canActivate(ctx(Ctl.prototype.handler, Ctl, { id: 'u' })),
     ).resolves.toBe(true);
     await expect(
-      new PermissionGuard(reflector, users(['queue:read'])).canActivate(ctx(Ctl.prototype.handler, Ctl)),
+      new PermissionGuard(reflector, users(['pin:create'])).canActivate(ctx(Ctl.prototype.handler, Ctl)),
     ).rejects.toBeInstanceOf(AppException);
   });
 });

@@ -14,8 +14,6 @@ export const CACHE = {
   deleted: { key: (userId: string) => `${P}:deleted:${userId}`, ttl: 3600 + 300 },
   /** Quyền hiệu lực (RBAC); admin đổi role → xoá key này */
   perms: { key: (userId: string) => `${P}:perms:${userId}`, ttl: 300 },
-  /** Đã ghi last_seen của thiết bị gần đây → không UPDATE mỗi request */
-  deviceSeen: { key: (userId: string, deviceId: string) => `${P}:device-seen:${userId}:${deviceId}`, ttl: 300 },
 } as const;
 
 /**

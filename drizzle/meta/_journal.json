@@ -50,6 +50,13 @@
       "when": 1789872731051,
       "tag": "0006_permissions-split",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789872732051,
+      "tag": "0007_drop-devices",
+      "breakpoints": true
     }
   ]
 }

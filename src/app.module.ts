@@ -18,14 +18,11 @@ import { AppConfigModule } from './modules/app-config/app-config.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { UserModule } from './modules/user/user.module.js';
 import { LocationModule } from './modules/location/location.module.js';
-import { QueueBoardModule } from './modules/queue-board/queue-board.module.js';
 
 /** Route nằm ngoài prefix /api: health (Docker HEALTHCHECK), Swagger UI, Bull Board. app.ts và test dùng chung. */
 export const GLOBAL_PREFIX_EXCLUDE = [
   { path: 'health/{*splat}', method: RequestMethod.GET },
   { path: 'docs/{*splat}', method: RequestMethod.GET },
-  { path: 'admin/queues', method: RequestMethod.ALL },
-  { path: 'admin/queues/{*splat}', method: RequestMethod.ALL },
 ];
 
 /** Swagger: mỗi mục = một định nghĩa trong dropdown (/docs/<key>-json, openapi/<key>.json). Module mới → thêm mục. */
@@ -33,7 +30,7 @@ export const OPENAPI_DOCS: OpenApiDefinition[] = [
   {
     key: 'health',
     title: 'Health',
-    description: 'Liveness/readiness cho Docker, nginx, load balancer. Không cần đăng nhập, nằm ngoài prefix /api.',
+    description: 'Liveness/readiness cho Docker / load balancer. Không cần đăng nhập, nằm ngoài prefix /api.',
     tags: [{ name: 'Health', description: 'Trạng thái process và dependency (Postgres, Redis)' }],
     modules: [HealthModule],
   },
@@ -79,7 +76,6 @@ export const OPENAPI_DOCS: OpenApiDefinition[] = [
     UserModule,
     LocationModule,
     AppConfigModule,
-    QueueBoardModule,
   ],
   providers: [
     // Thứ tự guard = thứ tự chạy: Throttler → Auth → Permission (chặn flood trước khi tốn CPU verify JWT)
@@ -92,7 +88,7 @@ export const OPENAPI_DOCS: OpenApiDefinition[] = [
   ],
 })
 export class AppModule implements NestModule {
-  /** Middleware chạy trước mọi guard: gắn X-Request-Id / X-Instance-Id cho mọi route. */
+  /** Middleware chạy trước mọi guard: gắn X-Request-Id cho mọi route. */
   configure(consumer: MiddlewareConsumer): void {
     consumer.apply(RequestContextMiddleware).forRoutes('{*splat}');
   }

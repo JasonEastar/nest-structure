@@ -58,7 +58,7 @@ Middleware → Guards → Interceptors (trước) → Pipes → Controller → S
 
 - Lý do dùng token: test override được bằng `Test.createTestingModule().overrideProvider()`; enhancer nhận DI.
 - Middleware cần DI (request-id, pino) → class middleware `configure(consumer).apply(...).forRoutes('*')`, không `app.use()`.
-- `app.ts` tạo app: `rawBody: true`, helmet, `trust proxy`, `setGlobalPrefix('api', { exclude })`, `enableVersioning`, `enableShutdownHooks`. `main.ts` chỉ: gọi `createApp()`, gắn Swagger, `keepAliveTimeout`, listen. CORS chưa bật (mobile không cần).
+- `app.ts` tạo app: helmet, `trust proxy`, `setGlobalPrefix('api', { exclude })`, `enableVersioning`, `enableShutdownHooks`. `main.ts` chỉ: gọi `createApp()`, gắn Swagger, `keepAliveTimeout`, listen. CORS chưa bật (mobile không cần).
 
 ## 5. Validation & DTO (schema-first, không class-validator)
 
@@ -112,13 +112,13 @@ Quy tắc: mỗi use case có **RequestSchema**, **ResponseSchema** và mapper `
 | HTTP module (`@nestjs/axios`) | Có khi gọi FCM/payment, `timeout` bắt buộc | Chuẩn |
 | Session, MVC, SSE, Cookies | Không | Stateless + polling |
 | Performance (Fastify) | **Express** | Hệ sinh thái, nginx đã tối ưu; xem lại khi > 5k rps |
-| Raw body | `rawBody: true` + `@Req() req: RawBodyRequest` | Webhook thanh toán ký HMAC |
+| Raw body | `rawBody: true` + `@Req() req: RawBodyRequest` — bật khi làm webhook thanh toán (gđ 3) | Webhook ký HMAC |
 
 ## 9. Recipes & FAQ áp dụng
 
 - **Terminus**: `HealthModule` với `DrizzleHealthIndicator`, `RedisHealthIndicator` (inject `HealthIndicatorService`); `/health/live` không check gì (trả `{ status, instance }`), `/health/ready` check DB + Redis.
 - **Global prefix**: `setGlobalPrefix('api', { exclude: GLOBAL_PREFIX_EXCLUDE })` với dạng object `{ path: 'health/{*splat}', method }` (v12 dùng `{*splat}`, không phải `*`).
-- **Keep-alive**: `httpAdapter.getHttpServer().keepAliveTimeout = 65_000` (> nginx `keepalive_timeout 60`); `headersTimeout = 66_000`.
+- **Keep-alive** (khi có nginx): `getHttpServer().keepAliveTimeout = 65_000` (> nginx `keepalive_timeout 60`); `headersTimeout = 66_000`. Chưa đặt vì chưa có proxy.
 - **REPL**: `nest start --entryFile repl` để gọi service tay khi debug.
 - **AsyncLocalStorage / `nestjs-cls`**: chưa; `nestjs-pino` đã gắn requestId vào log; thêm khi cần truyền context sang job.
 - **Hybrid app / microservices**: không.
@@ -143,7 +143,7 @@ Quy tắc: mỗi use case có **RequestSchema**, **ResponseSchema** và mapper `
 7. Processor không đi qua pipe/guard → job data validate bằng zod thủ công trong `*.jobs.ts`.
 8. Terminus v12: không extend `HealthIndicator`.
 9. `setGlobalPrefix` exclude phải khớp chính xác; wildcard `*` trần bị cấm.
-10. `keepAliveTimeout` phải > idle timeout của nginx, nếu không client thấy `ECONNRESET` ngẫu nhiên.
+10. Khi đặt nginx phía trước: `keepAliveTimeout` phải > idle timeout của nginx, nếu không client thấy `ECONNRESET` ngẫu nhiên.
 11. `@Optional()` không còn kế thừa từ lớp cha (v12).
 12. Schema zod cho Swagger phải là **cùng object** dùng trong decorator; đừng tạo schema inline khác nhau giữa pipe và docs.
 
@@ -169,7 +169,7 @@ Ký hiệu: ✅ áp dụng nguyên · ⚠️ áp dụng nguyên tắc, đổi c�
 | di-liskov-substitution | ✅ **mới** | Mock adapter (FCM/R2/payment) phải qua **cùng bộ contract test** với bản thật |
 | error-use-exception-filters | ⚠️ | `AllExceptionsFilter` qua `APP_FILTER` (không `useGlobalFilters`); shape `{ success, code, msg, data, meta }` |
 | error-throw-http-exceptions | ⚠️ | Service ném `AppException(ErrorCodes.X, params)`; không ném `NotFoundException('User #1 not found')` (không echo input, không câu tiếng Việt) |
-| error-handle-async-errors | ⚠️ | Giữ: `.catch()` bắt buộc cho fire-and-forget (`touchDevice`), `process.on('unhandledRejection')` log; **bỏ** ví dụ `@Cron` |
+| error-handle-async-errors | ⚠️ | Giữ: `.catch()` bắt buộc cho mọi promise fire-and-forget; không tự đăng ký `process.on` (Node 22 crash mặc định, Sentry bắt) |
 | security-validate-all-input | ⚠️ | `StandardSchemaValidationPipe` + zod (không class-validator); zod `.strict()` thay `forbidNonWhitelisted` |
 | security-auth-jwt | ❌ | Supabase phát token, NestJS verify JWKS; **không** roles trong JWT, không Passport, không refresh table |
 | security-use-guards | ✅ | `AuthGuard` + `PermissionGuard` qua `APP_GUARD`, `@Public()` |

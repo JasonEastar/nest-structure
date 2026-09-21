@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, ilike, inArray, lt, or } from 'drizzle-orm';
 import { type Db, DRIZZLE } from '../../common/database/drizzle.js';
 import type { SupabaseClaims } from '../../common/auth/supabase.js';
-import { devices, permissions, profiles, rolePermissions, roles, userRoles } from './schema/user.schema.js';
+import { permissions, profiles, rolePermissions, roles, userRoles } from './schema/user.schema.js';
 import type { RoleCode } from './dto/role.dto.js';
 import type { UpdateMe } from './dto/update-me.dto.js';
 import type { AdminUserRow, UserStatus } from './dto/admin-user.dto.js';
@@ -176,18 +176,7 @@ export class UserRepository {
     });
   }
 
-  /** Ghi nhận thiết bị: lần đầu insert, lần sau chỉ cập nhật last_seen_at. */
-  async upsertDevice(userId: string, deviceId: string): Promise<void> {
-    await this.db
-      .insert(devices)
-      .values({ userId, deviceId })
-      .onConflictDoUpdate({
-        target: [devices.userId, devices.deviceId],
-        set: { lastSeenAt: new Date(), updatedAt: new Date() },
-      });
-  }
-
-  /** Hard delete, cascade user_roles và devices. */
+  /** Hard delete, cascade user_roles. */
   async deleteProfile(userId: string): Promise<void> {
     await this.db.delete(profiles).where(eq(profiles.id, userId));
   }

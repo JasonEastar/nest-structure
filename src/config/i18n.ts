@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import { AcceptLanguageResolver, I18nModule } from 'nestjs-i18n';
 
 /**
- * Đa ngôn ngữ vi/en (nestjs-i18n). Câu chữ ở `i18n/<lang>/*.json`: errors.json (message lỗi), enums.json (nhãn enum cho /public/configs), common.json (push, dùng chung).
+ * Đa ngôn ngữ vi/en (nestjs-i18n). Câu chữ ở `i18n/<lang>/*.json`: errors.json (message lỗi), enums.json (nhãn enum cho /public/configs).
  * Ngôn ngữ của request lấy DUY NHẤT từ header `Accept-Language`, không có thì vi.
  * Dùng: `I18nContext.current(host)?.lang` lấy ngôn ngữ; `I18nService.t('errors.NOT_FOUND', { lang, args })` dịch.
  */

@@ -15,7 +15,7 @@ export const drizzleProvider: Provider = {
   inject: [ConfigService],
   useFactory: (config: ConfigService<Env, true>): Db => {
     const sql = postgres(config.get('DATABASE_URL', { infer: true }), {
-      max: config.get('DB_POOL_MAX', { infer: true }),
+      max: 10,
       prepare: true, // kết nối trực tiếp, không qua pooler
       onnotice: () => {}, // tắt NOTICE trong log
     });

@@ -10,7 +10,7 @@
 | Mục | Giá trị |
 |---|---|
 | Roadmap | Bước 0–6 ✅ (skeleton + auth + RBAC + test). CI/Docker image/deploy gỡ 2026-09-21 (chỉ dev). Tiếp theo: bước 7 Pin core, chưa lập plan |
-| Module | `health`, `user` (/me xem/sửa/xoá, /admin/users tạo–danh sách–khoá, /admin/roles), `location` (module mẫu: CRUD + public nearby PostGIS), `app-config` (/public/configs: enum + nhãn đa ngôn ngữ cho client), `queue-board` (Bull Board). Chưa có queue nào đăng ký |
+| Module | `health`, `user` (/me xem/sửa/xoá, /admin/users tạo–danh sách–khoá, /admin/roles), `location` (module mẫu: CRUD + public nearby PostGIS), `app-config` (/public/configs: enum + nhãn đa ngôn ngữ cho client). BullMQ đã cấu hình, chưa có queue nào đăng ký |
 | Test | 91 (unit 46 · integration 45) trên PostGIS + Redis thật (testcontainers); mọi endpoint đã đối chiếu shape response; không có CI |
 | API | Một shape response duy nhất `{ success, code, msg, data, meta }`; Swagger `/docs` chia theo module, `openapi/{users,configs,locations,health}.json` |
 | Git | Nhánh `main`, 41 commit tới 2026-09-18. Mốc: 7469607 phase 07 · 9e00612 cấu trúc mới · 26d30ee module mẫu location · 33253c3 identity → user · 2d45e4b đơn giản hoá theo chuẩn NestJS · 72517cf format response thống nhất |
@@ -75,7 +75,7 @@ c9_map/
 │   │       ├── response.ts           # ResponseInterceptor → { success, code, msg, data, meta }
 │   │       ├── pagination.ts         # cursor (created_at, id) · PaginationQuerySchema · pageOf()
 │   │       ├── validation.ts         # APP_PIPE StandardSchemaValidationPipe (zod) → 422 · zText · zLatLng
-│   │       ├── request-context.middleware.ts  # X-Instance-Id · X-Request-Id
+│   │       ├── request-context.middleware.ts  # X-Request-Id
 │   │       └── express.d.ts          # req.user
 │   └── modules/                      # nghiệp vụ — mỗi module 1 thư mục; file chính ở gốc, chỉ 2 thư mục con dto/ và schema/
 │       ├── health/
@@ -92,15 +92,13 @@ c9_map/
 │       │   │   ├── update-me.dto.ts          # UpdateMeSchema (PATCH /me, partial + null để xoá; không có username)
 │       │   │   └── role.dto.ts               # ROLE_CODES · RoleSchema · SetUserRolesSchema
 │       │   └── schema/
-│       │       └── user.schema.ts        # profiles (status active|blocked) · roles · permissions · role_permissions · user_roles · devices
-│       ├── app-config/               # GET /public/configs?names=system_enums — enum từ code + nhãn i18n/<lang>/enums.json mọi ngôn ngữ
+│       │       └── user.schema.ts        # profiles (status active|blocked) · roles · permissions · role_permissions · user_roles
+│       └── app-config/               # GET /public/configs?names=system_enums — enum từ code + nhãn i18n/<lang>/enums.json mọi ngôn ngữ
     │   ├── app-config.module.ts · app-config.controller.ts · app-config.service.ts · app-config.constants.ts (SYSTEM_ENUMS, CONFIG_NAMES) · dto/config.dto.ts
     ├── location/                 # MODULE MẪU — copy cấu trúc này cho module mới
 │       │   ├── location.module.ts · location.controller.ts · location.service.ts · location.repository.ts · location.constants.ts
 │       │   ├── dto/create-location.dto.ts · dto/location.dto.ts     # 1 file / use case, chứa cả request + response
 │       │   └── schema/location.schema.ts                          # saved_locations (geography + GIST)
-│       └── queue-board/
-│           └── queue-board.module.ts # /admin/queues (Bull Board) + middleware JWT + queue:read; tắt khi test
 ├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac · 0003_location · 0004_location-public
 ├── drizzle.config.ts                 # schema: 'src/**/*.schema.ts'
 ├── test/

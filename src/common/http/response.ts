@@ -21,8 +21,8 @@ export interface ApiResponse<T> {
 /** Mã của response thành công (chỗ để sau này thêm mã nghiệp vụ nếu cần). */
 export const OK = 'OK';
 
-/** Route không bọc: health (Terminus có body riêng), Swagger UI, Bull Board. */
-const SKIP_PREFIXES = ['/health', '/docs', '/admin/queues'];
+/** Route không bọc: health (Terminus có body riêng), Swagger UI. */
+const SKIP_PREFIXES = ['/health', '/docs'];
 
 @Injectable()
 export class ResponseInterceptor implements NestInterceptor {

@@ -10,7 +10,7 @@ Tầng kiểm thử, kịch bản lõi, môi trường và secrets. CI/CD, Docke
 | Tầng | Công cụ | Phạm vi | Chạy ở |
 |---|---|---|---|
 | Unit | Vitest project `unit` — `test/unit/*.spec.ts` | Logic thuần, không hạ tầng: env schema, error shape, cursor, zod helper, EWKT/EWKB, PermissionGuard; sau này rep, tier, quantize bbox, state machine pin | Mỗi commit (`npm run test:unit`) |
-| **Integration + E2E** | Vitest project `integration` — `test/integration/*.spec.ts`, testcontainers `postgis/postgis:16-3.4` + `redis:7-alpine` (globalSetup tự dựng + migrate), supertest qua `AppModule` thật | Geo repository (PostGIS), cache dùng chung + rate limit qua 2 instance, auth JWKS + RBAC (JWKS giả trong test), Bull Board; `test/integration/supabase-real.spec.ts` chạy với Supabase thật khi có khoá. Job BullMQ: thêm test khi có queue đầu tiên | Mỗi PR (`npm run test:integration`) |
+| **Integration + E2E** | Vitest project `integration` — `test/integration/*.spec.ts`, testcontainers `postgis/postgis:16-3.4` + `redis:7-alpine` (globalSetup tự dựng + migrate), supertest qua `AppModule` thật | Geo repository (PostGIS), cache dùng chung + rate limit qua 2 instance, auth JWKS + RBAC (JWKS giả trong test); `test/integration/supabase-real.spec.ts` chạy với Supabase thật khi có khoá. Job BullMQ: thêm test khi có queue đầu tiên | Mỗi PR (`npm run test:integration`) |
 | Đa instance | `test/integration/redis-queue.spec.ts` boot 2 `AppModule` trong cùng process, chung Redis | Cache dùng chung, rate limit đếm chung + `Retry-After` | Trong `npm test` |
 | Load | k6 | Viewport 300 req/s p95 < 100 ms; "500 người mở app sau 1 push" | Hàng tuần |
 

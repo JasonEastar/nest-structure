@@ -1,10 +1,8 @@
 import { Injectable, type NestMiddleware } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import type { NextFunction, Request, Response } from 'express';
 import { uuidv7 } from 'uuidv7';
-import type { Env } from '../../config/env.js';
 
-/** X-Request-Id (giữ của nginx, không có thì sinh uuid v7) + X-Instance-Id cho mọi request; chạy trước guard. */
+/** X-Request-Id cho mọi request (giữ id client/proxy gửi, không có thì sinh uuid v7); chạy trước guard. */
 const REQUEST_ID = /^[A-Za-z0-9._-]{8,64}$/;
 
 type RequestWithId = { id?: unknown; headers: Record<string, string | string[] | undefined> };
@@ -25,13 +23,9 @@ export function resolveRequestId(req: RequestWithId): string {
 
 @Injectable()
 export class RequestContextMiddleware implements NestMiddleware {
-  constructor(private readonly config: ConfigService<Env, true>) {}
-
-  /** Gắn request id lên req và trả 2 header cho client/nginx. */
+  /** Gắn request id lên req và trả header cho client. */
   use(req: Request, res: Response, next: NextFunction): void {
-    const requestId = resolveRequestId(req);
-    res.setHeader('X-Request-Id', requestId);
-    res.setHeader('X-Instance-Id', this.config.get('INSTANCE_ID', { infer: true }));
+    res.setHeader('X-Request-Id', resolveRequestId(req));
     next();
   }
 }

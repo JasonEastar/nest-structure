@@ -30,7 +30,7 @@ class ProbeController {
 
   @Get('hello')
   hello(@I18n() i18n: I18nContext): { text: string } {
-    return { text: i18n.t('common.hello') };
+    return { text: i18n.t('errors.UNAUTHENTICATED') };
   }
 
   @Get(':id')
@@ -109,15 +109,15 @@ describe('Cross-cutting (e2e): validation · envelope · errors · i18n · prefi
 
   it('i18n: chỉ Accept-Language quyết định (vi mặc định, en, en-US → en, ?lang bị bỏ qua)', async () => {
     const vi = await request(app.getHttpServer()).get('/api/v1/probe/hello').expect(200);
-    expect(vi.body.data.text).toBe('Xin chào');
+    expect(vi.body.data.text).toBe('Bạn cần đăng nhập để tiếp tục');
     const en = await request(app.getHttpServer()).get('/api/v1/probe/hello').set('Accept-Language', 'en').expect(200);
-    expect(en.body.data.text).toBe('Hello');
+    expect(en.body.data.text).toBe('Please sign in to continue');
     const region = await request(app.getHttpServer()).get('/api/v1/probe/hello').set('Accept-Language', 'en-US,en;q=0.9').expect(200);
-    expect(region.body.data.text).toBe('Hello');
+    expect(region.body.data.text).toBe('Please sign in to continue');
     const unknown = await request(app.getHttpServer()).get('/api/v1/probe/hello').set('Accept-Language', 'ja').expect(200);
-    expect(unknown.body.data.text).toBe('Xin chào'); // ngôn ngữ chưa hỗ trợ → fallback vi
+    expect(unknown.body.data.text).toBe('Bạn cần đăng nhập để tiếp tục'); // ngôn ngữ chưa hỗ trợ → fallback vi
     const q = await request(app.getHttpServer()).get('/api/v1/probe/hello?lang=en').expect(200);
-    expect(q.body.data.text).toBe('Xin chào'); // query KHÔNG được nhận: một cách duy nhất là header
+    expect(q.body.data.text).toBe('Bạn cần đăng nhập để tiếp tục'); // query KHÔNG được nhận: một cách duy nhất là header
   });
 
   it('lỗi có message đã dịch: NOT_FOUND vi/en với resource, VALIDATION_FAILED, 404 route lạ', async () => {

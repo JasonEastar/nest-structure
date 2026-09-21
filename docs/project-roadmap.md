@@ -68,11 +68,11 @@ Chi tiết phạm vi: [project-overview-pdr.md §14](./project-overview-pdr.md).
 | ADR `docs/adr/NNNN-*.md` | Sáu tháng sau quên vì sao chọn | 10 phút/quyết định | Ngay |
 | `docs/decisions-pending.md` | Câu chưa chốt nằm một chỗ | 5 phút | Đã có |
 | Feature flags (`feature_flags` + Redis) | Kill switch SOS, bật promoted theo % | 1 giờ | Bước 9 |
-| Bull Board `/admin/queues` | Debug worker không có nó là mù | 15 phút | Bước 5 |
+| Bull Board `/admin/queues` | Debug worker không có nó là mù (đã làm rồi gỡ 2026-09-21, thêm lại cùng queue đầu tiên) | 15 phút | Bước 9 |
 | Seed OSM HCMC 50k marker | Test viewport thật, app không trống | 1 ngày | Bước 7 |
 | Data retention policy viết ra | PDPD; xem PDR §16 | 30 phút | Bước 3 |
 | Runbook SOS | Ai làm gì lúc 2h sáng | 1 giờ | Bước 11 |
-| `x-device-id` từ ngày đầu | Rate limit + push token đúng thiết bị | 0 | Bước 5 |
+| Bảng `devices` + `x-device-id` | Push token đúng thiết bị (gỡ 2026-09-21, thêm lại khi có push) | 30 phút | Bước 11 |
 | OpenAPI → client codegen trong CI | Mobile không viết HTTP client tay | 1 giờ | Bước 4 |
 | Renovate / Dependabot | Nâng nhỏ đều rẻ hơn nâng lớn | 15 phút | Bước 1 |
 | Trust score có công thức viết ra | Tránh magic number | 30 phút | Bước 9 |

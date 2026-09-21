@@ -34,9 +34,8 @@ export class SupabaseJwtService {
   constructor(config: ConfigService<Env, true>) {
     const url = config.get('SUPABASE_URL', { infer: true }).replace(/\/$/, '');
     this.issuer = `${url}/auth/v1`;
-    const jwksUrl = config.get('SUPABASE_JWKS_URL', { infer: true }) ?? `${this.issuer}/.well-known/jwks.json`;
     // JWKS được cache theo kid, không fetch mỗi request. Project phải bật JWT signing keys (ES256).
-    this.jwks = createRemoteJWKSet(new URL(jwksUrl));
+    this.jwks = createRemoteJWKSet(new URL(`${this.issuer}/.well-known/jwks.json`));
   }
 
   /** Mọi lỗi verify → UNAUTHENTICATED; lý do chỉ ghi log debug. */

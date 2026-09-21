@@ -60,7 +60,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 | Entry | `main.ts` duy nhất, không `APP_ROLE`; mọi instance giống nhau |
 | Module gốc | `AppModule` = `CommonModule` (`@Global`: Config, Database, Redis, Cache, Queue, Supabase, Logger, I18n) + feature modules; providers `APP_GUARD/APP_PIPE/APP_FILTER/APP_INTERCEPTOR` khai báo ngay trong `AppModule` |
 | Global (token `APP_*` trong module, không `app.useGlobal*`) | `APP_GUARD`: Throttler → Auth → Permission; `APP_PIPE`: `StandardSchemaValidationPipe`; `APP_FILTER`: `AllExceptionsFilter`; `APP_INTERCEPTOR`: bọc `{ success, code, msg, data, meta }`; `LoggerModule` (pino) |
-| Header | Mọi response: `X-Instance-Id`, `X-Request-Id` |
+| Header | Mọi response: `X-Request-Id` |
 | Shutdown | `enableShutdownHooks()`; worker `worker.close()` đợi job xong |
 | Versioning | URI `/api/v1` |
 | Port | `3000` trong container; chỉ nginx publish ra host |
@@ -73,11 +73,11 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 |---|---|
 | Phương thức | **Chỉ Google sign-in** (Supabase provider `google`) ở MVP. Apple thêm khi lên App Store (bắt buộc nếu có social login). Phone OTP **không dùng để đăng nhập**; gđ 2 chỉ dùng để *liên kết* SĐT (`updateUser({phone})` + `verifyOtp`) cho SOS |
 | Token | Supabase phát hành JWT **ES256**; access token **3600 s (mặc định, user chốt)**; refresh rotation bật. Thu hồi quyền không phụ thuộc token vì permission đọc từ DB/Redis |
-| Xác thực ở NestJS | `jose.createRemoteJWKSet(SUPABASE_JWKS_URL)` (mặc định `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`), kiểm `iss`, `aud = authenticated`, `exp`. NEVER HS256/JWT secret → **project phải bật JWT Signing Keys (ES256) VÀ Rotate** để khoá ES256 là current (chỉ bật = standby, token vẫn HS256 → 401) |
+| Xác thực ở NestJS | `jose.createRemoteJWKSet` (`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`), kiểm `iss`, `aud = authenticated`, `exp`. NEVER HS256/JWT secret → **project phải bật JWT Signing Keys (ES256) VÀ Rotate** để khoá ES256 là current (chỉ bật = standby, token vẫn HS256 → 401) |
 | Claims dùng | `sub` (user id), `email`, `is_anonymous`, `user_metadata` (tên, avatar). NEVER đưa role/permission vào JWT |
 | Guard | `AuthGuard` (global, `@Public()` mở) → `PermissionGuard` (`@RequirePermission`) → `@RequirePhoneVerified()` theo hành động |
 | Admin API | `@supabase/supabase-js` với `SUPABASE_SECRET_KEY` (khoá mới `sb_secret_…`), chỉ server, sau port `SUPABASE_ADMIN`: `deleteUser`, `getUserById` |
-| Đăng xuất thiết bị | Xoá session qua Admin API; app-side `devices` chỉ giữ push token |
+| Đăng xuất thiết bị | Xoá session qua Admin API; bảng `devices` (push token) thêm ở bước 11 |
 | SMTP / SMS | Không cần ở MVP (không email OTP). SMS provider qua Send SMS hook chỉ khi làm liên kết SĐT gđ 2 |
 | Rate limit auth | Supabase tự giới hạn per-IP; NestJS không proxy auth endpoints |
 
@@ -87,7 +87,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 |---|---|
 | Bảng | `roles(key, name)`, `permissions(key, description)`, `role_permissions(role_id, permission_id)`, `user_roles(user_id, role_id, city_code?)` — schema `public`, seed bằng migration |
 | Role seed | `user` (gán khi app upsert profile lần đầu), `moderator`, `venue`, `admin` |
-| Permission | Chuỗi `resource:action`, khai trong `common/auth/permissions.ts` (nguồn duy nhất, type `Permission`): `user:read`, `user:create`, `user:ban`, `role:read`, `role:assign`, `pin:create`, `pin:delete_any`, `report:review`, `landmark:manage`, `promoted:manage`, `queue:read` |
+| Permission | Chuỗi `resource:action`, khai trong `common/auth/permissions.ts` (nguồn duy nhất, type `Permission`): `user:read`, `user:create`, `user:ban`, `role:read`, `role:assign`, `pin:create`, `pin:delete_any`, `report:review`, `landmark:manage`, `promoted:manage` |
 | Kiểm tra | `@RequirePermission('report:review')` → `PermissionGuard` đọc `c9:v1:perms:{userId}` (Set, TTL 300 s), miss → query `user_roles ⋈ role_permissions ⋈ permissions` |
 | Quyền sở hữu | Không mã hoá trong permission. Service kiểm `author_id === user.id` hoặc permission `*_any` |
 | Thu hồi | Admin đổi role/permission → `DEL c9:perms:{userId}` ngay; JWT không chứa role nên không cần đợi token hết hạn |
@@ -99,12 +99,12 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 |---|---|
 | Extension (migration 0000) | `postgis`, `unaccent`, `pg_trgm`; UUID v7 sinh app-side (`uuidv7` npm) |
 | Kết nối | Direct `:5432`, driver `postgres` (postgres.js) `prepare: true`; **không** pooler ở gđ 1; PgBouncer khi tổng kết nối > 50 |
-| Pool | `DB_POOL_MAX` 10 mỗi instance (all-in-one); tổng instance × 10 < `max_connections` |
+| Pool | `max: 10` mỗi instance (drizzle.ts); tổng instance × 10 < `max_connections` |
 | Role DB | local: `c9` (owner, tạo extension). prod: `c9_migrate` (DDL) và `c9_app` (DML, không DDL) |
 | Không có schema `auth` | Mọi dữ liệu user nghiệp vụ nằm ở `public.profiles`; Supabase chỉ được gọi qua Admin API |
 | Sync user (app-side) | `AuthGuard` → `UserService.ensureProfile(claims)`: Redis `c9:v1:profile:{id}` = `{ status }` TTL 1h; miss → tx `INSERT profiles … ON CONFLICT DO NOTHING RETURNING` (chỉ gán `user_roles(user)` khi mới tạo); `status = blocked` → 403 `ACCOUNT_BLOCKED` (admin khoá ghi đè cache nên mọi instance chặn ngay). Claims: `sub`, `email`, `user_metadata.full_name`, `user_metadata.avatar_url` |
 | `profiles.id` | = `sub` Supabase (uuid v4), **không FK** (khác database) |
-| Xoá tài khoản | Tx local (ẩn danh hoá pin/thread, xoá profile/devices) → `auth.admin.deleteUser`; idempotent |
+| Xoá tài khoản | Tx local (ẩn danh hoá pin/thread, xoá profile) → `auth.admin.deleteUser`; idempotent |
 | RLS | Không (NestJS là client duy nhất) |
 | Toạ độ | `geography(Point, 4326)` qua `customType` + `USING gist`; `ST_DWithin` trong repository của module |
 | Pin | Một bảng `markers`: `type`, `status`, `source`, `attrs` JSONB (zod discriminated union), `expires_at`, `confirm_count`, `gone_count`, `report_count`, `author_rep_at_post` |
@@ -162,7 +162,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 | `ingest` | Nguồn tự động (gđ 2) | 1/nguồn | — |
 | `outbox` | Drain outbox → queue (gđ 3) | 1 | — |
 
-Processor chạy trên **mọi** instance (all-in-one); một job chỉ được một worker nhận. Repeatable: `upsertJobScheduler(id cố định, { pattern, tz: 'Asia/Ho_Chi_Minh' })` — N instance cùng upsert vẫn chỉ một lịch. Fan-out 2 tầng (planner → sender lô 500). Chống trùng: `jobId` cố định + PK `(notification_id, user_id)`. Bull Board `/admin/queues` có middleware riêng (ngoài Nest pipeline): cùng `ensureProfile` với AuthGuard (chặn blocked) + permission `queue:read`.
+Processor chạy trên **mọi** instance (all-in-one); một job chỉ được một worker nhận. Repeatable: `upsertJobScheduler(id cố định, { pattern, tz: 'Asia/Ho_Chi_Minh' })` — N instance cùng upsert vẫn chỉ một lịch. Fan-out 2 tầng (planner → sender lô 500). Chống trùng: `jobId` cố định + PK `(notification_id, user_id)`. Bull Board: thêm lại cùng queue đầu tiên (bước 9).
 
 ## 9. Rate limit
 
@@ -201,14 +201,13 @@ Health cho compose: `/health/live` + `/health/ready`; không có service worker 
 | Phải điền | Ghi chú |
 |---|---|
 | `DATABASE_URL`, `REDIS_URL` | Compose ghi đè theo tên service (`postgres`, `redis`); host dev dùng `127.0.0.1` + `PG_HOST_PORT`/`REDIS_HOST_PORT` |
-| `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY` | Auth. Publishable key chỉ cho `scripts/dev-token.mjs` và test Supabase thật |
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | Auth (backend). `SUPABASE_PUBLISHABLE_KEY` trong .env chỉ cho `scripts/dev-token.mjs` và test Supabase thật |
 | `NODE_ENV` | `production` trên server: log JSON, trace 10 % |
 
 | Tuỳ chọn (có mặc định trong `config/env.ts`) | Mặc định |
 |---|---|
-| `PORT`, `INSTANCE_ID`, `LOG_LEVEL`, `TRUST_PROXY_HOPS`, `DB_POOL_MAX` | 3000 · hostname · info · 1 · 10 |
-| `THROTTLE_SHORT_LIMIT`, `THROTTLE_LONG_LIMIT` | 10/giây · 100/phút |
+| `PORT`, `LOG_LEVEL` | 3000 · info |
+| `THROTTLE_SHORT_LIMIT`, `THROTTLE_LONG_LIMIT` | 10/giây · 300/phút (mỗi IP, mỗi route) |
 | `PUBLIC_URL`, `SENTRY_DSN` | trống = tắt; chỉ đặt khi deploy |
-| `SUPABASE_JWKS_URL` | suy từ `SUPABASE_URL`; test trỏ vào JWKS giả |
 
 Toàn bộ validate bằng zod lúc boot (`config/env.ts`); thiếu → process thoát.

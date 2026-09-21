@@ -89,7 +89,7 @@ export class LocationController {
 | Query | `@Query({ schema: XQuerySchema })` | Query luôn là string → dùng `z.coerce.number()` trong schema |
 | Body | `@Body({ schema: XSchema })` | Kiểu TS lấy bằng `z.infer` trong file dto |
 | User đang đăng nhập | `@CurrentUser() user: AuthUser` | `user.id` = `sub` của Supabase. Route không có `@Public()` là bắt buộc token |
-| Header | `@Headers('x-device-id') deviceId?: string` | Chỉ khi thật cần; device id đã được AuthGuard ghi nhận sẵn |
+| Header | `@Headers('x-foo') foo?: string` | Chỉ khi thật cần; ưu tiên body/query có schema |
 | Route công khai | `@Public()` ở class `<X>PublicController` (cùng file `<x>.controller.ts`), path `public/<resource>` | Không có `req.user`; dữ liệu trả về phải là thứ ai cũng được xem; rate limit vẫn áp theo thiết bị/IP |
 | Cần quyền | `@RequirePermission('pin:create')` — nhiều quyền: `@RequirePermission('a', 'b')` | Mã phải có trong `common/auth/permissions.ts` + migration INSERT (test `permissions.spec` kiểm khớp). Luật phụ thuộc dữ liệu → `hasPermission(perms, 'role:assign')` trong service |
 

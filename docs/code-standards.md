@@ -73,7 +73,7 @@ MUST   bảng app nằm trong schema public; auth.* thuộc Supabase, không mig
 NEVER  đưa author_id (kể cả đã băm) vào DTO công khai của pin Live
 NEVER  cache nội dung đã lọc theo quyền — chỉ cache phần public
 MUST   SĐT thô chỉ nằm ở Supabase Auth; public.* chỉ giữ HMAC + last4 nếu cần tra cứu
-MUST   push_token gắn với devices(user_id, device_id) — NEVER gắn trực tiếp vào profiles
+MUST   push_token (bước 11) gắn với bảng devices(user_id, device_id) — NEVER gắn trực tiếp vào profiles
 MUST   strip EXIF (GPS) mọi ảnh trong job media trước khi public
 NEVER  log: token, OTP, mật khẩu, toạ độ chính xác của user, nội dung riêng tư
 NEVER  dùng SUPABASE_SECRET_KEY ở client hoặc trong log/response
@@ -90,7 +90,7 @@ MUST   SOS (gđ 2) có @RequirePhoneVerified() — không global; MVP đăng nh�
 MUST   rate limit khoá theo IP (req.ip sau `trust proxy`), đếm chung mọi instance qua Redis
 MUST   POST tạo tài nguyên nhạy cảm (SOS, thanh toán, pin, reply) nhận Idempotency-Key
 MUST   /api/v1 prefix
-MUST   mọi response có X-Instance-Id, X-Request-Id
+MUST   mọi response có X-Request-Id
 NEVER  tự phát hành access token — JWT do Supabase Auth phát, NestJS chỉ verify qua JWKS
 ```
 
@@ -114,7 +114,6 @@ MUST   dừng và hỏi khi: gặp mâu thuẫn giữa tài liệu, cần quyế
 MUST   adapter ngoài (FCM, R2, payment, SMS, Supabase admin) đứng sau Symbol token + interface nhỏ — NEVER inject class SDK trực tiếp vào service nghiệp vụ
 MUST   mỗi adapter có contract test dùng chung cho bản thật và bản mock (LSP)
 MUST   promise không await (fire-and-forget) có .catch() ghi log — NEVER để unhandled rejection
-MUST   main.ts đăng ký process.on('unhandledRejection'|'uncaughtException') → log rồi thoát
 MUST   text người dùng nhập (note, reply, display name) strip HTML trong zod schema — NEVER lưu HTML thô
 MUST   service trả object theo ResponseSchema trong contracts — NEVER trả raw row Drizzle ra controller
 MUST   lỗi trả mã ErrorCodes + params — NEVER nhúng input người dùng vào message
@@ -161,7 +160,7 @@ c9_map/
 │   │       ├── response.ts           # ResponseInterceptor → { success, code, msg, data, meta }
 │   │       ├── pagination.ts         # cursor (created_at, id) · PaginationQuerySchema · pageOf()
 │   │       ├── validation.ts         # APP_PIPE StandardSchemaValidationPipe (zod) → 422 · zText · zLatLng
-│   │       ├── request-context.middleware.ts  # X-Instance-Id · X-Request-Id
+│   │       ├── request-context.middleware.ts  # X-Request-Id
 │   │       └── express.d.ts          # req.user
 │   └── modules/                      # nghiệp vụ — mỗi module 1 thư mục; file chính ở gốc, chỉ 2 thư mục con dto/ và schema/
 │       ├── health/
@@ -169,19 +168,17 @@ c9_map/
 │       ├── user/
 │       │   ├── user.module.ts
 │       │   ├── user.controller.ts        # UserController /me · UserAdminController /admin/users · RoleAdminController /admin/roles (mỗi class một tag Swagger)
-│       │   ├── user.service.ts           # ensureProfile · getMe · deleteMe · touchDevice · getPermissions · setUserRoles
+│       │   ├── user.service.ts           # ensureProfile · getMe · updateMe · deleteMe · getPermissions · admin user/role
 │       │   ├── user.repository.ts        # mọi SQL của user (Drizzle)
 │       │   ├── dto/                          # zod request/response — Swagger đọc tự động
 │       │   │   ├── me.dto.ts                 # MeResponseSchema
 │       │   │   └── role.dto.ts               # ROLE_CODES · RoleSchema · SetUserRolesSchema
 │       │   └── schema/
-│       │       └── user.schema.ts        # profiles · roles · permissions · role_permissions · user_roles · devices
+│       │       └── user.schema.ts        # profiles · roles · permissions · role_permissions · user_roles
 │       ├── location/                 # MODULE MẪU — copy cấu trúc này cho module mới
 │       │   ├── location.module.ts · location.controller.ts · location.service.ts · location.repository.ts · location.constants.ts
 │       │   ├── dto/create-location.dto.ts · dto/location.dto.ts     # 1 file / use case, chứa cả request + response
 │       │   └── schema/location.schema.ts                          # saved_locations (geography + GIST)
-│       └── queue-board/
-│           └── queue-board.module.ts # /admin/queues (Bull Board) + middleware JWT + queue:read; tắt khi test
 ├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac · 0003_location · 0004_location-public
 ├── drizzle.config.ts                 # schema: 'src/**/*.schema.ts'
 ├── test/
@@ -225,11 +222,11 @@ Nguồn: [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md) (sửa đổi 20
 | Error code | SCREAMING_SNAKE | `PIN_DUPLICATE_NEARBY` |
 | i18n key | `module.action.key` | `alert.push.pin_nearby.title` |
 | Env | SCREAMING_SNAKE, validate zod lúc boot | `DATABASE_URL`, `REDIS_URL` |
-| Env Supabase | `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_JWKS_URL` | |
+| Env Supabase | `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (backend); `SUPABASE_PUBLISHABLE_KEY` chỉ client/script | |
 | Decorator auth | `@Public()`, `@RequirePermission('pin:delete_any')`, `@RequirePhoneVerified()` | không còn `@AllowUnverified()` |
 | Guard | `AppThrottlerGuard` → `AuthGuard` → `PermissionGuard` (thứ tự trong app.module.ts) | |
 | Permission | `resource:action`, action chuẩn `read · create · update · delete` + động từ nghiệp vụ (`ban`, `assign`, `review`); khai trong `common/auth/permissions.ts` | `pin:create`, `user:read`, `role:assign` |
-| Header | `X-Request-Id`, `X-Instance-Id`, `x-device-id`, `Idempotency-Key` | |
+| Header | `X-Request-Id`, `Idempotency-Key` (sau) | |
 | Commit | Conventional Commits | `feat(pin): viewport clustering` |
 | Branch | trunk-based, feature branch ngắn | `feat/pin-viewport` |
 

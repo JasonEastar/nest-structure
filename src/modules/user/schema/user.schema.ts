@@ -1,4 +1,4 @@
-import { index, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { timestamps, uuidV7Pk } from '../../../common/database/columns.js';
 
 /** Bảng của module user. *.schema.ts chỉ import drizzle-orm, columns.ts và *.schema.ts khác. */
@@ -63,24 +63,4 @@ export const userRoles = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.roleId] })],
-);
-
-/** Thiết bị + push token (gắn với thiết bị, không phải user). */
-export const devices = pgTable(
-  'devices',
-  {
-    id: uuidV7Pk(),
-    userId: uuid('user_id')
-      .notNull()
-      .references(() => profiles.id, { onDelete: 'cascade' }),
-    deviceId: text('device_id').notNull(), // header x-device-id
-    platform: text('platform'), // ios | android
-    pushToken: text('push_token'),
-    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
-    ...timestamps,
-  },
-  (t) => [
-    uniqueIndex('devices_user_device_uq').on(t.userId, t.deviceId),
-    index('devices_push_token_idx').on(t.pushToken),
-  ],
 );

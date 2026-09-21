@@ -53,14 +53,6 @@ export class UserService implements AuthUserPort {
     return codes;
   }
 
-  /** Ghi last_seen thiết bị tối đa 1 lần / 5 phút. */
-  async touchDevice(userId: string, deviceId: string): Promise<void> {
-    const key = CACHE.deviceSeen.key(userId, deviceId);
-    if (await this.cache.has(key)) return;
-    await this.repo.upsertDevice(userId, deviceId);
-    await this.cache.flag(key, CACHE.deviceSeen.ttl);
-  }
-
   /** Hồ sơ /me: profile + role + permission hiệu lực. */
   async getMe(userId: string): Promise<MeResponse> {
     const profile = await this.repo.findProfile(userId);

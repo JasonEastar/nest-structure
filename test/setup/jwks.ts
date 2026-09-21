@@ -12,7 +12,7 @@ export interface FakeSupabase {
   baseUrl: string;
   issuer: string;
   signToken: (payload: JWTPayload & { sub: string }, overrides?: { kid?: string }) => Promise<string>;
-  /** Ghi SUPABASE_URL / SUPABASE_JWKS_URL vào process.env. */
+  /** Ghi SUPABASE_URL vào process.env (app tự suy JWKS = SUPABASE_URL/auth/v1/.well-known/jwks.json). */
   applyEnv: () => void;
   close: () => Promise<void>;
 }
@@ -48,7 +48,6 @@ export async function startFakeSupabase(): Promise<FakeSupabase> {
         .sign(privateKey),
     applyEnv: () => {
       process.env.SUPABASE_URL = baseUrl;
-      process.env.SUPABASE_JWKS_URL = `${issuer}/.well-known/jwks.json`;
     },
     close: () => new Promise<void>((resolve) => server.close(() => resolve())),
   };

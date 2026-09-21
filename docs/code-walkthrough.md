@@ -37,7 +37,7 @@ Chưa cần đọc ngay: `common/redis/throttler.guard.ts` (rate limit, có Lua)
 ## 3. Một request đi qua đâu: `GET /api/v1/me`
 
 1. Request tới Express (dev: `npm run dev` trên cổng 3000; sau này qua nginx/load balancer).
-2. `common/http/request-context.middleware.ts`: giữ `X-Request-Id` client gửi hoặc sinh mới, trả thêm `X-Instance-Id` (tên máy/instance đang phục vụ).
+2. `common/http/request-context.middleware.ts`: giữ `X-Request-Id` client gửi hoặc sinh mới, trả lại trong header response.
 3. `common/redis/throttler.guard.ts`: đếm số request theo IP trong Redis. Quá 10 lần/giây → **429**, dừng ở đây (chặn trước khi tốn CPU verify JWT).
 4. `common/auth/auth.guard.ts`: lấy `Authorization: Bearer <token>`, xác minh chữ ký với khoá công khai của Supabase (`common/auth/supabase.ts`). Sai → **401**. Đúng → gọi `UserService.ensureProfile` để chắc chắn user đã có dòng trong bảng `profiles` (lần đầu thì tạo; `status = blocked` → **403**), rồi gắn `req.user`.
 5. `common/auth/permission.guard.ts`: route có `@RequirePermission(...)` không? `/me` không có → cho qua. Route admin có → tra quyền từ DB (cache Redis 5 phút), thiếu → **403**.
@@ -82,12 +82,11 @@ Chưa có module nào dùng. Khi cần việc chạy nền hoặc theo lịch (v
 | `common/http/response.ts` | Bọc mọi response thành `{ success, code, msg, data, meta }` | Hiếm |
 | `common/http/pagination.ts` | Cursor phân trang + `pageOf()` | Viết endpoint list |
 | `common/http/validation.ts` | Pipe zod toàn cục | Hiếm |
-| `common/http/request-context.middleware.ts` | `X-Request-Id`, `X-Instance-Id` | Hiếm |
+| `common/http/request-context.middleware.ts` | `X-Request-Id` | Hiếm |
 | `common/http/express.d.ts` | Khai `req.user` cho TypeScript | Thêm field vào `req.user` |
 | `modules/health/*` | `/health/live` (process sống), `/health/ready` (DB + Redis ok) | Thêm dependency cần check |
 | `modules/user/*` | `/me` (GET/PATCH/DELETE), RBAC, admin tạo/xem/khoá user, gán role | Mọi thứ về user |
 | `modules/location/*` | Module mẫu: địa điểm đã lưu, đủ mọi loại file | Khi tạo module mới |
-| `modules/queue-board/*` | Trang `/admin/queues` xem hàng đợi, cần quyền `queue:read` | Ops |
 
 ## 6. Thêm một API mới: copy module mẫu `modules/location/`
 
@@ -117,7 +116,6 @@ Các bước khi làm module `pin`:
 Không viết trước cái chưa dùng. Khi bước tương ứng tới thì thêm, kèm test:
 - `INCR`, `SADD` trong `CacheService` (bước 8, đếm vote/like).
 - Cache viewport trong Redis (bước 7, khi có endpoint viewport của pin).
-- Template push notification trong `i18n/*/common.json` (bước 11).
 - Tách worker khỏi HTTP bằng biến env (chỉ khi push fan-out làm API chậm, xem ADR-0006).
 
 ## 8. Module lớn lên và hai module nối với nhau
