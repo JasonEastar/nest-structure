@@ -1,7 +1,7 @@
 # C9 Map — Đọc code từ đâu, file nào để làm gì
 
 **Cập nhật:** 2026-09-17 · **Trạng thái:** Active · **Chủ sở hữu:** Tech Lead
-Tài liệu cho người mới mở repo lần đầu (kể cả dev React chưa từng dùng NestJS). Đọc xong 15 phút là biết request đi đâu, file nào sửa khi cần. Chi tiết kỹ thuật hơn: [project-structure-and-flows.md](./project-structure-and-flows.md).
+Tài liệu cho người mới mở repo lần đầu (kể cả dev React chưa từng dùng NestJS). Đọc xong 15 phút là biết request đi đâu, file nào sửa khi cần. Chi tiết kỹ thuật hơn: [codebase-summary.md](./codebase-summary.md), [system-architecture.md](./system-architecture.md).
 
 ---
 
@@ -36,8 +36,8 @@ Chưa cần đọc ngay: `common/redis/throttler.guard.ts` (rate limit, có Lua)
 
 ## 3. Một request đi qua đâu: `GET /api/v1/me`
 
-1. **nginx** chia request cho `api-1` hoặc `api-2`, gắn header `X-Request-Id`.
-2. `common/http/request-context.middleware.ts`: ghi lại request id, trả thêm header `X-Instance-Id` để biết instance nào phục vụ.
+1. Request tới Express (dev: `npm run dev` trên cổng 3000; sau này qua nginx/load balancer).
+2. `common/http/request-context.middleware.ts`: giữ `X-Request-Id` client gửi hoặc sinh mới, trả thêm `X-Instance-Id` (tên máy/instance đang phục vụ).
 3. `common/redis/throttler.guard.ts`: đếm số request theo IP trong Redis. Quá 10 lần/giây → **429**, dừng ở đây (chặn trước khi tốn CPU verify JWT).
 4. `common/auth/auth.guard.ts`: lấy `Authorization: Bearer <token>`, xác minh chữ ký với khoá công khai của Supabase (`common/auth/supabase.ts`). Sai → **401**. Đúng → gọi `UserService.ensureProfile` để chắc chắn user đã có dòng trong bảng `profiles` (lần đầu thì tạo; `status = blocked` → **403**), rồi gắn `req.user`.
 5. `common/auth/permission.guard.ts`: route có `@RequirePermission(...)` không? `/me` không có → cho qua. Route admin có → tra quyền từ DB (cache Redis 5 phút), thiếu → **403**.

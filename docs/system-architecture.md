@@ -118,7 +118,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 ### 5.3 Local dev
 - **Auth:** hosted Supabase **dev project** (free tier), bật provider Google, lấy `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY` vào `.env`. Không `supabase start` (tuỳ chọn khi offline).
 - **DB:** container `postgis/postgis:16-3.4` trong docker-compose, port 5432, volume `pg-data`. Kiểm: `psql $DATABASE_URL -c 'select postgis_version()'`.
-- `npm run dev:infra` = `docker compose up -d postgres redis`; thêm `api-1 api-2 nginx` khi test đa instance.
+- `npm run dev:infra` = `docker compose up -d postgres redis`; app chạy trên host bằng `npm run dev`. Dockerfile/nginx/CI gỡ 2026-09-21 (git `e2d135d`), thêm lại khi deploy.
 
 ## 6. Drizzle
 
@@ -190,7 +190,7 @@ Presigned PUT R2, 5 phút, ≤ 10 MB, `image/jpeg|png|webp|heic`. Backend xác n
 
 | Môi trường | DB + Auth | App |
 |---|---|---|
-| local | Auth: Supabase dev project (hosted). DB: `postgis/postgis:16-3.4` trong compose | docker-compose: `postgres`, `redis:7-alpine --appendonly yes`, `api-1`, `api-2` (3001/3002 để test thẳng), `nginx` 3000 `least_conn` |
+| local | Auth: Supabase dev project (hosted). DB: `postgis/postgis:16-3.4` trong compose | compose: `postgres`, `redis:7-alpine --appendonly yes`, `redis-insight` (profile tools); app `npm run dev` trên host |
 | staging | Auth: Supabase project staging. DB: Postgres container (cùng compose, volume EBS) | 1 EC2, cùng compose |
 | prod | Auth: Supabase project prod. DB: Postgres container tự host (volume EBS, backup S3, PITR) | EC2 + compose/Swarm; Redis container (ElastiCache tuỳ chọn sau) |
 

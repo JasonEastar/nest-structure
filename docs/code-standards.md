@@ -14,7 +14,7 @@ Quy tắc bắt buộc khi viết code cho `c9_map`: nguyên tắc bất biến,
 | **DRY** | Schema zod, ErrorCodes, hằng số (tuổi thọ pin, tier rep, rate limit) chỉ khai báo một chỗ: `*.dto.ts` / `*.constants.ts` của module sở hữu, `common/http/exceptions.ts` (ErrorCodes) |
 | **File < 200 dòng** | Tách theo trách nhiệm: controller / service / repository / jobs |
 | **kebab-case + hậu tố** | Tên file tự mô tả mục đích, đọc được bằng `grep` mà không cần mở |
-| **Không mock để qua test** | PostGIS, Redis, BullMQ test trên container thật. Xem [testing-and-ci](./testing-and-ci.md) |
+| **Không mock để qua test** | PostGIS, Redis, BullMQ test trên container thật. Xem [testing](./testing.md) |
 
 ---
 
@@ -188,9 +188,9 @@ c9_map/
 │   ├── unit/*.spec.ts                # logic thuần, không hạ tầng (env · exceptions · columns · permission.guard · pagination · validation · location.service)
 │   ├── integration/*.spec.ts         # AppModule thật trên testcontainers (app · cross-cutting · geography · redis-queue · auth-rbac · location · supabase-real)
 │   └── setup/{containers,env,jwks}.ts # globalSetup testcontainers + migrate · setupFiles inject URL · Supabase JWKS giả (ES256)
-├── scripts/                          # smoke-multi-instance.sh · dev-token.mjs · grant-role.mjs · verify-auth.mjs
+├── scripts/                          # dev-token.mjs (token Supabase thật) · grant-role.mjs (admin đầu tiên)
 ├── i18n/{vi,en}/*.json · openapi/{users,locations,health}.json
-├── Dockerfile · docker-compose.yml · nginx.conf · vitest.config.ts · .env.example · .github/workflows/ci.yml
+├── docker-compose.yml (postgres · redis · redis-insight cho dev) · vitest.config.ts · .env.example
 └── package.json · tsconfig.json · nest-cli.json
 ```
 
@@ -277,10 +277,8 @@ Mỗi file sở hữu gì:
 | `docs/system-architecture.md` | Kiến trúc + cấu hình từng tech (NestJS, Supabase, PG, Drizzle, Redis, BullMQ, i18n, Swagger, upload, log, Docker) |
 | `docs/code-standards.md` | File này: nguyên tắc, cấu trúc, đặt tên, module, git |
 | `docs/nestjs-guide.md` | docs.nestjs.com chắt lọc: dùng / tránh / vì sao, request lifecycle, gotchas |
-| `docs/setup-strategy.md` | Chiến lược cấu hình: ràng buộc → cấu trúc → config từng tầng → thứ tự dựng → môi trường |
-| `docs/project-structure-and-flows.md` | Cây file sau skeleton, bảng config có vì sao, sơ đồ luồng (mermaid) |
 | `docs/project-roadmap.md` | Thứ tự dựng theo bước, giai đoạn, những gì không làm, tiến độ |
-| `docs/testing-and-ci.md` | Tầng test, môi trường, pipeline, secrets |
+| `docs/testing.md` | Tầng test, kịch bản, môi trường, secrets (CI/CD: chưa có, cố ý) |
 | `docs/project-analysis.md` | Phân tích PM/QA/Tech Lead, mâu thuẫn README ↔ demo, rủi ro |
 | `docs/decisions-pending.md` | Câu hỏi chưa chốt + khuyến nghị tạm; chốt xong → ADR |
 | `docs/codebase-summary.md` | Hiện trạng repo, cập nhật sau mỗi bước scaffold |

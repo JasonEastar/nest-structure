@@ -6,7 +6,7 @@ Bản đồ đời sống thời gian thực cho TP.HCM: kẹt xe, ngập, chợ
 
 | Thành phần | Công nghệ | Dùng để |
 |---|---|---|
-| Framework | NestJS 12 (TypeScript, ESM) | HTTP API, modular monolith, chạy nhiều instance sau nginx |
+| Framework | NestJS 12 (TypeScript, ESM) | HTTP API, modular monolith; thiết kế stateless để sau chạy nhiều instance |
 | Database | PostgreSQL 16 + PostGIS | Dữ liệu chính, truy vấn toạ độ (bán kính, viewport) |
 | ORM | Drizzle | Schema bằng TypeScript, migration SQL, query có kiểu |
 | Auth | Supabase Auth | App: Google; admin web: email + mật khẩu (tài khoản do admin tạo). Supabase phát JWT, backend chỉ xác minh; role/permission lưu ở Postgres |
@@ -14,7 +14,7 @@ Bản đồ đời sống thời gian thực cho TP.HCM: kẹt xe, ngập, chợ
 | Validation & docs | zod 4 + Swagger (`@nestjs/swagger`) | Một schema cho validate, kiểu TS và tài liệu API |
 | i18n | nestjs-i18n | Thông báo lỗi vi/en theo header `Accept-Language` |
 | Test | Vitest + testcontainers + supertest | Unit và integration trên Postgres/Redis thật |
-| Vận hành | Docker Compose, nginx, GitHub Actions, Sentry | Dev đa instance, CI lint/test/build, lỗi + log + trace lên Sentry khi có `SENTRY_DSN` |
+| Vận hành | Docker Compose (chỉ Postgres, Redis, RedisInsight cho dev), Sentry | Lỗi + log + trace lên Sentry khi có `SENTRY_DSN`; chưa có CI/CD, deploy |
 
 ## Chạy local
 
@@ -56,10 +56,9 @@ Mỗi module: `x.module.ts`, `x.controller.ts`, `x.service.ts`, `x.repository.ts
 |---|---|
 | Chạy | `npm run dev` · `npm run build` · `npm run start:prod` |
 | Kiểm tra | `npm run lint` · `npm run typecheck` · `npm test` (unit + integration, tự dựng PostGIS + Redis, ~15 s) |
-| Hạ tầng | `npm run dev:infra` · `npm run dev:infra:full` (2 instance + nginx) · `npm run dev:tools` · `npm run dev:infra:down` |
-| Database | `npm run db:generate` (schema → SQL) · `npm run db:migrate` · `npm run db:studio` · trên server: `node dist/migrate.js` |
+| Hạ tầng | `npm run dev:infra` (Postgres + Redis) · `npm run dev:tools` (RedisInsight) · `npm run dev:infra:down` |
+| Database | `npm run db:generate` (schema → SQL) · `npm run db:migrate` · `npm run db:studio` |
 | API docs | `npm run openapi:export` → `openapi/<module>.json` |
-| Đa instance | `TOKEN=$(node scripts/dev-token.mjs) npm run smoke` |
 
 ## Quy ước API
 
@@ -69,4 +68,4 @@ Mỗi module: `x.module.ts`, `x.controller.ts`, `x.service.ts`, `x.repository.ts
 
 ## Tài liệu
 
-Bắt đầu với [docs/code-walkthrough.md](./docs/code-walkthrough.md) (đọc code từ đâu, request đi qua đâu) và [docs/api-cookbook.md](./docs/api-cookbook.md) (cách viết một API). Deploy staging: [docs/deploy-staging.md](./docs/deploy-staging.md). Toàn bộ tài liệu khác nằm trong [docs/](./docs/): kiến trúc, quy chuẩn code, roadmap, test, quyết định.
+Bắt đầu với [docs/code-walkthrough.md](./docs/code-walkthrough.md) (đọc code từ đâu, request đi qua đâu) và [docs/api-cookbook.md](./docs/api-cookbook.md) (cách viết một API). Toàn bộ tài liệu khác nằm trong [docs/](./docs/): kiến trúc, quy chuẩn code, roadmap, test, quyết định.

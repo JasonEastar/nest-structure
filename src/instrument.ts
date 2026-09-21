@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import * as Sentry from '@sentry/nestjs';
 
 /**
- * Khởi tạo Sentry. Nạp bằng cờ Node `--import ./dist/instrument.js` (scripts dev/start:prod, Dockerfile) để Sentry móc vào
+ * Khởi tạo Sentry. Nạp bằng cờ Node `--import ./dist/instrument.js` (scripts dev/start:prod) để Sentry móc vào
  * pino và http TRƯỚC khi app được nạp — với ESM, import trong main.ts là quá muộn cho log và trace.
  * Chỉ bật khi có SENTRY_DSN (local để trống = tắt). Đọc .env trực tiếp vì chạy trước ConfigModule.
  */

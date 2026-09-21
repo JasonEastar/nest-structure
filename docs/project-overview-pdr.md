@@ -217,6 +217,6 @@ Prototype: `demo-html/MapChat Phone.dc.html`, `demo-html/MapChat Live - All scre
 - [system-architecture.md](./system-architecture.md) — kiến trúc, cấu hình từng tech
 - [code-standards.md](./code-standards.md) — nguyên tắc bất biến, quy ước
 - [project-roadmap.md](./project-roadmap.md) — thứ tự dựng
-- [testing-and-ci.md](./testing-and-ci.md) — kiểm thử, pipeline
+- [testing.md](./testing.md) — kiểm thử
 - [project-analysis.md](./project-analysis.md) — phân tích PM / QA / Tech Lead
 - [decisions-pending.md](./decisions-pending.md) — quyết định chưa chốt

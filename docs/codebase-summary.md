@@ -9,10 +9,10 @@
 
 | Mục | Giá trị |
 |---|---|
-| Roadmap | Bước 0–6 ✅ (skeleton + auth + RBAC + test/CI). Tiếp theo: bước 7 Pin core, chưa lập plan |
+| Roadmap | Bước 0–6 ✅ (skeleton + auth + RBAC + test). CI/Docker image/deploy gỡ 2026-09-21 (chỉ dev). Tiếp theo: bước 7 Pin core, chưa lập plan |
 | Module | `health`, `user` (/me xem/sửa/xoá, /admin/users tạo–danh sách–khoá, /admin/roles), `location` (module mẫu: CRUD + public nearby PostGIS), `app-config` (/public/configs: enum + nhãn đa ngôn ngữ cho client), `queue-board` (Bull Board). Chưa có queue nào đăng ký |
-| Test | 66 (unit 28 · integration 38) trên PostGIS + Redis thật (testcontainers); smoke Docker 2 instance 6/6; mọi endpoint đã đối chiếu shape response; CI chưa chạy trên GitHub |
-| API | Một shape response duy nhất `{ success, code, msg, data, meta }`; Swagger `/docs` chia theo module, `openapi/{users,locations,health}.json` |
+| Test | 91 (unit 46 · integration 45) trên PostGIS + Redis thật (testcontainers); mọi endpoint đã đối chiếu shape response; không có CI |
+| API | Một shape response duy nhất `{ success, code, msg, data, meta }`; Swagger `/docs` chia theo module, `openapi/{users,configs,locations,health}.json` |
 | Git | Nhánh `main`, 41 commit tới 2026-09-18. Mốc: 7469607 phase 07 · 9e00612 cấu trúc mới · 26d30ee module mẫu location · 33253c3 identity → user · 2d45e4b đơn giản hoá theo chuẩn NestJS · 72517cf format response thống nhất |
 | Kế hoạch | `plans/260916-1500-c9-map-backend-skeleton/` ✅ · `plans/260917-1000-restructure-src-layout/` ✅ · `plans/260917-1130-location-reference-module/` ✅ |
 
@@ -27,8 +27,8 @@ c9_backend/
 │   ├── archive/              # brief gốc
 │   ├── code-walkthrough.md · api-cookbook.md   # 2 file người mới đọc trước
 │   ├── project-overview-pdr.md · system-architecture.md · code-standards.md
-│   ├── project-roadmap.md · testing-and-ci.md · project-analysis.md
-│   ├── decisions-pending.md · codebase-summary.md · nestjs-guide.md · setup-strategy.md · project-structure-and-flows.md
+│   ├── project-roadmap.md · testing.md · project-analysis.md
+│   ├── decisions-pending.md · codebase-summary.md · nestjs-guide.md · archive/ (setup-strategy, readme gốc)
 ├── plans/
 │   ├── reports/              # researcher-260916-*.md (Supabase, stack), nestjs-docs-01..04-*.md (toàn bộ docs.nestjs.com)
 │   └── 260916-1500-c9-map-backend-skeleton/   # plan.md + phase-01..07
@@ -47,7 +47,6 @@ c9_map/
 │   ├── main.ts                       # điểm vào server: createApp → Swagger UI → listen
 │   ├── app.ts                        # createApp(): helmet · trust proxy · prefix /api · version v1 · shutdown hooks (dùng chung với openapi-export)
 │   ├── app.module.ts                 # imports ConfigModule + CommonModule + modules; providers APP_GUARD Throttler → Auth → Permission · APP_PIPE · APP_FILTER · APP_INTERCEPTOR
-│   ├── migrate.ts                    # `node dist/migrate.js`: chạy drizzle/*.sql trên server (image runtime không có drizzle-kit)
 │   ├── openapi-export.ts             # `npm run openapi:export` → openapi/<key>.json mỗi định nghĩa (users, locations, health)
 │   ├── config/                       # cấu hình app — không nghiệp vụ, không hạ tầng
 │   │   ├── env.ts                    # zod schema; ConfigModule đọc .env + validate, dùng qua ConfigService
@@ -108,13 +107,12 @@ c9_map/
 │   ├── unit/*.spec.ts                # logic thuần, không hạ tầng (env · exceptions · columns · permission.guard · pagination · validation · location.service)
 │   ├── integration/*.spec.ts         # AppModule thật trên testcontainers (app · cross-cutting · geography · redis-queue · auth-rbac · location · supabase-real)
 │   └── setup/{containers,env,jwks}.ts # globalSetup testcontainers + migrate · setupFiles inject URL · Supabase JWKS giả (ES256)
-├── docker-compose.staging.yml        # staging 1 máy: nginx → api-1, api-2 (runtime) → postgres, redis (docs/deploy-staging.md)
-├── scripts/                          # smoke-multi-instance.sh · dev-token.mjs · grant-role.mjs · verify-auth.mjs
-├── i18n/{vi,en}/*.json · openapi/{users,locations,health}.json
-├── Dockerfile · docker-compose.yml · nginx.conf · vitest.config.ts · .env.example · .github/workflows/ci.yml
+├── scripts/                          # dev-token.mjs (token Supabase thật) · grant-role.mjs (admin đầu tiên)
+├── i18n/{vi,en}/*.json · openapi/{users,configs,locations,health}.json
+├── docker-compose.yml (postgres · redis · redis-insight cho dev) · vitest.config.ts · .env.example
 └── package.json · tsconfig.json · nest-cli.json
 ```
-Scaffold `nest new` 12: ESM (`type: module`, nodenext), oxlint, Vitest 4, TypeScript 6. Lệnh: xem bảng trong [README](../README.md#lệnh); thêm `node scripts/dev-token.mjs` (token thật) · `node scripts/grant-role.mjs <email> admin` (admin đầu tiên) · `node scripts/verify-auth.mjs` (kiểm auth thật) · `npm run dev:tools` (RedisInsight).
+Scaffold `nest new` 12: ESM (`type: module`, nodenext), oxlint, Vitest 4, TypeScript 6. Lệnh: xem bảng trong [README](../README.md#lệnh); thêm `node scripts/dev-token.mjs` (token thật) · `node scripts/grant-role.mjs <email> admin` (admin đầu tiên) · `npm run dev:tools` (RedisInsight).
 
 ## 4. Tiếp theo (roadmap bước 7 Pin core)
 

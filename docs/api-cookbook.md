@@ -230,6 +230,6 @@ this.logger.error(`fcm failed`, err.stack);              // stack ở tham số 
 - Không log token, cookie, mật khẩu, SĐT, toạ độ chính xác của user: pino đã redact các key này thành `[redacted]`, nhưng đừng ghép chúng vào chuỗi message.
 - Mức log: `LOG_LEVEL` trong `.env` (`info` mặc định, `debug` khi cần soi, `warn` trên test). `/health/*` không log.
 
-Xem log: dev `npm run dev` in thẳng terminal; Docker `docker compose logs -f api-1` (mỗi container giữ tối đa 3 × 20 MB).
+Xem log: dev `npm run dev` in thẳng terminal (pino-pretty).
 
-**Sentry** (đặt `SENTRY_DSN` trong env, `src/instrument.ts`): lỗi 5xx lên Sentry Issues kèm stack, request và tag `requestId` (filter tự gọi `captureException`); mọi dòng pino từ `info` lên Sentry Logs (tìm theo `requestId`, `userId`); trace: dev 100 % request, prod 10 %. App phải chạy bằng `node --import ./dist/instrument.js dist/main.js` (scripts `dev`, `start:prod`, Dockerfile đã đặt) — chạy `node dist/main.js` trần thì Sentry không bắt log/trace. Local để `SENTRY_DSN` trống là tắt.
+**Sentry** (đặt `SENTRY_DSN` trong env, `src/instrument.ts`): lỗi 5xx lên Sentry Issues kèm stack, request và tag `requestId` (filter tự gọi `captureException`); mọi dòng pino từ `info` lên Sentry Logs (tìm theo `requestId`, `userId`); trace: dev 100 % request, prod 10 %. App phải chạy bằng `node --import ./dist/instrument.js dist/main.js` (scripts `dev`, `start:prod` đã đặt) — chạy `node dist/main.js` trần thì Sentry không bắt log/trace. Local để `SENTRY_DSN` trống là tắt.

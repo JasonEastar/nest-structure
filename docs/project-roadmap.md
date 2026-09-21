@@ -20,7 +20,7 @@ NEVER  nhảy bước, gộp bước, hoặc làm trước tính năng của gia
 |---|---|---|---|---|
 | 0. Phân tích | Đọc docs/, chuẩn hoá tài liệu, lập plan skeleton `plans/260916-1500-c9-map-backend-skeleton/` | Docs chuẩn hoá ✅; plan được user duyệt; plan skeleton 7/7 phase (test unit/integration + CI thuộc phase 07) | — | ✅ 2026-09-17 |
 | 1. Skeleton | `nest new` (project đơn, ADR-0006), `config/env.ts` (zod qua `ConfigModule.validationSchema`), `.env.example`, `/health/live` | `nest start --watch` lên, `GET /health/live` → 200 | MVP | ✅ 2026-09-16 |
-| 2. Docker & đa instance | compose `postgres` (postgis) + `redis` + `api-1/2` + nginx `least_conn`; Supabase dev project cho auth; `X-Instance-Id` | `curl :3000/health` 10 lần thấy 2 instance id | MVP | ✅ 2026-09-16 |
+| 2. Docker & đa instance | compose `postgres` (postgis) + `redis` + `api-1/2` + nginx `least_conn`; Supabase dev project cho auth; `X-Instance-Id` | `curl :3000/health` 10 lần thấy 2 instance id | MVP | ✅ 2026-09-16 · gỡ api-1/2 + nginx + Dockerfile 2026-09-21 (chỉ dev, git `e2d135d`) |
 | 3. Nền dữ liệu | Drizzle + Postgres/PostGIS riêng, migration đầu (postgis, unaccent, pg_trgm), `common/database/drizzle.ts`, `schema/user.schema.ts` | `drizzle-kit migrate` chạy, `/health/ready` → 200 | MVP | ✅ 2026-09-16 |
 | 4. Cross-cutting | `AllExceptionsFilter`, `AppException`, `ErrorCodes`, zod pipe, pino + `requestId`, i18n, Swagger theo module | Mọi response đúng shape `{success,code,msg,data,meta}`, `/docs` mở được, `openapi/<module>.json` export | MVP | ✅ 2026-09-16 |
 | 5. Redis | `common/redis/{redis.provider,cache,throttler.guard,queue}.ts` | Rate limit đếm chung qua 2 instance; BullMQ sẵn sàng (queue đầu tiên thêm ở bước 9) | MVP | ✅ 2026-09-16 |
@@ -75,7 +75,6 @@ Chi tiết phạm vi: [project-overview-pdr.md §14](./project-overview-pdr.md).
 | `x-device-id` từ ngày đầu | Rate limit + push token đúng thiết bị | 0 | Bước 5 |
 | OpenAPI → client codegen trong CI | Mobile không viết HTTP client tay | 1 giờ | Bước 4 |
 | Renovate / Dependabot | Nâng nhỏ đều rẻ hơn nâng lớn | 15 phút | Bước 1 |
-| Chaos nhẹ trong smoke test (`kill api-1`) | Chứng minh stateless | 30 phút | Bước 2 |
 | Trust score có công thức viết ra | Tránh magic number | 30 phút | Bước 9 |
 | Geohash precision bảng theo zoom | Hằng số, không tính lung tung | 15 phút | Bước 7 |
 | Soft delete có chọn lọc | Marker/thread soft; like/vote hard | 0 | Bước 3 |

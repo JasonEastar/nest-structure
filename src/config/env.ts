@@ -8,7 +8,7 @@ const optionalUrl = z.preprocess((v) => (v === '' ? undefined : v), z.url().opti
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
-  INSTANCE_ID: z.string().min(1).default(hostname()), // compose đặt api-1, api-2; hiện trong log và header X-Instance-Id
+  INSTANCE_ID: z.string().min(1).default(hostname()), // mặc định hostname; hiện trong log và header X-Instance-Id
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1), // số reverse proxy phía trước (nginx = 1)
   PUBLIC_URL: optionalUrl, // URL công khai khi deploy, hiện ở Swagger → Servers

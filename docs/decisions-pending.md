@@ -53,7 +53,7 @@ Mỗi dòng: câu hỏi · ảnh hưởng · khuyến nghị tạm · trạng th
 | 34 | Express hay Fastify? | Platform | — | ✅ Express (nginx nén; xem lại > 5k rps) |
 | 35 | `APP_ROLE=admin` tách container ngay? | Compose, main.ts | — | ✅ Không có `APP_ROLE` nữa, all-in-one scale bằng instance — [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md) (user chốt 2026-09-16) |
 | 36 | Backup Postgres tự host: pg_dump → S3 từ staging; WAL-G hay pgBackRest cho PITR? | Vận hành | pg_dump ngay; WAL-G khi có user thật | ☐ |
-| 37 | Deploy prod: EC2 + compose (A) hay Swarm (B)? ECS Fargate không hợp vì Postgres tự host cần máy có volume | Hạ tầng, CI/CD | A trước; Swarm khi cần > 1 node | ☐ |
+| 37 | Deploy prod: EC2 + compose (A) hay Swarm (B)? ECS Fargate không hợp vì Postgres tự host cần máy có volume | Hạ tầng, CI/CD | A trước; Swarm khi cần > 1 node. 2026-09-21: hoãn hẳn — gỡ Dockerfile/CI/compose staging (git `e2d135d`), chỉ giữ compose dev | ☐ |
 | 38 | Supabase project đang HS256 legacy (JWKS rỗng): bật *JWT Signing Keys* ES256 trong Dashboard (Authentication → JWT Keys) | Auth chạy thật | — | ✅ Đã bật + rotate 2026-09-17 (kid fab33603…); còn việc Revoke khoá HS256 legacy sau khi token cũ hết hạn |
 | 39 | `@supabase/server` (hướng dẫn Dashboard)? | Dependency | ❌ Không: bên trong cũng jose+JWKS, adapter chỉ Nest 10/11, HS256 not supported; mô hình `ctx.supabase` là Supabase-làm-DB | ✅ |
 | 40 | Bull Board mở bằng trình duyệt qua `?access_token=` → token lộ trong access log/history; UI gọi API không kèm query → 401 | Bảo mật admin tool | ✅ 2026-09-17: query chỉ dùng lần mở trang, server đặt cookie HttpOnly path /admin/queues 1 giờ cho các lần gọi sau. Prod: bỏ query param, chỉ Bearer qua reverse proxy có auth | ☐ |
