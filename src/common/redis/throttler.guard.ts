@@ -6,10 +6,11 @@ import type { Redis } from 'ioredis';
 import type { Env } from '../../config/env.js';
 import { AppException } from '../http/exceptions.js';
 import { REDIS_CACHE } from './redis.provider.js';
+import { RATE_LIMIT, RATE_LIMIT_TEST } from '../../config/rate-limit.js';
 
 /**
- * Rate limit đếm chung mọi instance qua Redis: short 10/s, long 100/phút, khoá theo IP (`req.ip` — sau nginx là IP thật
- * nhờ `trust proxy` trong app.ts). Guard đầu chuỗi: chặn trước khi tốn CPU verify JWT.
+ * Rate limit đếm chung mọi instance qua Redis, khoá theo IP (`req.ip` — sau proxy là IP thật nhờ `trust proxy` trong app.ts).
+ * Mức: config/rate-limit.ts. Guard đầu chuỗi: chặn trước khi tốn CPU verify JWT.
  * Override route: `@Throttle({ short: { limit, ttl } })`, bỏ qua: `@SkipThrottle()`.
  * Storage tự viết bằng Lua (fixed window) vì package Redis chính thức chưa hỗ trợ Nest 12.
  */
@@ -58,17 +59,20 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
 export const AppThrottlerModule = ThrottlerModule.forRootAsync({
   imports: [],
   inject: [ConfigService, REDIS_CACHE],
-  useFactory: (config: ConfigService<Env, true>, redis: Redis) => ({
-    throttlers: [
-      { name: 'short', ttl: 1_000, limit: config.get('THROTTLE_SHORT_LIMIT', { infer: true }) },
-      { name: 'long', ttl: 60_000, limit: config.get('THROTTLE_LONG_LIMIT', { infer: true }) },
-    ],
-    storage: new RedisThrottlerStorage(redis),
-    skipIf: (ctx: ExecutionContext) => {
-      const path = ctx.switchToHttp().getRequest<Request>().path;
-      return path.startsWith('/health') || path.startsWith('/docs');
-    },
-  }),
+  useFactory: (config: ConfigService<Env, true>, redis: Redis) => {
+    const limits = config.get('NODE_ENV', { infer: true }) === 'test' ? RATE_LIMIT_TEST : RATE_LIMIT;
+    return {
+      throttlers: [
+        { name: 'short', ...limits.short },
+        { name: 'long', ...limits.long },
+      ],
+      storage: new RedisThrottlerStorage(redis),
+      skipIf: (ctx: ExecutionContext) => {
+        const path = ctx.switchToHttp().getRequest<Request>().path;
+        return path.startsWith('/health') || path.startsWith('/docs');
+      },
+    };
+  },
 });
 
 @Injectable()

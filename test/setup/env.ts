@@ -10,4 +10,3 @@ if (existsSync('.env')) process.loadEnvFile('.env'); // SUPABASE_* v.v. cho test
 process.env.NODE_ENV = 'test';
 process.env.DATABASE_URL = inject('DATABASE_URL');
 process.env.REDIS_URL = inject('REDIS_URL');
-process.env.LOG_LEVEL ??= 'warn';

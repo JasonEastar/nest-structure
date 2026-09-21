@@ -3,7 +3,7 @@
   "paths": {
     "/health/live": {
       "get": {
-        "description": "Không kiểm dependency. Docker HEALTHCHECK và nginx dùng endpoint này.\n\n**Không cần đăng nhập.**",
+        "description": "Không kiểm dependency. Docker HEALTHCHECK / load balancer dùng endpoint này.\n\n**Không cần đăng nhập.**",
         "operationId": "Health.live",
         "parameters": [],
         "responses": {
@@ -367,7 +367,7 @@
   },
   "info": {
     "title": "C9 Map · Health",
-    "description": "Liveness/readiness cho Docker, nginx, load balancer. Không cần đăng nhập, nằm ngoài prefix /api.\n\nNgôn ngữ: header `Accept-Language: vi | en` (mặc định vi).",
+    "description": "Liveness/readiness cho Docker / load balancer. Không cần đăng nhập, nằm ngoài prefix /api.\n\nNgôn ngữ: header `Accept-Language: vi | en` (mặc định vi).",
     "version": "1",
     "contact": {}
   },

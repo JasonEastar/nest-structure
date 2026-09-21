@@ -228,7 +228,7 @@ this.logger.error(`fcm failed`, err.stack);              // stack ở tham số 
 - Mỗi request tự có một dòng `request completed` với `req.id` (= header `X-Request-Id`), `userId`, `instance`, `statusCode`, `responseTime`. Không cần tự log "request đến".
 - Lỗi 5xx: filter tự log stack kèm `requestId`. Client nhận `requestId` trong body lỗi, gửi lại là tra được.
 - Không log token, cookie, mật khẩu, SĐT, toạ độ chính xác của user: pino đã redact các key này thành `[redacted]`, nhưng đừng ghép chúng vào chuỗi message.
-- Mức log: `LOG_LEVEL` trong `.env` (`info` mặc định, `debug` khi cần soi, `warn` trên test). `/health/*` không log.
+- Mức log theo `NODE_ENV`: development `debug` · test `warn` · production `info` (logger.ts, không có env riêng). `/health/*` không log.
 
 Xem log: dev `npm run dev` in thẳng terminal (pino-pretty).
 

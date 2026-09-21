@@ -165,16 +165,20 @@ c9_map/
 │   └── modules/                      # nghiệp vụ — mỗi module 1 thư mục; file chính ở gốc, chỉ 2 thư mục con dto/ và schema/
 │       ├── health/
 │       │   ├── health.module.ts · health.controller.ts (GET /health/live · /health/ready) · health.indicators.ts
-│       ├── user/
+│       ├── user/                     # 2 nghiệp vụ (user · role) → xếp theo tầng; dto/ schema/ constants dùng chung ở gốc
 │       │   ├── user.module.ts
-│       │   ├── user.controller.ts        # UserController /me · UserAdminController /admin/users · RoleAdminController /admin/roles (mỗi class một tag Swagger)
-│       │   ├── user.service.ts           # ensureProfile · getMe · updateMe · deleteMe · getPermissions · admin user/role
-│       │   ├── user.repository.ts        # mọi SQL của user (Drizzle)
-│       │   ├── dto/                          # zod request/response — Swagger đọc tự động
-│       │   │   ├── me.dto.ts                 # MeResponseSchema
-│       │   │   └── role.dto.ts               # ROLE_CODES · RoleSchema · SetUserRolesSchema
-│       │   └── schema/
-│       │       └── user.schema.ts        # profiles · roles · permissions · role_permissions · user_roles
+│       │   ├── user.constants.ts         # ROLE_CODES · USER_STATUSES · USER_LIMITS · PASSWORD_LENGTH
+│       │   ├── schema/user.schema.ts     # profiles (status active|blocked) · roles · permissions · role_permissions · user_roles
+│       │   ├── dto/                      # me · update-me · admin-user · role
+│       │   ├── controllers/
+│       │   │   ├── user.controller.ts     # UserController /me · UserAdminController /admin/users (cùng dữ liệu, khác quyền)
+│       │   │   └── role.controller.ts        # /admin/roles · /admin/users/:id/roles
+│       │   ├── services/
+│       │   │   ├── user.service.ts        # AUTH_USER cho guard (ensureProfile, getPermissions) · /me · /admin/users
+│       │   │   └── role.service.ts           # listRoles · listUserRoles · setUserRoles (xoá cache quyền)
+│       │   └── repositories/
+│       │       ├── user.repository.ts     # SQL profiles
+│       │       └── role.repository.ts        # SQL roles · role_permissions · user_roles
 │       ├── location/                 # MODULE MẪU — copy cấu trúc này cho module mới
 │       │   ├── location.module.ts · location.controller.ts · location.service.ts · location.repository.ts · location.constants.ts
 │       │   ├── dto/create-location.dto.ts · dto/location.dto.ts     # 1 file / use case, chứa cả request + response
@@ -192,11 +196,13 @@ c9_map/
 ```
 
 Nguồn: [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md) (sửa đổi 2026-09-17). Mobile (Flutter / React Native) là **repo riêng**, tiêu thụ `openapi.json`. Quy tắc file (theo quy ước Nest CLI `nest g resource` + rule `arch-feature-modules`):
-- `modules/<x>/`: file chính ở gốc, tên bắt đầu bằng `<x>.` hoặc `<x>-`: `<x>.module|controller|service|repository|constants|jobs.ts`; route public = class `<X>PublicController` (`@Public()`, path `public/<x>`), route quản trị = class `<X>AdminController` (`@RequirePermission` ở class, path `admin/...`), cả hai trong CÙNG `<x>.controller.ts`, phân đoạn bằng comment; `<x>-geo.repository.ts` cho SQL PostGIS. Chỉ 2 thư mục con: `dto/` và `schema/`. Không tạo `controllers/ services/ repositories/`. **Mẫu chuẩn: `modules/location/`** — module mới copy y hệt.
+- `modules/<x>/` **một nghiệp vụ** (location, app-config, health): phẳng — `<x>.module|controller|service|repository|constants.ts` + `dto/` + `schema/`. Route public = class `<X>PublicController` (`@Public()`, path `public/<x>`), route quản trị = class `<X>AdminController` (path `admin/...`), cả hai trong CÙNG `<x>.controller.ts`, phân đoạn bằng comment. **Mẫu chuẩn: `modules/location/`** — module mới copy y hệt.
+- `modules/<x>/` **≥ 2 nghiệp vụ** (user: user + role): gốc giữ thứ dùng chung (`<x>.module.ts`, `<x>.constants.ts`, `schema/`, `dto/`); code xếp theo tầng `controllers/ services/ repositories/`, mỗi nghiệp vụ một file trong mỗi tầng (`user.service.ts`, `role.service.ts`). Chọn kiểu này (2026-09-21) vì nhìn theo tầng dễ hơn; đổi ý sau này chỉ là di chuyển file, import không đổi nghĩa. Không để một nghiệp vụ ở gốc, một trong thư mục. 
 - `dto/<use-case>.dto.ts`: một file cho một use case, chứa CẢ schema request lẫn response của use case đó, kèm mapper `toXxxResponse(row)` ngay dưới response schema (service không tự ghép object) (`create-location.dto.ts` có `CreateLocationSchema`; `location.dto.ts` có `LocationResponseSchema` + query schema). **Không** tách `dto/requests/` và `dto/responses/`: request và response của cùng API phải đọc cạnh nhau; Swagger đọc zod trực tiếp nên không cần class riêng cho mỗi chiều.
 - **Mở rộng module** (bảng phụ, route phụ) và **nối hai module** (FK một chiều, join khi đọc, gọi service khi ghi, không inject repository của module khác, không `forwardRef`): quy trình 5 bước và ví dụ post ↔ location ở [code-walkthrough.md §8](./code-walkthrough.md).
-- **Ít file hơn là tốt hơn:** chỉ tách file khi vượt ~150–200 dòng hoặc khác mối quan tâm thật sự; trong file dùng comment `// ---- ... ----` chia đoạn. Giải thích cấu trúc bằng comment, không bằng thêm file.
-- **Khi dự án lớn:** không thêm cấp thư mục theo loại. Module vượt ~10 file ở gốc → tách theo nghiệp vụ con thành module mới (`pin/` → `pin/`, `vote/`, `report/`), mỗi module chỉ export service module khác cần. Vượt ~15 module → nhóm theo miền trong `modules/` (`modules/map/{pin,location}`, `modules/community/{vote,report}`), đường import đổi nhưng cấu trúc bên trong module giữ nguyên.
+- **Tách theo nghiệp vụ, không theo quyền gọi:** `/me` và `/admin/users` cùng là *user* (một dữ liệu, khác permission) → cùng `user.*`, hai class trong một controller; *role* là nghiệp vụ khác → `role.*`. Repository tách theo bảng sở hữu (`user.repository` = profiles, `role.repository` = roles · role_permissions · user_roles); service cần bảng khác thì inject repository đó. Không tạo `admin-*.ts`.
+- **Ít file hơn là tốt hơn:** chỉ tách file khi khác nghiệp vụ con hoặc vượt ~150–200 dòng; trong file dùng comment `// ---- ... ----` chia đoạn. Giải thích cấu trúc bằng comment, không bằng thêm file.
+- **Khi dự án lớn:** module có ≥ 2 nghiệp vụ → `controllers/ services/ repositories/` như trên; nghiệp vụ con được module khác dùng nhiều hoặc có vòng đời riêng → tách thành module mới, mỗi module chỉ export service module khác cần. Vượt ~15 module → nhóm theo miền trong `modules/` (`modules/map/{pin,location}`, `modules/community/{vote,report}`), đường import đổi nhưng cấu trúc bên trong module giữ nguyên.
 - `common/`: gom theo mối quan tâm `auth/ database/ redis/ http/`; thêm nhóm mới khi có ≥ 2 file cùng mối quan tâm. `config/` chỉ chứa cấu hình (env, logger, i18n, openapi), không logic nghiệp vụ.
 - Test ngoài `src/`: `test/unit/` · `test/integration/` · `test/setup/`. `src/` không có `*.spec.ts`.
 - **Không tạo thư mục rỗng**, không file wiring riêng (`api.module`, `worker.module`, `core.module` đã bỏ).
@@ -243,7 +249,7 @@ Nguồn: [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md) (sửa đổi 20
 | `<x>.repository.ts` | Sở hữu mọi SQL của module, kể cả PostGIS (`ST_DWithin`). SQL không gian phải có test biên |
 | `*.dto.ts` | Mọi zod schema request/response của module. Controller dùng `@Body({ schema })`; kiểu = `z.infer`. dto đặt trong `dto/<use-case>.dto.ts` |
 | `*.schema.ts` | Bảng Drizzle của module; `drizzle.config.ts` gom bằng glob `src/**/*.schema.ts` |
-| `*.constants.ts` | Hằng số nghiệp vụ (tuổi thọ pin, tier rep, rate limit) — một chỗ duy nhất |
+| `*.constants.ts` | Hằng số nghiệp vụ **của module** (giới hạn, enum: `ROLE_CODES`, `USER_STATUSES`) — một chỗ duy nhất. Hằng số **toàn app** (rate limit, `LOCALES`) ở `src/config/` |
 | `*.jobs.ts` | `@Processor` + `upsertJobScheduler` (id cố định); chạy trên mọi instance |
 | `*.types.ts` | Kiểu nội bộ module (chỉ khi cần) |
 | Cross-module | Gọi service đã export, hoặc phát event qua outbox. Không join bảng module khác trong SQL |

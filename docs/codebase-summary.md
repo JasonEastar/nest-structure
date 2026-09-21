@@ -49,6 +49,7 @@ c9_map/
 │   ├── app.module.ts                 # imports ConfigModule + CommonModule + modules; providers APP_GUARD Throttler → Auth → Permission · APP_PIPE · APP_FILTER · APP_INTERCEPTOR
 │   ├── openapi-export.ts             # `npm run openapi:export` → openapi/<key>.json mỗi định nghĩa (users, locations, health)
 │   ├── config/                       # cấu hình app — không nghiệp vụ, không hạ tầng
+│   │   ├── rate-limit.ts             # RATE_LIMIT (10/giây · 300/phút mỗi IP mỗi route), RATE_LIMIT_TEST — chính sách toàn app, không phải env
 │   │   ├── env.ts                    # zod schema; ConfigModule đọc .env + validate, dùng qua ConfigService
 │   │   ├── logger.ts                 # nestjs-pino → stdout (Sentry tự bắt qua pinoIntegration) · redact · bỏ log /health
 │   │   ├── i18n.ts                   # nestjs-i18n vi/en, resolver Accept-Language
@@ -80,19 +81,20 @@ c9_map/
 │   └── modules/                      # nghiệp vụ — mỗi module 1 thư mục; file chính ở gốc, chỉ 2 thư mục con dto/ và schema/
 │       ├── health/
 │       │   ├── health.module.ts · health.controller.ts (GET /health/live · /health/ready) · health.indicators.ts
-│       ├── user/
+│       ├── user/                     # 2 nghiệp vụ (user · role) → xếp theo tầng; dto/ schema/ constants dùng chung ở gốc
 │       │   ├── user.module.ts
-│       │   ├── user.controller.ts        # UserController /me · UserAdminController /admin/users (tạo, danh sách, chi tiết, khoá) · RoleAdminController /admin/roles, /admin/users/:id/roles
-│       │   ├── user.service.ts           # ensureProfile (chặn blocked) · getMe · updateMe · createUser · listUsers · getUser · setUserStatus · deleteMe · touchDevice · getPermissions · setUserRoles
-│       │   ├── user.repository.ts        # mọi SQL của user (Drizzle)
-│       │   ├── user.constants.ts         # USER_LIMITS · LOCALES · USER_STATUSES · PASSWORD_LENGTH
-│       │   ├── dto/                          # zod request/response — Swagger đọc tự động
-│       │   │   ├── me.dto.ts                 # MeResponseSchema
-│       │   │   ├── admin-user.dto.ts         # CreateUserSchema · ListUsersQuerySchema · SetUserStatusSchema · AdminUserSchema
-│       │   │   ├── update-me.dto.ts          # UpdateMeSchema (PATCH /me, partial + null để xoá; không có username)
-│       │   │   └── role.dto.ts               # ROLE_CODES · RoleSchema · SetUserRolesSchema
-│       │   └── schema/
-│       │       └── user.schema.ts        # profiles (status active|blocked) · roles · permissions · role_permissions · user_roles
+│       │   ├── user.constants.ts         # ROLE_CODES · USER_STATUSES · USER_LIMITS · PASSWORD_LENGTH
+│       │   ├── schema/user.schema.ts     # profiles (status active|blocked) · roles · permissions · role_permissions · user_roles
+│       │   ├── dto/                      # me · update-me · admin-user · role
+│       │   ├── controllers/
+│       │   │   ├── user.controller.ts     # UserController /me · UserAdminController /admin/users (cùng dữ liệu, khác quyền)
+│       │   │   └── role.controller.ts        # /admin/roles · /admin/users/:id/roles
+│       │   ├── services/
+│       │   │   ├── user.service.ts        # AUTH_USER cho guard (ensureProfile, getPermissions) · /me · /admin/users
+│       │   │   └── role.service.ts           # listRoles · listUserRoles · setUserRoles (xoá cache quyền)
+│       │   └── repositories/
+│       │       ├── user.repository.ts     # SQL profiles
+│       │       └── role.repository.ts        # SQL roles · role_permissions · user_roles
 │       └── app-config/               # GET /public/configs?names=system_enums — enum từ code + nhãn i18n/<lang>/enums.json mọi ngôn ngữ
     │   ├── app-config.module.ts · app-config.controller.ts · app-config.service.ts · app-config.constants.ts (SYSTEM_ENUMS, CONFIG_NAMES) · dto/config.dto.ts
     ├── location/                 # MODULE MẪU — copy cấu trúc này cho module mới

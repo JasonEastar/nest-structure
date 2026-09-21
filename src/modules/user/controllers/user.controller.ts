@@ -1,9 +1,9 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
-import type { AuthUser } from '../../common/auth/auth.guard.js';
-import { CurrentUser, RequirePermission } from '../../common/auth/decorators.js';
-import { envelope } from '../../config/openapi.js';
+import type { AuthUser } from '../../../common/auth/auth.guard.js';
+import { CurrentUser, RequirePermission } from '../../../common/auth/decorators.js';
+import { envelope } from '../../../config/openapi.js';
 import {
   AdminUserSchema,
   type CreateUser,
@@ -12,13 +12,12 @@ import {
   ListUsersQuerySchema,
   type SetUserStatus,
   SetUserStatusSchema,
-} from './dto/admin-user.dto.js';
-import { MeResponseSchema } from './dto/me.dto.js';
-import { RoleSchema, type SetUserRoles, SetUserRolesSchema, UserRolesSchema } from './dto/role.dto.js';
-import { type UpdateMe, UpdateMeSchema } from './dto/update-me.dto.js';
-import { UserService } from './user.service.js';
+} from '../dto/admin-user.dto.js';
+import { MeResponseSchema } from '../dto/me.dto.js';
+import { type UpdateMe, UpdateMeSchema } from '../dto/update-me.dto.js';
+import { UserService } from '../services/user.service.js';
 
-/** Route của module user: (1) /me hồ sơ của user đang đăng nhập, (2) /admin/users quản trị user, (3) /admin/roles quản trị role. */
+/** Route của user: (1) /me — chính mình, (2) /admin/users — cùng dữ liệu, gọi với quyền quản trị. Role: role.controller.ts. */
 
 // ---------------------------------------------------------------------------------------------------------------------
 // 1. Hồ sơ của tôi — /api/v1/me
@@ -117,40 +116,4 @@ export class UserAdminController {
     return this.users.setUserStatus(actor.id, id, body);
   }
 
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-// 3. Quản trị role — /api/v1/admin/roles, /api/v1/admin/users/:id/roles (tách class để Swagger không gộp vào tag Users)
-// ---------------------------------------------------------------------------------------------------------------------
-@ApiTags('Roles')
-@ApiBearerAuth('supabase')
-@Controller('admin')
-@RequirePermission('role:read')
-export class RoleAdminController {
-  constructor(private readonly users: UserService) {}
-
-  @Get('roles')
-  @ApiOperation({ summary: 'Danh sách role', description: 'Mỗi role kèm danh sách permission (resource:action) được gán.' })
-  @ApiOkResponse({ standardSchema: envelope(z.array(RoleSchema)) })
-  listRoles() {
-    return this.users.listRoles();
-  }
-
-  @Get('users/:id/roles')
-  @ApiOperation({ summary: 'Role hiện tại của một user' })
-  @ApiOkResponse({ standardSchema: envelope(UserRolesSchema) })
-  async getUserRoles(@Param('id', { schema: z.uuid() }) id: string) {
-    return { id, roles: await this.users.listUserRoles(id) };
-  }
-
-  @Put('users/:id/roles')
-  @RequirePermission('role:assign')
-  @ApiOperation({
-    summary: 'Gán lại role cho user',
-    description: 'Thay toàn bộ role bằng mảng gửi lên (một user có thể nhiều role). Hiệu lực ngay trên mọi instance vì cache permission của user bị xoá.',
-  })
-  @ApiOkResponse({ standardSchema: envelope(UserRolesSchema) })
-  setUserRoles(@Param('id', { schema: z.uuid() }) id: string, @Body({ schema: SetUserRolesSchema }) body: SetUserRoles) {
-    return this.users.setUserRoles(id, body.roles);
-  }
 }

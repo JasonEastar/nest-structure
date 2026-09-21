@@ -1,16 +1,19 @@
 import { Module } from '@nestjs/common';
 import { AUTH_USER } from '../../common/auth/auth.guard.js';
-import { RoleAdminController, UserAdminController, UserController } from './user.controller.js';
-import { UserRepository } from './user.repository.js';
-import { UserService } from './user.service.js';
+import { UserAdminController, UserController } from './controllers/user.controller.js';
+import { RoleController } from './controllers/role.controller.js';
+import { UserRepository } from './repositories/user.repository.js';
+import { RoleRepository } from './repositories/role.repository.js';
+import { UserService } from './services/user.service.js';
+import { RoleService } from './services/role.service.js';
 
 /**
- * Module user: /me, /admin/users, /admin/roles. `AUTH_USER` là cổng để guard trong `common/` dùng service này
- * mà common không phải import modules/ (code-standards §2.2).
+ * Module user — 2 nghiệp vụ (profile: /me + /admin/users · role: /admin/roles) nên xếp theo tầng: controllers/ services/ repositories/;
+ * dto/, schema/, constants dùng chung ở gốc. `AUTH_USER` là cổng để guard trong `common/` dùng UserService.
  */
 @Module({
-  controllers: [UserController, UserAdminController, RoleAdminController],
-  providers: [UserRepository, UserService, { provide: AUTH_USER, useExisting: UserService }],
+  controllers: [UserController, UserAdminController, RoleController],
+  providers: [UserRepository, RoleRepository, UserService, RoleService, { provide: AUTH_USER, useExisting: UserService }],
   exports: [UserService, AUTH_USER],
 })
 export class UserModule {}

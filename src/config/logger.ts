@@ -10,12 +10,13 @@ import { resolveRequestId } from '../common/http/request-context.middleware.js';
 export const PinoLoggerModule = LoggerModule.forRootAsync({
   inject: [ConfigService],
   useFactory: (config: ConfigService<Env, true>) => {
-    const isDev = config.get('NODE_ENV', { infer: true }) === 'development';
-    const level = config.get('LOG_LEVEL', { infer: true });
+    const env = config.get('NODE_ENV', { infer: true });
+    const isDev = env === 'development';
+    const level = { development: 'debug', test: 'warn', production: 'info' }[env]; // theo môi trường, không cần env riêng
     return {
       pinoHttp: {
         level,
-        base: { env: config.get('NODE_ENV', { infer: true }) }, // bỏ pid/hostname mặc định cho gọn
+        base: { env }, // bỏ pid/hostname mặc định cho gọn
         genReqId: (req) => resolveRequestId(req as Parameters<typeof resolveRequestId>[0]),
         customProps: (req) => ({ userId: (req as unknown as { user?: { id?: string } }).user?.id }),
         autoLogging: {

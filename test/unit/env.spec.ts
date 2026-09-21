@@ -19,7 +19,6 @@ describe('config/env', () => {
     const env = loadEnv({ ...base });
     expect(env.NODE_ENV).toBe('development');
     expect(env.PORT).toBe(3000);
-    expect(env.THROTTLE_SHORT_LIMIT).toBe(10);
     expect(loadEnv({ ...base, PORT: '8080' }).PORT).toBe(8080);
   });
 
@@ -32,8 +31,8 @@ describe('config/env', () => {
   it('giá trị sai kiểu/protocol bị từ chối', () => {
     expect(() => loadEnv({ ...base, PORT: 'abc' })).toThrow(/PORT/);
     expect(() => loadEnv({ ...base, DATABASE_URL: 'mysql://x' })).toThrow(/DATABASE_URL/);
-    expect(() => loadEnv({ ...base, LOG_LEVEL: 'loud' })).toThrow(/LOG_LEVEL/);
-    expect(() => loadEnv({ ...base, THROTTLE_SHORT_LIMIT: '0' })).toThrow(/THROTTLE_SHORT_LIMIT/);
+    expect(() => loadEnv({ ...base, NODE_ENV: 'staging' })).toThrow(/NODE_ENV/);
+    expect(() => loadEnv({ ...base, SUPABASE_URL: 'ftp://x' })).toThrow(/SUPABASE_URL/);
   });
 
   it('envSchema là Standard Schema (dùng được cho ConfigModule.validationSchema)', () => {

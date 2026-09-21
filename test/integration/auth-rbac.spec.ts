@@ -8,7 +8,8 @@ import { Public, RequirePermission } from '../../src/common/auth/decorators.js';
 import { AppException } from '../../src/common/http/exceptions.js';
 import { CACHE, CacheService } from '../../src/common/redis/cache.js';
 import { SUPABASE_ADMIN, type SupabaseAdminPort } from '../../src/common/auth/supabase.js';
-import { UserService } from '../../src/modules/user/user.service.js';
+import { UserService } from '../../src/modules/user/services/user.service.js';
+import { RoleService } from '../../src/modules/user/services/role.service.js';
 import { type FakeSupabase, startFakeSupabase } from '../setup/jwks.js';
 
 /**
@@ -77,6 +78,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
   let signToken: FakeSupabase['signToken'];
   let admin: InMemorySupabaseAdmin;
   let users: UserService;
+  let roleService: RoleService;
   let cache: CacheService;
   let issuer: string;
 
@@ -86,9 +88,6 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
     issuer = supabase.issuer;
     // Ghi đè env TRƯỚC khi import AppModule (ConfigModule chụp process.env lúc module được evaluate)
     supabase.applyEnv();
-    // Route @Public đếm theo IP, file này bắn > 10 request/giây; nâng trần chung, test rate limit theo user dùng @Throttle riêng bên dưới
-    process.env.THROTTLE_SHORT_LIMIT = '1000';
-    process.env.THROTTLE_LONG_LIMIT = '10000';
 
     const { AppModule, GLOBAL_PREFIX_EXCLUDE } = await import('../../src/app.module.js');
     admin = new InMemorySupabaseAdmin();
@@ -103,6 +102,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
     await app.init();
 
     users = app.get(UserService);
+    roleService = app.get(RoleService);
     cache = app.get(CacheService);
   });
 
@@ -201,7 +201,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
       .expect(403);
     expect(denied.body).toMatchObject({ success: false, code: 'FORBIDDEN', data: null, meta: { missing: ['report:review'] } });
 
-    await users.setUserRoles(sub, ['moderator']);
+    await roleService.setUserRoles(sub, ['moderator']);
     await request(app.getHttpServer())
       .get('/api/v1/probe/needs-perm')
       .set('authorization', `Bearer ${token}`)
@@ -223,7 +223,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
 
     await request(app.getHttpServer()).get('/api/v1/admin/roles').set('authorization', `Bearer ${userToken}`).expect(403);
 
-    await users.setUserRoles(adminSub, ['admin']);
+    await roleService.setUserRoles(adminSub, ['admin']);
     const roles = await request(app.getHttpServer())
       .get('/api/v1/admin/roles')
       .set('authorization', `Bearer ${adminToken}`)
@@ -250,7 +250,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
     const adminToken = await signToken({ sub: adminSub });
     admin.seed(adminSub);
     await request(app.getHttpServer()).get('/api/v1/me').set('authorization', `Bearer ${adminToken}`).expect(200);
-    await users.setUserRoles(adminSub, ['admin']);
+    await roleService.setUserRoles(adminSub, ['admin']);
 
     await request(app.getHttpServer())
       .put(`/api/v1/admin/users/${newUser()}/roles`)
@@ -311,7 +311,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
     const adminToken = await signToken({ sub: adminSub, email: 'boss@c9map.test' });
     admin.seed(adminSub, 'boss@c9map.test');
     await request(app.getHttpServer()).get('/api/v1/me').set('authorization', `Bearer ${adminToken}`).expect(200);
-    await users.setUserRoles(adminSub, ['admin']);
+    await roleService.setUserRoles(adminSub, ['admin']);
 
     const email = `mod-${adminSub.slice(4, 8)}@c9map.test`;
     const created = await request(app.getHttpServer())
@@ -369,7 +369,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
     admin.seed(targetSub, 'victim@c9map.test');
     await request(app.getHttpServer()).get('/api/v1/me').set('authorization', `Bearer ${adminToken}`).expect(200);
     await request(app.getHttpServer()).get('/api/v1/me').set('authorization', `Bearer ${targetToken}`).expect(200);
-    await users.setUserRoles(adminSub, ['admin']);
+    await roleService.setUserRoles(adminSub, ['admin']);
 
     const blocked = await request(app.getHttpServer())
       .patch(`/api/v1/admin/users/${targetSub}/status`)

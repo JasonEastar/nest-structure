@@ -1,8 +1,8 @@
 import { z } from 'zod';
+import { ROLE_CODES } from '../user.constants.js';
 
 /** DTO role/RBAC (zod, dùng trực tiếp trên `@Body({ schema })` — Swagger tự đọc). */
 
-export const ROLE_CODES = ['user', 'moderator', 'venue', 'admin'] as const;
 export const RoleCodeSchema = z.enum(ROLE_CODES);
 export type RoleCode = z.infer<typeof RoleCodeSchema>;
 

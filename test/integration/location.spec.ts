@@ -21,14 +21,10 @@ describe('Locations (e2e)', () => {
   // Nhà thờ Đức Bà; điểm lệch m mét về phía bắc. 1° vĩ độ tại 10.78°N ≈ 110 613 m (công thức cung kinh tuyến WGS84).
   const center = { lat: 10.7798, lng: 106.699 };
   const meters = (m: number) => ({ lat: center.lat + m / 110_613, lng: center.lng });
-  const throttleBefore = { short: process.env.THROTTLE_SHORT_LIMIT, long: process.env.THROTTLE_LONG_LIMIT };
 
   beforeAll(async () => {
     supabase = await startFakeSupabase();
     supabase.applyEnv();
-    // test bắn hàng chục request/giây và > 30 request/phút vào cùng route; rate limit đã kiểm ở redis-queue.spec
-    process.env.THROTTLE_SHORT_LIMIT = '1000';
-    process.env.THROTTLE_LONG_LIMIT = '10000';
     const { AppModule, GLOBAL_PREFIX_EXCLUDE } = await import('../../src/app.module.js');
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
@@ -42,10 +38,6 @@ describe('Locations (e2e)', () => {
   afterAll(async () => {
     await app?.close();
     await supabase.close();
-    for (const [key, value] of [['THROTTLE_SHORT_LIMIT', throttleBefore.short], ['THROTTLE_LONG_LIMIT', throttleBefore.long]] as const) {
-      if (value === undefined) delete process.env[key];
-      else process.env[key] = value;
-    }
   });
 
   const create = (token: string, body: Record<string, unknown>) =>

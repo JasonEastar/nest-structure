@@ -892,7 +892,7 @@
     "/api/v1/admin/roles": {
       "get": {
         "description": "Mỗi role kèm danh sách permission (resource:action) được gán.\n\n**Quyền cần có:** `role:read`",
-        "operationId": "RoleAdmin.listRoles",
+        "operationId": "Role.listRoles",
         "parameters": [],
         "responses": {
           "200": {
@@ -1017,7 +1017,7 @@
     },
     "/api/v1/admin/users/{id}/roles": {
       "get": {
-        "operationId": "RoleAdmin.getUserRoles",
+        "operationId": "Role.getUserRoles",
         "parameters": [
           {
             "name": "id",
@@ -1150,7 +1150,7 @@
       },
       "put": {
         "description": "Thay toàn bộ role bằng mảng gửi lên (một user có thể nhiều role). Hiệu lực ngay trên mọi instance vì cache permission của user bị xoá.\n\n**Quyền cần có:** `role:assign`",
-        "operationId": "RoleAdmin.setUserRoles",
+        "operationId": "Role.setUserRoles",
         "parameters": [
           {
             "name": "id",

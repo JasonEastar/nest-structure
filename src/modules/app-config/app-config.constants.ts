@@ -1,5 +1,4 @@
-import { ROLE_CODES } from '../user/dto/role.dto.js';
-import { USER_STATUSES } from '../user/user.constants.js';
+import { ROLE_CODES, USER_STATUSES } from '../user/user.constants.js';
 
 /**
  * Config công khai cho web/app gọi một lần lúc mở (GET /public/configs?names=...).

@@ -42,9 +42,9 @@ Chưa cần đọc ngay: `common/redis/throttler.guard.ts` (rate limit, có Lua)
 4. `common/auth/auth.guard.ts`: lấy `Authorization: Bearer <token>`, xác minh chữ ký với khoá công khai của Supabase (`common/auth/supabase.ts`). Sai → **401**. Đúng → gọi `UserService.ensureProfile` để chắc chắn user đã có dòng trong bảng `profiles` (lần đầu thì tạo; `status = blocked` → **403**), rồi gắn `req.user`.
 5. `common/auth/permission.guard.ts`: route có `@RequirePermission(...)` không? `/me` không có → cho qua. Route admin có → tra quyền từ DB (cache Redis 5 phút), thiếu → **403**.
 6. `common/http/validation.ts`: `/me` không có body nên bỏ qua. Route có `@Body({ schema })` thì zod kiểm, sai → **422**.
-7. `user.controller.ts` hàm `me()`: gọi `users.getMe(user.id)`.
+7. `modules/user/controllers/user.controller.ts` hàm `me()`: gọi `users.getMe(user.id)`.
 8. `user.service.ts` hàm `getMe()`: gọi repository lấy profile, role, permission; ghép thành object đúng `MeResponseSchema`.
-9. `user.repository.ts`: các câu `select` Drizzle trên bảng `profiles`, `user_roles`, `roles`.
+9. `repositories/user.repository.ts` (bảng `profiles`) và `repositories/role.repository.ts` (`user_roles`, `roles`, `role_permissions`): các câu `select` Drizzle.
 10. `common/http/response.ts`: bọc kết quả thành `{ success: true, code: "OK", msg: "", data, meta: { requestId } }`.
 11. Nếu bước nào ném lỗi: `common/http/exceptions.ts` trả **cùng 5 field** với `success: false`, `code: 'NOT_FOUND'`, `msg` đã dịch theo `Accept-Language`, `data: null`, chi tiết trong `meta`. HTTP status vẫn đúng (404). Client rẽ nhánh theo `code`, hiển thị `msg`.
 

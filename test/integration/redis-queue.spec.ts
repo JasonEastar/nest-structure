@@ -1,15 +1,17 @@
 import { Controller, Get, type INestApplication, Module, VersioningType } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { Throttle } from '@nestjs/throttler';
 import request from 'supertest';
 import { AppModule, GLOBAL_PREFIX_EXCLUDE } from '../../src/app.module.js';
 import { Public } from '../../src/common/auth/decorators.js';
 import { CacheService } from '../../src/common/redis/cache.js';
 
-/** Route CHỈ cho test cross-cutting/rate-limit — @Public() để không cần token (auth test riêng ở auth-rbac). */
+/** Route CHỈ cho test rate-limit — @Public() để không cần token; @Throttle vì trần mặc định khi test rất cao (config/rate-limit.ts). */
 @Public()
 @Controller('probe')
 class ProbeController {
   @Get()
+  @Throttle({ short: { limit: 10, ttl: 1_000 } })
   ok() {
     return { ok: true };
   }

@@ -166,7 +166,7 @@ Processor chạy trên **mọi** instance (all-in-one); một job chỉ được
 
 ## 9. Rate limit
 
-`@nestjs/throttler` + Redis storage, guard đầu chuỗi. Khoá theo **IP** (`req.ip`; sau nginx là IP thật nhờ `trust proxy`), đếm chung mọi instance. Mặc định 2 tầng (10/s, 100/phút). Override: tạo pin 1/2 phút + 3 cùng loại/300 m/giờ (kiểm ở service), SOS 1/5 phút, report 10/giờ, GET map 300/phút. Trả `429` + `Retry-After`.
+`@nestjs/throttler` + Redis storage, guard đầu chuỗi. Mức trong `config/rate-limit.ts` (`RATE_LIMIT`: 10/giây, 300/phút — mỗi IP, mỗi route), không phải env. Khoá theo **IP** (`req.ip`; sau proxy là IP thật nhờ `trust proxy`), đếm chung mọi instance. Mặc định 2 tầng (10/s, 100/phút). Override: tạo pin 1/2 phút + 3 cùng loại/300 m/giờ (kiểm ở service), SOS 1/5 phút, report 10/giờ, GET map 300/phút. Trả `429` + `Retry-After`.
 
 ## 10. API docs & codegen
 
@@ -206,8 +206,7 @@ Health cho compose: `/health/live` + `/health/ready`; không có service worker 
 
 | Tuỳ chọn (có mặc định trong `config/env.ts`) | Mặc định |
 |---|---|
-| `PORT`, `LOG_LEVEL` | 3000 · info |
-| `THROTTLE_SHORT_LIMIT`, `THROTTLE_LONG_LIMIT` | 10/giây · 300/phút (mỗi IP, mỗi route) |
+| `PORT` | 3000 |
 | `PUBLIC_URL`, `SENTRY_DSN` | trống = tắt; chỉ đặt khi deploy |
 
 Toàn bộ validate bằng zod lúc boot (`config/env.ts`); thiếu → process thoát.
