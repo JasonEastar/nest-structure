@@ -1,6 +1,6 @@
 import { hostname } from 'node:os';
 import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
 import { Public } from '../../common/auth/decorators.js';
@@ -25,7 +25,6 @@ export class HealthController {
   ) {}
 
   @Get('live')
-  @ApiOperation({ summary: 'Process còn sống', description: 'Không kiểm dependency. Docker HEALTHCHECK / load balancer dùng endpoint này.' })
   @ApiOkResponse({ standardSchema: LiveResponseSchema })
   live(): Live {
     return { status: 'ok', instance: hostname() };
@@ -33,10 +32,6 @@ export class HealthController {
 
   @Get('ready')
   @HealthCheck()
-  @ApiOperation({
-    summary: 'Sẵn sàng nhận request',
-    description: 'Ping Postgres và Redis. 503 khi một dependency down hoặc app đang shutdown (grace 5 s) → LB ngừng route tới instance này.',
-  })
   ready() {
     return this.health.check([
       () => this.dbIndicator.isHealthy('db'),

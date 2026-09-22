@@ -28,7 +28,7 @@ npm run db:migrate       # tạo bảng + seed role/permission
 npm run dev              # http://localhost:3000, sửa file tự reload
 ```
 
-- Swagger: http://localhost:3000/docs (dropdown chọn User & Auth, Configs, Locations, Health)
+- Swagger: http://localhost:3000/docs (dropdown chọn System, User & Auth, Locations)
 - Lấy token thật để gọi API: `TOKEN=$(node scripts/dev-token.mjs)` rồi `curl -H "authorization: Bearer $TOKEN" localhost:3000/api/v1/me`
 - Xem Redis: `npm run dev:tools` → http://localhost:5540 · Xem Postgres: `npm run db:studio`
 
@@ -43,7 +43,7 @@ src/
     ├── health/    /health/live · /health/ready
     ├── user/      /me (xem, sửa, xoá hồ sơ) · /admin/users (tạo tài khoản email+mật khẩu, danh sách, khoá) · /admin/roles
     ├── location/  /locations · /public/locations/nearby — module mẫu, copy để tạo module mới
-    ├── app-config/  /public/configs — enum hệ thống + nhãn đa ngôn ngữ cho web/app
+    ├── app-config/  /public/configs · /admin/configs — config động trong DB (enum + nhãn đa ngôn ngữ, ...)
 test/  unit/ · integration/ · setup/        drizzle/  migration SQL        i18n/  vi, en        openapi/  JSON xuất cho mobile
 ```
 

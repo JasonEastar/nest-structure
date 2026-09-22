@@ -19,7 +19,7 @@ import { HealthModule } from './modules/health/health.module.js';
 import { UserModule } from './modules/user/user.module.js';
 import { LocationModule } from './modules/location/location.module.js';
 
-/** Route nằm ngoài prefix /api: health (Docker HEALTHCHECK), Swagger UI, Bull Board. app.ts và test dùng chung. */
+/** Route nằm ngoài prefix /api: health (Docker HEALTHCHECK, load balancer), Swagger UI. app.ts và test dùng chung. */
 export const GLOBAL_PREFIX_EXCLUDE = [
   { path: 'health/{*splat}', method: RequestMethod.GET },
   { path: 'docs/{*splat}', method: RequestMethod.GET },
@@ -28,17 +28,17 @@ export const GLOBAL_PREFIX_EXCLUDE = [
 /** Swagger: mỗi mục = một định nghĩa trong dropdown (/docs/<key>-json, openapi/<key>.json). Module mới → thêm mục. */
 export const OPENAPI_DOCS: OpenApiDefinition[] = [
   {
-    key: 'health',
-    title: 'Health',
-    description: 'Liveness/readiness cho Docker / load balancer. Không cần đăng nhập, nằm ngoài prefix /api.',
-    tags: [{ name: 'Health', description: 'Trạng thái process và dependency (Postgres, Redis)' }],
-    modules: [HealthModule],
+    key: 'system',
+    title: 'Configs & Health',
+    tags: [
+      { name: 'Health', description: 'Trạng thái process và dependency (Postgres, Redis). Không cần đăng nhập' },
+      { name: 'Configs', description: '/public/configs (không cần đăng nhập) · /admin/configs (cần permission config:*)' },
+    ],
+    modules: [HealthModule, AppConfigModule],
   },
   {
     key: 'users',
     title: 'User & Auth',
-    description:
-      'Đăng nhập qua Supabase (app: Google; admin web: email + mật khẩu), hồ sơ /me, quản trị user, role và permission. Backend không phát token, chỉ xác minh JWT.',
     tags: [
       { name: 'Me', description: 'Hồ sơ của user đang đăng nhập' },
       { name: 'Users', description: 'Admin tạo tài khoản, xem danh sách, khoá user (cần quyền)' },
@@ -47,17 +47,9 @@ export const OPENAPI_DOCS: OpenApiDefinition[] = [
     modules: [UserModule],
   },
   {
-    key: 'configs',
-    title: 'Configs',
-    description: 'Config công khai cho web/app gọi lúc mở: enum hệ thống kèm nhãn mọi ngôn ngữ, màu gợi ý. Không cần đăng nhập.',
-    tags: [{ name: 'Configs', description: 'GET /public/configs?names=system_enums' }],
-    modules: [AppConfigModule],
-  },
-  {
     key: 'locations',
     title: 'Locations',
-    description: 'Địa điểm user tự lưu (tên, toạ độ, bán kính) và truy vấn địa điểm công khai quanh một toạ độ (PostGIS).',
-    tags: [{ name: 'Locations', description: 'Địa điểm đã lưu, công khai hoặc riêng tư' }],
+    tags: [{ name: 'Locations' }],
     modules: [LocationModule],
   },
 ];

@@ -25,9 +25,10 @@ function build(exists: boolean) {
 }
 
 describe('RoleService.setUserRoles', () => {
-  it('user không tồn tại → NOT_FOUND, không đụng DB', async () => {
+  it('user không tồn tại → NOT_FOUND cho cả xem lẫn gán, không đụng DB', async () => {
     const { service, calls } = build(false);
 
+    await expect(service.listUserRoles(USER)).rejects.toMatchObject({ code: 'NOT_FOUND' });
     await expect(service.setUserRoles(USER, ['admin'])).rejects.toMatchObject({ code: 'NOT_FOUND' });
     expect(calls.replaced).toEqual([]);
   });
@@ -38,6 +39,6 @@ describe('RoleService.setUserRoles', () => {
     const result = await service.setUserRoles(USER, ['moderator', 'venue']);
 
     expect(result).toEqual({ id: USER, roles: ['moderator', 'venue'] });
-    expect(calls.deletedKeys).toEqual([`c9:v1:perms:${USER}`]);
+    expect(calls.deletedKeys).toEqual([`c9:v1:user:perms:${USER}`]);
   });
 });

@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { AuthUser, AuthUserPort } from '../../../common/auth/auth.guard.js';
 import { AppException } from '../../../common/http/exceptions.js';
 import { hasPermission, type Permission } from '../../../common/auth/permissions.js';
-import { CACHE, CacheService } from '../../../common/redis/cache.js';
+import { CacheService } from '../../../common/redis/cache.js';
 import { SUPABASE_ADMIN, type SupabaseAdminPort, type SupabaseClaims } from '../../../common/auth/supabase.js';
 import { decodeCursor, pageOf } from '../../../common/http/pagination.js';
 import {
@@ -16,6 +16,7 @@ import {
 import { type MeResponse, toMeResponse } from '../dto/me.dto.js';
 import type { UpdateMe } from '../dto/update-me.dto.js';
 import { RoleRepository } from '../repositories/role.repository.js';
+import { USER_CACHE } from '../user.constants.js';
 import { UserRepository } from '../repositories/user.repository.js';
 
 /**
@@ -38,12 +39,12 @@ export class UserService implements AuthUserPort {
   /** Tạo profile lần đầu (thay trigger DB vì Supabase là DB khác); `{ status }` cache 1 giờ để không chạm DB mỗi request. */
   async ensureProfile(claims: SupabaseClaims): Promise<AuthUser> {
     // Token còn hạn sau DELETE /me không được làm profile sống lại
-    if (await this.cache.has(CACHE.deleted.key(claims.sub))) throw new AppException('UNAUTHENTICATED');
-    const key = CACHE.profile.key(claims.sub);
+    if (await this.cache.has(USER_CACHE.deleted.key(claims.sub))) throw new AppException('UNAUTHENTICATED');
+    const key = USER_CACHE.profile.key(claims.sub);
     let profile = await this.cache.getJson<{ status: UserStatus }>(key);
     if (!profile) {
       profile = await this.repo.insertProfileIfMissing(claims);
-      await this.cache.setJson(key, profile, CACHE.profile.ttl);
+      await this.cache.setJson(key, profile, USER_CACHE.profile.ttl);
     }
     if (profile.status === 'blocked') throw new AppException('FORBIDDEN', { reason: 'ACCOUNT_BLOCKED' });
     return { id: claims.sub, email: claims.email ?? null };
@@ -51,11 +52,11 @@ export class UserService implements AuthUserPort {
 
   /** Quyền hiệu lực, cache 5 phút; đổi role → xoá cache ngay. */
   async getPermissions(userId: string): Promise<string[]> {
-    const key = CACHE.perms.key(userId);
+    const key = USER_CACHE.perms.key(userId);
     const cached = await this.cache.getJson<string[]>(key);
     if (cached) return cached;
     const codes = await this.roles.findPermissionCodes(userId);
-    await this.cache.setJson(key, codes, CACHE.perms.ttl);
+    await this.cache.setJson(key, codes, USER_CACHE.perms.ttl);
     return codes;
   }
 
@@ -78,17 +79,20 @@ export class UserService implements AuthUserPort {
     return this.getMe(userId);
   }
 
-  /** Xoá tài khoản: local trước (cascade), Supabase sau; gọi lại được nếu bước sau lỗi. */
+  /**
+   * Xoá tài khoản: Supabase TRƯỚC (nguồn đăng nhập; lỗi → chưa mất gì, user gọi lại được), rồi mới xoá local (cascade)
+   * + tombstone để token còn hạn không làm profile sống lại.
+   */
   async deleteMe(userId: string): Promise<void> {
-    await this.repo.deleteProfile(userId);
-    await this.cache.del(CACHE.perms.key(userId), CACHE.profile.key(userId));
-    await this.cache.flag(CACHE.deleted.key(userId), CACHE.deleted.ttl);
     try {
       await this.supabaseAdmin.deleteUser(userId);
     } catch (error) {
       this.logger.error(`supabase deleteUser failed for ${userId}: ${String(error)}`);
       throw new AppException('INTERNAL');
     }
+    await this.repo.deleteProfile(userId);
+    await this.cache.del(USER_CACHE.perms.key(userId), USER_CACHE.profile.key(userId));
+    await this.cache.flag(USER_CACHE.deleted.key(userId), USER_CACHE.deleted.ttl);
   }
 
   // ---- /admin/users --------------------------------------------------------------------------------------------
@@ -141,7 +145,7 @@ export class UserService implements AuthUserPort {
     if (roles.includes('admin')) await this.requirePermission(actorId, 'role:assign');
     const reason = input.status === 'blocked' ? (input.reason ?? null) : null;
     await this.repo.updateStatus(userId, input.status, reason);
-    await this.cache.setJson(CACHE.profile.key(userId), { status: input.status }, CACHE.profile.ttl);
+    await this.cache.setJson(USER_CACHE.profile.key(userId), { status: input.status }, USER_CACHE.profile.ttl);
     return toAdminUser({ ...row, status: input.status, statusReason: reason }, roles);
   }
 

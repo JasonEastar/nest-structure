@@ -9,6 +9,7 @@
   "CONFLICT": "Thao tác xung đột với dữ liệu hiện có",
   "CONFLICT_LIMIT_REACHED": "Đã đạt giới hạn tối đa {max}",
   "CONFLICT_EMAIL_TAKEN": "Email đã được dùng cho tài khoản khác",
+  "CONFLICT_NAME_TAKEN": "Tên đã được dùng",
   "BAD_REQUEST": "Yêu cầu không hợp lệ",
   "PAYLOAD_TOO_LARGE": "Dữ liệu gửi lên quá lớn",
   "SERVICE_UNAVAILABLE": "Hệ thống đang bận, vui lòng thử lại sau",
@@ -18,6 +19,7 @@
     "profile": "hồ sơ",
     "location": "địa điểm",
     "pin": "pin",
-    "user": "người dùng"
+    "user": "người dùng",
+    "config": "config"
   }
 }

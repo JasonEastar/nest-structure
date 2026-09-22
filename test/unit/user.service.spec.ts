@@ -153,10 +153,19 @@ describe('UserService.setUserStatus', () => {
 });
 
 describe('UserService.deleteMe', () => {
-  it('Supabase deleteUser lỗi → INTERNAL (không lộ chi tiết); local đã xoá + tombstone đã cắm nên gọi lại an toàn', async () => {
+  it('Supabase deleteUser lỗi → INTERNAL, CHƯA đụng local và chưa cắm tombstone → user gọi lại được', async () => {
     const { service, calls } = build({ actorPerms: [], supabaseDeleteFails: true });
 
     await expect(service.deleteMe(ADMIN)).rejects.toMatchObject({ code: 'INTERNAL' });
+    expect(calls.cache.size).toBe(0);
+  });
+
+  it('Supabase xoá xong → xoá local, xoá cache, cắm tombstone', async () => {
+    const { service, calls } = build({ actorPerms: [] });
+
+    await service.deleteMe(ADMIN);
+
+    expect(calls.deleted).toEqual([ADMIN]);
     expect([...calls.cache.keys()].some((key) => key.includes(':deleted:'))).toBe(true);
   });
 });

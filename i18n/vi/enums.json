@@ -1,8 +1,0 @@
-{
-  "user": {
-    "status": { "active": "Đang hoạt động", "blocked": "Bị khoá" }
-  },
-  "role": {
-    "code": { "user": "Người dùng", "moderator": "Kiểm duyệt viên", "venue": "Chủ quán", "admin": "Quản trị" }
-  }
-}

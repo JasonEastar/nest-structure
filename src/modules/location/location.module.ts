@@ -7,5 +7,6 @@ import { LocationService } from './location.service.js';
 @Module({
   controllers: [LocationController, LocationPublicController],
   providers: [LocationRepository, LocationService],
+  exports: [LocationService], // module khác (post…) gọi qua service, không inject repository
 })
 export class LocationModule {}

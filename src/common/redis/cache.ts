@@ -3,18 +3,15 @@ import type { Redis } from 'ioredis';
 import { REDIS_CACHE } from './redis.provider.js';
 
 /**
- * Cache nghiệp vụ. Mỗi mục = key + TTL (giây) đi cùng nhau; thêm mục mới ở đây, không viết chuỗi key trong service.
- * Prefix `c9:v1`: đổi thành `v2` khi đổi shape dữ liệu để bỏ toàn bộ cache cũ.
+ * Mục cache = key + TTL (giây) đi cùng nhau. Mỗi module khai mục của mình trong `<x>.constants.ts` bằng `cacheEntry`
+ * (vd `USER_CACHE` ở user.constants.ts) và CHỈ chạm key của mình; cần vô hiệu cache module khác → gọi service module đó.
+ * Key luôn có dạng `c9:v1:<module>:<name>:<id>` → nhìn trong RedisInsight biết ngay của ai. Đổi `v1` → `v2` khi đổi shape dữ liệu.
  */
-const P = 'c9:v1';
-export const CACHE = {
-  /** `{ status }` của profile → request sau không chạm DB; block/unblock ghi đè ngay nên mọi instance thấy tức thì */
-  profile: { key: (userId: string) => `${P}:profile:${userId}`, ttl: 3600 },
-  /** Tombstone sau DELETE /me: token còn hạn không làm profile "sống lại". TTL = tuổi thọ token + dư */
-  deleted: { key: (userId: string) => `${P}:deleted:${userId}`, ttl: 3600 + 300 },
-  /** Quyền hiệu lực (RBAC); admin đổi role → xoá key này */
-  perms: { key: (userId: string) => `${P}:perms:${userId}`, ttl: 300 },
-} as const;
+const PREFIX = 'c9:v1';
+export const cacheEntry = (module: string, name: string, ttlSeconds: number) => ({
+  key: (...ids: string[]) => `${PREFIX}:${module}:${name}:${ids.join(':')}`,
+  ttl: ttlSeconds,
+});
 
 /**
  * 5 thao tác đang dùng. Cần INCR/SADD... thì thêm method đúng cấu trúc Redis; NEVER đọc JSON → sửa → ghi lại (race).

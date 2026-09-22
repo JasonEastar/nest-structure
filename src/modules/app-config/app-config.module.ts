@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
-import { AppConfigController } from './app-config.controller.js';
+import { AppConfigAdminController, AppConfigPublicController } from './app-config.controller.js';
+import { AppConfigRepository } from './app-config.repository.js';
 import { AppConfigService } from './app-config.service.js';
 
-/** Config công khai cho client (enum + nhãn). Tên `app-config` để không nhầm với `src/config/` (env, logger...). */
+/** Config động trong DB (bảng app_configs): client đọc bản public, admin CRUD. Tên `app-config` để không nhầm với `src/config/` (env, logger...). */
 @Module({
-  controllers: [AppConfigController],
-  providers: [AppConfigService],
+  controllers: [AppConfigPublicController, AppConfigAdminController],
+  providers: [AppConfigRepository, AppConfigService],
+  exports: [AppConfigService],
 })
 export class AppConfigModule {}

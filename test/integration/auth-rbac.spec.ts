@@ -6,7 +6,8 @@ import { SignJWT, generateKeyPair } from 'jose';
 import request from 'supertest';
 import { Public, RequirePermission } from '../../src/common/auth/decorators.js';
 import { AppException } from '../../src/common/http/exceptions.js';
-import { CACHE, CacheService } from '../../src/common/redis/cache.js';
+import { CacheService } from '../../src/common/redis/cache.js';
+import { USER_CACHE } from '../../src/modules/user/user.constants.js';
 import { SUPABASE_ADMIN, type SupabaseAdminPort } from '../../src/common/auth/supabase.js';
 import { UserService } from '../../src/modules/user/services/user.service.js';
 import { RoleService } from '../../src/modules/user/services/role.service.js';
@@ -177,13 +178,13 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
       roles: ['user'],
     });
     expect(me.body.data.permissions).toContain('pin:create');
-    expect(await cache.has(CACHE.profile.key(sub))).toBe(true);
+    expect(await cache.has(USER_CACHE.profile.key(sub))).toBe(true);
   });
 
   it('ensureProfile idempotent khi hai request đầu chạy song song → 1 profile', async () => {
     const sub = newUser();
     const claims = { sub, email: `race${Date.now()}@c9map.test`, isAnonymous: false };
-    await cache.del(CACHE.profile.key(sub));
+    await cache.del(USER_CACHE.profile.key(sub));
     await Promise.all([users.ensureProfile(claims), users.ensureProfile(claims)]);
     const me = await users.getMe(sub);
     expect(me.roles).toEqual(['user']);
@@ -410,13 +411,13 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
     await request(app.getHttpServer()).delete('/api/v1/me').set('authorization', `Bearer ${token}`).expect(204);
     expect(admin.deleted).toContain(sub);
     expect(await admin.getUserById(sub)).toBeNull();
-    expect(await cache.has(CACHE.perms.key(sub))).toBe(false);
+    expect(await cache.has(USER_CACHE.perms.key(sub))).toBe(false);
 
     // Token còn hạn KHÔNG được làm profile sống lại: tombstone → 401, và không có dòng profile mới
     const after = await request(app.getHttpServer()).get('/api/v1/me').set('authorization', `Bearer ${token}`).expect(401);
     expect(after.body.code).toBe('UNAUTHENTICATED');
     await expect(users.getMe(sub)).rejects.toMatchObject({ code: 'NOT_FOUND' });
-    expect(await cache.has(CACHE.deleted.key(sub))).toBe(true);
+    expect(await cache.has(USER_CACHE.deleted.key(sub))).toBe(true);
   });
 
   it('HS256 với kid khớp JWKS và alg=none đều bị từ chối (ghim thuật toán)', async () => {

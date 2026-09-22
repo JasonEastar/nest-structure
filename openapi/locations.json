@@ -645,20 +645,19 @@
   },
   "info": {
     "title": "C9 Map · Locations",
-    "description": "Địa điểm user tự lưu (tên, toạ độ, bán kính) và truy vấn địa điểm công khai quanh một toạ độ (PostGIS).\n\nNgôn ngữ: header `Accept-Language: vi | en` (mặc định vi).",
+    "description": "Ngôn ngữ: header `Accept-Language: vi | en` (mặc định vi).",
     "version": "1",
     "contact": {}
   },
   "tags": [
     {
       "name": "Locations",
-      "description": "Địa điểm đã lưu, công khai hoặc riêng tư"
+      "description": ""
     }
   ],
   "servers": [
     {
-      "url": "/",
-      "description": "Máy chủ đang mở trang này"
+      "url": "/"
     },
     {
       "url": "http://localhost:3000",

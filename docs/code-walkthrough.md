@@ -75,7 +75,7 @@ Chưa có module nào dùng. Khi cần việc chạy nền hoặc theo lịch (v
 | `common/database/columns.ts` | Cột dùng chung cho schema: timestamps, uuid v7, toạ độ `geography(Point)` | Thêm kiểu cột mới |
 | `common/database/schema.ts` | Gom mọi `*.schema.ts` cho Drizzle | Thêm module có bảng |
 | `common/redis/redis.provider.ts` | Kết nối Redis db0 | Hiếm |
-| `common/redis/cache.ts` | Bảng `CACHE` (key + TTL từng mục) + `CacheService` 5 thao tác | Thêm key cache |
+| `common/redis/cache.ts` | `cacheEntry` + `CacheService` 5 thao tác; key của module khai trong `<x>.constants.ts` (`USER_CACHE`) | Hiếm |
 | `common/redis/queue.ts` | Kết nối BullMQ + tên các queue | Thêm queue |
 | `common/redis/throttler.guard.ts` | Rate limit theo IP, đếm chung mọi instance | Đổi giới hạn |
 | `common/http/exceptions.ts` | Bảng mã lỗi + filter dịch `msg` | Thêm mã lỗi (kèm câu trong `i18n/*/errors.json`) |

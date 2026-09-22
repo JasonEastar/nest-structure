@@ -1,42 +1,38 @@
 import { Injectable } from '@nestjs/common';
-import { I18nService } from 'nestjs-i18n';
-import { DEFAULT_LOCALE } from '../../config/i18n.js';
-import { CONFIG_NAMES, type ConfigName, SYSTEM_ENUMS } from './app-config.constants.js';
-import type { ConfigItem, SystemEnums } from './dto/config.dto.js';
+import { AppException } from '../../common/http/exceptions.js';
+import { AppConfigRepository } from './app-config.repository.js';
+import { type AppConfig, type UpsertConfig, toAppConfig } from './dto/config.dto.js';
 
-/** Ghép config từ code + i18n. Không DB, không cache: dữ liệu tĩnh theo bản build, client cache qua Cache-Control. */
+/** Config động: client đọc bản public; admin tạo/sửa/xoá. Không cache: bảng nhỏ, đọc theo index name, client tự cache qua Cache-Control. */
 @Injectable()
 export class AppConfigService {
-  constructor(private readonly i18n: I18nService) {}
+  constructor(private readonly repo: AppConfigRepository) {}
 
-  /** Trả các config được hỏi (thứ tự cố định theo CONFIG_NAMES); không hỏi → tất cả; tên lạ → bỏ qua. */
-  getConfigs(names: string[]): ConfigItem[] {
-    const wanted = names.length ? CONFIG_NAMES.filter((n) => names.includes(n)) : CONFIG_NAMES;
-    return wanted.map((name) => ({ name, data: this.build(name) }));
+  /** Bản public cho web/app (chỉ `is_public = true`); `names` rỗng → tất cả, tên lạ bỏ qua. */
+  async listPublic(names: string[]): Promise<AppConfig[]> {
+    return (await this.repo.findMany(names, true)).map(toAppConfig);
   }
 
-  private build(name: ConfigName): SystemEnums {
-    switch (name) {
-      case 'system_enums':
-        return this.systemEnums();
-    }
+  /** Admin xem mọi config (kể cả private). */
+  async list(names: string[]): Promise<AppConfig[]> {
+    return (await this.repo.findMany(names, false)).map(toAppConfig);
   }
 
-  private systemEnums(): SystemEnums {
-    const languages = this.i18n.getSupportedLanguages();
-    const enums: SystemEnums['enums'] = {};
-    for (const def of SYSTEM_ENUMS) {
-      enums[def.key] = Object.fromEntries(
-        def.codes.map((code, i) => [
-          code,
-          {
-            sort: i + 1,
-            color: def.colors?.[code] ?? null,
-            label: Object.fromEntries(languages.map((lang) => [lang, this.i18n.t(`enums.${def.key}.${code}`, { lang })])),
-          },
-        ]),
-      );
-    }
-    return { enums, languages, defaultLanguage: DEFAULT_LOCALE };
+  /** Tạo mới; trùng tên → CONFLICT NAME_TAKEN. */
+  async create(input: UpsertConfig): Promise<AppConfig> {
+    if (await this.repo.nameExists(input.name)) throw new AppException('CONFLICT', { reason: 'NAME_TAKEN', field: 'name' });
+    return toAppConfig(await this.repo.insert(input));
+  }
+
+  /** Thay toàn bộ (name, data, isPublic); không có → NOT_FOUND. */
+  async update(id: string, input: UpsertConfig): Promise<AppConfig> {
+    if (await this.repo.nameExists(input.name, id)) throw new AppException('CONFLICT', { reason: 'NAME_TAKEN', field: 'name' });
+    const row = await this.repo.update(id, input);
+    if (!row) throw new AppException('NOT_FOUND', { resource: 'config', id });
+    return toAppConfig(row);
+  }
+
+  async remove(id: string): Promise<void> {
+    if (!(await this.repo.deleteById(id))) throw new AppException('NOT_FOUND', { resource: 'config', id });
   }
 }

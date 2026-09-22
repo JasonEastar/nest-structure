@@ -32,7 +32,7 @@ NEVER  ghi file upload ra disk local
 NEVER  lưu session ở server
 MUST   mọi state dùng chung → Redis (tạm) hoặc Postgres (bền)
 MUST   job định kỳ → BullMQ upsertJobScheduler với id cố định + tz Asia/Ho_Chi_Minh
-MUST   dev bằng docker-compose với 2 replica ngay từ đầu
+MUST   code không giữ state trong RAM (Redis/Postgres); đa instance kiểm bằng test/integration/redis-queue.spec.ts (2 AppModule chung Redis)
 ```
 
 Câu tự vấn khi viết bất kỳ biến nào: *"Instance 2 có cần biết cái này không?"* Có → ra ngoài process.
@@ -40,11 +40,11 @@ Câu tự vấn khi viết bất kỳ biến nào: *"Instance 2 có cần biết
 ### 2.2 Ranh giới module
 
 ```
-MUST   chia thư mục theo nghiệp vụ (modules/pin/), KHÔNG theo tầng (controllers/)
+MUST   chia module theo nghiệp vụ (modules/pin/); trong module ≥ 2 nghiệp vụ mới xếp theo tầng controllers/ services/ repositories/ (§3)
 MUST   @Module() chỉ export service — NEVER export repository
-MUST   common/ không import từ modules/ (một chiều)
+MUST   common/ không import từ modules/ (một chiều) — ngoại lệ duy nhất: common/database/schema.ts gom *.schema.ts cho Drizzle
 MUST   @Processor là provider của module nghiệp vụ (pin.jobs.ts) — mọi instance chạy processor (all-in-one, ADR-0006)
-NEVER  import trực tiếp file bên trong module khác (chỉ qua service đã export)
+NEVER  import trực tiếp file bên trong module khác (chỉ qua service đã export) — ngoại lệ: *.schema.ts (barrel Drizzle)
 ```
 
 ### 2.3 Dữ liệu
@@ -143,7 +143,7 @@ c9_map/
 │   │   ├── common.module.ts          # @Global: DRIZZLE · REDIS_CACHE · CacheService · SUPABASE_ADMIN · SupabaseJwtService; imports QueueRoot, Throttler
 │   │   ├── auth/
 │   │   │   ├── auth.guard.ts         # Bearer → JWKS → ensureProfile → req.user · bỏ qua @Public() · AUTH_USER port
-│   │   │   ├── permission.guard.ts   # @RequirePermission ↔ cache c9:perms:{id}
+│   │   │   ├── permission.guard.ts   # @RequirePermission ↔ cache c9:v1:user:perms:{id}
 │   │   │   ├── supabase.ts           # SupabaseJwtService (jose + JWKS, ES256/RS256) · SUPABASE_ADMIN port + adapter
 │   │   │   └── decorators.ts         # Public · RequirePermission · CurrentUser
 │   │   ├── database/
@@ -152,7 +152,7 @@ c9_map/
 │   │   │   └── schema.ts             # barrel gom *.schema.ts của mọi module
 │   │   ├── redis/
 │   │   │   ├── redis.provider.ts     # provider REDIS_CACHE (db0) · redisOptions()
-│   │   │   ├── cache.ts              # CACHE (key + ttl từng mục) · CacheService (5 thao tác)
+│   │   │   ├── cache.ts              # cacheEntry(module, name, ttl) · CacheService (5 thao tác); key của module khai ở <x>.constants.ts
 │   │   │   ├── queue.ts              # BullModule.forRoot (db1, prefix c9) · QUEUES
 │   │   │   └── throttler.guard.ts    # RedisThrottlerStorage (Lua) · AppThrottlerGuard khoá theo IP (req.ip)
 │   │   └── http/
@@ -167,7 +167,7 @@ c9_map/
 │       │   ├── health.module.ts · health.controller.ts (GET /health/live · /health/ready) · health.indicators.ts
 │       ├── user/                     # 2 nghiệp vụ (user · role) → xếp theo tầng; dto/ schema/ constants dùng chung ở gốc
 │       │   ├── user.module.ts
-│       │   ├── user.constants.ts         # ROLE_CODES · USER_STATUSES · USER_LIMITS · PASSWORD_LENGTH
+│       │   ├── user.constants.ts         # ROLE_CODES · USER_STATUSES · USER_LIMITS · PASSWORD_LENGTH · USER_CACHE
 │       │   ├── schema/user.schema.ts     # profiles (status active|blocked) · roles · permissions · role_permissions · user_roles
 │       │   ├── dto/                      # me · update-me · admin-user · role
 │       │   ├── controllers/
@@ -190,7 +190,7 @@ c9_map/
 │   ├── integration/*.spec.ts         # AppModule thật trên testcontainers (app · cross-cutting · geography · redis-queue · auth-rbac · location · supabase-real)
 │   └── setup/{containers,env,jwks}.ts # globalSetup testcontainers + migrate · setupFiles inject URL · Supabase JWKS giả (ES256)
 ├── scripts/                          # dev-token.mjs (token Supabase thật) · grant-role.mjs (admin đầu tiên)
-├── i18n/{vi,en}/*.json · openapi/{users,locations,health}.json
+├── i18n/{vi,en}/*.json · openapi/{system,users,locations}.json
 ├── docker-compose.yml (postgres · redis · redis-insight cho dev) · vitest.config.ts · .env.example
 └── package.json · tsconfig.json · nest-cli.json
 ```
@@ -222,7 +222,7 @@ Nguồn: [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md) (sửa đổi 20
 | Cột | snake_case | `created_at`, `sos_alerts_enabled` |
 | Cột chuẩn | `id UUID v7`, `created_at`, `updated_at`, `deleted_at?` (soft delete khi cần) | |
 | Route | kebab-case số nhiều, `/api/v1` | `/api/v1/pins/:id/votes` |
-| Cache key | `c9:v1:{domain}:{id}` | `c9:v1:pin:abc` |
+| Cache key | `c9:v1:{module}:{name}:{id}` qua `cacheEntry` | `c9:v1:user:perms:{userId}`, `c9:v1:pin:viewport:{tile}` |
 | Queue | `{domain}:{tier}` | `push:critical` |
 | Event | `{domain}.{action}` | `pin.created` |
 | Error code | SCREAMING_SNAKE | `PIN_DUPLICATE_NEARBY` |
@@ -249,7 +249,7 @@ Nguồn: [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md) (sửa đổi 20
 | `<x>.repository.ts` | Sở hữu mọi SQL của module, kể cả PostGIS (`ST_DWithin`). SQL không gian phải có test biên |
 | `*.dto.ts` | Mọi zod schema request/response của module. Controller dùng `@Body({ schema })`; kiểu = `z.infer`. dto đặt trong `dto/<use-case>.dto.ts` |
 | `*.schema.ts` | Bảng Drizzle của module; `drizzle.config.ts` gom bằng glob `src/**/*.schema.ts` |
-| `*.constants.ts` | Hằng số nghiệp vụ **của module** (giới hạn, enum: `ROLE_CODES`, `USER_STATUSES`) — một chỗ duy nhất. Hằng số **toàn app** (rate limit, `LOCALES`) ở `src/config/` |
+| `*.constants.ts` | Hằng số nghiệp vụ **của module** (giới hạn, enum: `ROLE_CODES`, `USER_STATUSES`) và mục cache của module (`USER_CACHE = { perms: cacheEntry('user', 'perms', 300) }`; chỉ chạm key của mình, vô hiệu cache module khác qua service của nó) — một chỗ duy nhất. Hằng số **toàn app** (rate limit, `LOCALES`) ở `src/config/` |
 | `*.jobs.ts` | `@Processor` + `upsertJobScheduler` (id cố định); chạy trên mọi instance |
 | `*.types.ts` | Kiểu nội bộ module (chỉ khi cần) |
 | Cross-module | Gọi service đã export, hoặc phát event qua outbox. Không join bảng module khác trong SQL |

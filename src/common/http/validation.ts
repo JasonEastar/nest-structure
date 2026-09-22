@@ -22,13 +22,14 @@ export const ValidationPipeProvider: Provider = {
     }),
 };
 
-/** Text người dùng nhập: trim, bỏ thẻ HTML, giới hạn độ dài. */
+/** Text người dùng nhập: trim, bỏ thẻ HTML (kể cả thẻ không đóng `<img src=x` → bỏ luôn `<` `>` còn sót), giới hạn độ dài. */
 const HTML_TAG = /<[^>]*>/g;
+const ANGLE_BRACKET = /[<>]/g;
 export const zText = (max: number, min = 1) =>
   z
     .string()
     .trim()
-    .transform((s) => s.replace(HTML_TAG, ''))
+    .transform((s) => s.replace(HTML_TAG, '').replace(ANGLE_BRACKET, '').trim())
     .pipe(z.string().min(min).max(max));
 
 /** Toạ độ WGS84. */

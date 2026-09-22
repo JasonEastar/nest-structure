@@ -47,9 +47,9 @@ await sql.begin(async (tx) => {
 });
 await sql.end();
 
-// 3. Xoá cache quyền để hiệu lực ngay (API gán role tự làm việc này). Key phải khớp CACHE.perms trong src/common/redis/cache.ts
+// 3. Xoá cache quyền để hiệu lực ngay (API gán role tự làm việc này). Key phải khớp USER_CACHE.perms trong src/modules/user/user.constants.ts
 const redisUrl = new URL(process.env.REDIS_URL);
 const redis = new Redis({ host: redisUrl.hostname, port: Number(redisUrl.port || 6379), db: 0 });
-await redis.del(`c9:v1:perms:${user.id}`);
+await redis.del(`c9:v1:user:perms:${user.id}`);
 await redis.quit();
 console.log(`${email} (${user.id}) → roles: ${codes.join(', ')}`);

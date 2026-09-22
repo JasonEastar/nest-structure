@@ -9,6 +9,7 @@
   "CONFLICT": "This action conflicts with existing data",
   "CONFLICT_LIMIT_REACHED": "Limit of {max} reached",
   "CONFLICT_EMAIL_TAKEN": "Email is already used by another account",
+  "CONFLICT_NAME_TAKEN": "Name is already taken",
   "BAD_REQUEST": "Invalid request",
   "PAYLOAD_TOO_LARGE": "The submitted data is too large",
   "SERVICE_UNAVAILABLE": "The service is busy, please try again later",
@@ -18,6 +19,7 @@
     "profile": "Profile",
     "location": "Location",
     "pin": "Pin",
-    "user": "user"
+    "user": "user",
+    "config": "config"
   }
 }

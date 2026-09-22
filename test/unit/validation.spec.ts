@@ -7,6 +7,11 @@ describe('zText', () => {
     expect(zText(5).safeParse('quá dài rồi').success).toBe(false);
   });
 
+  it('thẻ không đóng cũng không lọt: bỏ luôn < > còn sót', () => {
+    expect(zText(50).parse('<img src=x onerror=alert(1)')).toBe('img src=x onerror=alert(1)');
+    expect(zText(50).parse('x > y')).toBe('x  y');
+  });
+
   it('rỗng sau khi strip → không hợp lệ (min 1)', () => {
     expect(zText(20).safeParse('<br/>').success).toBe(false);
     expect(zText(20).safeParse('   ').success).toBe(false);

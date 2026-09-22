@@ -87,10 +87,10 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 |---|---|
 | Bảng | `roles(key, name)`, `permissions(key, description)`, `role_permissions(role_id, permission_id)`, `user_roles(user_id, role_id, city_code?)` — schema `public`, seed bằng migration |
 | Role seed | `user` (gán khi app upsert profile lần đầu), `moderator`, `venue`, `admin` |
-| Permission | Chuỗi `resource:action`, khai trong `common/auth/permissions.ts` (nguồn duy nhất, type `Permission`): `user:read`, `user:create`, `user:ban`, `role:read`, `role:assign`, `pin:create`, `pin:delete_any`, `report:review`, `landmark:manage`, `promoted:manage` |
-| Kiểm tra | `@RequirePermission('report:review')` → `PermissionGuard` đọc `c9:v1:perms:{userId}` (Set, TTL 300 s), miss → query `user_roles ⋈ role_permissions ⋈ permissions` |
+| Permission | Chuỗi `resource:action`, khai trong `common/auth/permissions.ts` (nguồn duy nhất, type `Permission`): `user:read`, `user:create`, `user:ban`, `role:read`, `role:assign`, `config:read`, `config:create`, `config:update`, `config:delete`, `pin:create`, `pin:delete_any`, `report:review`, `landmark:manage`, `promoted:manage` |
+| Kiểm tra | `@RequirePermission('report:review')` → `PermissionGuard` đọc `c9:v1:user:perms:{userId}` (Set, TTL 300 s), miss → query `user_roles ⋈ role_permissions ⋈ permissions` |
 | Quyền sở hữu | Không mã hoá trong permission. Service kiểm `author_id === user.id` hoặc permission `*_any` |
-| Thu hồi | Admin đổi role/permission → `DEL c9:perms:{userId}` ngay; JWT không chứa role nên không cần đợi token hết hạn |
+| Thu hồi | Admin đổi role/permission → `DEL c9:v1:user:perms:{userId}` ngay; JWT không chứa role nên không cần đợi token hết hạn |
 | Admin API | `/api/v1/admin/users` (POST tạo tài khoản email + mật khẩu qua Supabase Admin, GET danh sách/chi tiết — `user:read`, `user:create`; PATCH `/status` khoá/mở — `user:ban`), `/admin/roles`, `/admin/users/:id/roles` (`role:assign`) — cùng định nghĩa Swagger "User & Auth", permission tự ghi vào mô tả. Admin web đăng nhập bằng email + mật khẩu Supabase (`signInWithPassword`), không Google |
 | Không dùng | CASL / Supabase Custom Access Token Hook (role trong JWT) — đơn giản hơn và thu hồi tức thì |
 
@@ -102,7 +102,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 | Pool | `max: 10` mỗi instance (drizzle.ts); tổng instance × 10 < `max_connections` |
 | Role DB | local: `c9` (owner, tạo extension). prod: `c9_migrate` (DDL) và `c9_app` (DML, không DDL) |
 | Không có schema `auth` | Mọi dữ liệu user nghiệp vụ nằm ở `public.profiles`; Supabase chỉ được gọi qua Admin API |
-| Sync user (app-side) | `AuthGuard` → `UserService.ensureProfile(claims)`: Redis `c9:v1:profile:{id}` = `{ status }` TTL 1h; miss → tx `INSERT profiles … ON CONFLICT DO NOTHING RETURNING` (chỉ gán `user_roles(user)` khi mới tạo); `status = blocked` → 403 `ACCOUNT_BLOCKED` (admin khoá ghi đè cache nên mọi instance chặn ngay). Claims: `sub`, `email`, `user_metadata.full_name`, `user_metadata.avatar_url` |
+| Sync user (app-side) | `AuthGuard` → `UserService.ensureProfile(claims)`: Redis `c9:v1:user:profile:{id}` = `{ status }` TTL 1h; miss → tx `INSERT profiles … ON CONFLICT DO NOTHING RETURNING` (chỉ gán `user_roles(user)` khi mới tạo); `status = blocked` → 403 `ACCOUNT_BLOCKED` (admin khoá ghi đè cache nên mọi instance chặn ngay). Claims: `sub`, `email`, `user_metadata.full_name`, `user_metadata.avatar_url` |
 | `profiles.id` | = `sub` Supabase (uuid v4), **không FK** (khác database) |
 | Xoá tài khoản | Tx local (ẩn danh hoá pin/thread, xoá profile) → `auth.admin.deleteUser`; idempotent |
 | RLS | Không (NestJS là client duy nhất) |
@@ -135,12 +135,12 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 
 | Việc | Cấu trúc | Key | TTL |
 |---|---|---|---|
-| Cache viewport | String JSON | `c9:v1:viewport:{zoom}:{tile}:{types}` | 30 s Places, 10 s Live |
+| Cache viewport | String JSON | `c9:v1:pin:viewport:{zoom}:{tile}:{types}` | 30 s Places, 10 s Live |
 | Cache pin | String | `c9:v1:marker:{id}` | 5 phút, `del` khi sửa |
 | Đếm like/confirm/unread | `INCR` | `c9:cnt:{kind}:{id}` | Không TTL, dựng lại từ PG |
 | Thống kê promoted | Hash `HINCRBY` | `c9:stats:{marker}:{date}` | Gộp PG mỗi giờ |
 | Rate limit | Throttler storage | tự quản | theo rule |
-| Permission cache | Set | `c9:v1:perms:{userId}` | 5 phút |
+| Permission cache | Set | `c9:v1:user:perms:{userId}` | 5 phút |
 | Idempotency | String | `c9:idem:{userId}:{key}` | 24 h |
 | SOS live location | String + TTL | `c9:sos:{id}:loc` | 60 s |
 | User online | Sorted Set | `c9:online` | dọn theo score |
@@ -170,7 +170,7 @@ Processor chạy trên **mọi** instance (all-in-one); một job chỉ được
 
 ## 10. API docs & codegen
 
-- Một định nghĩa mỗi module nghiệp vụ (User & Auth, Locations, Health, sau này Pins, Engagement…) qua `include:`, dropdown "Select a definition" tại `/docs`. Route admin nằm cùng định nghĩa với module của nó, mô tả tự ghi "Quyền cần có" từ `@RequirePermission`. UI: Swagger UI đi kèm `SwaggerModule.setup()`, theo đúng tài liệu NestJS (https://docs.nestjs.com/openapi/introduction). `jsonDocumentUrl` → `/docs/<module>-json`.
+- Một định nghĩa mỗi nhóm nghiệp vụ (System = Health + Configs, User & Auth, Locations, sau này Pins, Engagement…) qua `include:`, dropdown "Select a definition" tại `/docs`. Route admin nằm cùng định nghĩa với module của nó, mô tả tự ghi "Quyền cần có" từ `@RequirePermission`. UI: Swagger UI đi kèm `SwaggerModule.setup()`, theo đúng tài liệu NestJS (https://docs.nestjs.com/openapi/introduction). `jsonDocumentUrl` → `/docs/<module>-json`.
 - Schema zod đặt trên decorator (`@Body({ schema })`) → Swagger 12 tự sinh request body/params (zod 4.6 có `~standard.jsonSchema`). Không cần `nestjs-zod`, không bật CLI plugin. Chi tiết: [nestjs-guide.md §6](./nestjs-guide.md).
 - CI xuất `openapi/<key>.json` (users, locations, health…) làm artifact. Mobile: Dart `openapi-generator` (dart-dio) hoặc TS `orval` / `@hey-api/openapi-ts`.
 

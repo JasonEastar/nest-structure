@@ -16,8 +16,8 @@ import type { Env } from './env.js';
 export interface OpenApiDefinition {
   key: string; // đường dẫn: /docs/<key>-json, openapi/<key>.json
   title: string; // tên trong dropdown
-  description: string;
-  tags?: { name: string; description: string }[]; // mô tả cho @ApiTags tương ứng
+  description?: string;
+  tags?: { name: string; description?: string }[]; // mô tả cho @ApiTags tương ứng
   modules: Type[]; // Swagger include — chỉ controller của các module này
 }
 
@@ -44,16 +44,15 @@ export function envelope<T extends z.ZodType>(data: T) {
   return z.object({ success: z.literal(true), code: z.literal('OK'), msg: z.literal(''), data, meta: MetaSchema });
 }
 
-/** Một dòng nối vào cuối mô tả mọi định nghĩa. Cách gửi token đã có nút Authorize; shape response xem mục Schemas. */
-const COMMON_DESCRIPTION =
-  '\n\nNgôn ngữ: header `Accept-Language: vi | en` (mặc định vi).';
+/** Dòng chung cho mọi định nghĩa; nối sau `description` của định nghĩa (nếu có). Cách gửi token đã có nút Authorize; shape response xem mục Schemas. */
+const COMMON_DESCRIPTION = 'Ngôn ngữ: header `Accept-Language: vi | en` (mặc định vi).';
 
 function buildOne(app: INestApplication, def: OpenApiDefinition, env: DocEnv): OpenAPIObject {
   const builder = new DocumentBuilder()
     .setTitle(`C9 Map · ${def.title}`)
-    .setDescription(def.description + COMMON_DESCRIPTION)
+    .setDescription([def.description, COMMON_DESCRIPTION].filter(Boolean).join('\n\n'))
     .setVersion('1')
-    .addServer('/', 'Máy chủ đang mở trang này') // tương đối: dev localhost, Docker/nginx, staging đều đúng
+    .addServer('/') // tương đối: dev localhost, Docker/nginx, staging đều đúng
     .addServer(`http://localhost:${env.get('PORT', { infer: true })}`, 'Local')
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'supabase')
     .addGlobalResponse(

@@ -153,8 +153,8 @@ Controller `return` dữ liệu thuần, interceptor bọc thành response chu�
 | Danh sách phân trang | service: `return pageOf(rows, query.limit, (r) => ({ createdAt: r.createdAt, id: r.id }))` sau khi repository lấy `limit + 1` dòng | `meta.nextCursor`; client gửi lại `?cursor=` |
 | Lỗi nghiệp vụ | `throw new AppException('NOT_FOUND', { resource: 'location', id })` | `success=false`, `code`, `msg` dịch từ `i18n/<lang>/errors.json`, params vào `meta`, đúng HTTP status |
 | Sửa một phần (PATCH) | zod `.partial()` + `.refine(body => Object.keys(body).length > 0)`; field nullable → `null` nghĩa là xoá (xem `user/dto/update-me.dto.ts`) | 200 + object sau khi sửa |
-| Khoá user (chặn mọi request) | `PATCH /admin/users/:id/status { status: 'blocked' }` → `profiles.status` + ghi đè cache `c9:v1:profile:{id}`; guard đọc cache nên chặn ngay trên mọi instance, không đợi TTL | 403 `FORBIDDEN` reason `ACCOUNT_BLOCKED` |
-| Enum mới cho client | thêm mảng `as const` ở `<x>.constants.ts` (zod `z.enum` dùng cùng mảng), đăng ký vào `SYSTEM_ENUMS` (`app-config.constants.ts`), nhãn vào `i18n/{vi,en}/enums.json` theo `<resource>.<field>.<code>` | `GET /public/configs?names=system_enums` trả `{ sort, color, label: { vi, en } }` |
+| Khoá user (chặn mọi request) | `PATCH /admin/users/:id/status { status: 'blocked' }` → `profiles.status` + ghi đè cache `c9:v1:user:profile:{id}`; guard đọc cache nên chặn ngay trên mọi instance, không đợi TTL | 403 `FORBIDDEN` reason `ACCOUNT_BLOCKED` |
+| Enum mới cho client | code: mảng `as const` ở `<x>.constants.ts` (zod `z.enum`); nhãn/màu: sửa `data.enums.<resource>.<field>` của config `system_enums` qua `PUT /admin/configs/:id` (hoặc migration seed nếu là mặc định) | `GET /public/configs?names=system_enums` trả `{ sort, color, label: { vi, en } }`; code và config có thể lệch — code là nguồn validate, config chỉ để hiển thị |
 | Lỗi mới chưa có mã | thêm vào `ErrorCodes` trong `common/http/exceptions.ts` kèm status, thêm câu cùng tên vào `i18n/vi/errors.json` và `i18n/en/errors.json` | Cần câu riêng theo tình huống: `params.reason` + key `CODE_REASON` (vd `CONFLICT_LIMIT_REACHED`) |
 
 Ngôn ngữ: chỉ header `Accept-Language: vi | en` (mặc định vi), client tự gắn header khi gọi; không nhận qua query hay body. Mã lỗi hiện có: `VALIDATION_FAILED` 422 · `NOT_FOUND` 404 · `UNAUTHENTICATED` 401 · `FORBIDDEN` 403 · `RATE_LIMITED` 429 · `CONFLICT` 409 · `BAD_REQUEST` 400 · `PAYLOAD_TOO_LARGE` 413 · `SERVICE_UNAVAILABLE` 503 · `INTERNAL` 500. Lỗi 5xx bất ngờ (throw Error thường) tự thành `INTERNAL`, stack chỉ ghi log.
@@ -183,7 +183,7 @@ list(...) {}
 - Tài liệu chia theo module nghiệp vụ (`OPENAPI_DOCS` trong `app.module.ts`): mỗi mục một định nghĩa trong dropdown, JSON `/docs/<key>-json`, file `openapi/<key>.json`. Không chia app/admin.
 - **Quyền và public tự ghi vào mô tả** từ `@RequirePermission` / `@Public()`: "Quyền cần có: `role:assign`" hoặc "Không cần đăng nhập" (bỏ ổ khoá). Không viết tay các câu này.
 - `@ApiOperation({ summary, description })`: `summary` một câu ngắn, `description` giải thích hành vi (trả gì khi rỗng, side effect, giới hạn) như ví dụ "Trả null nếu user chưa tham gia".
-- `npm run openapi:export` → `openapi/users.json`, `openapi/locations.json`, `openapi/health.json` cho mobile codegen. CI tự xuất.
+- `npm run openapi:export` → `openapi/system.json`, `openapi/users.json`, `openapi/locations.json` cho mobile codegen. CI tự xuất.
 - Kiểm nhanh: mở `/docs`, chọn định nghĩa, tìm tag, xem "Example Value" của request và response có đúng ý không.
 
 ## 8. Auth và quyền

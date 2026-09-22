@@ -1294,7 +1294,7 @@
   },
   "info": {
     "title": "C9 Map · User & Auth",
-    "description": "Đăng nhập qua Supabase (app: Google; admin web: email + mật khẩu), hồ sơ /me, quản trị user, role và permission. Backend không phát token, chỉ xác minh JWT.\n\nNgôn ngữ: header `Accept-Language: vi | en` (mặc định vi).",
+    "description": "Ngôn ngữ: header `Accept-Language: vi | en` (mặc định vi).",
     "version": "1",
     "contact": {}
   },
@@ -1314,8 +1314,7 @@
   ],
   "servers": [
     {
-      "url": "/",
-      "description": "Máy chủ đang mở trang này"
+      "url": "/"
     },
     {
       "url": "http://localhost:3000",
@@ -1492,7 +1491,7 @@
           },
           "password": {
             "type": "string",
-            "minLength": 8,
+            "minLength": 6,
             "maxLength": 72
           },
           "displayName": {
