@@ -1,25 +1,13 @@
 {
-  "VALIDATION_FAILED": "Dữ liệu gửi lên không hợp lệ",
-  "NOT_FOUND": "Không tìm thấy {resource}",
-  "UNAUTHENTICATED": "Bạn cần đăng nhập để tiếp tục",
-  "FORBIDDEN": "Bạn không có quyền thực hiện thao tác này",
-  "FORBIDDEN_ACCOUNT_BLOCKED": "Tài khoản đã bị khoá",
-  "FORBIDDEN_CANNOT_BLOCK_SELF": "Không thể tự khoá tài khoản của mình",
-  "RATE_LIMITED": "Bạn thao tác quá nhanh, thử lại sau {retryAfter} giây",
-  "CONFLICT": "Thao tác xung đột với dữ liệu hiện có",
-  "CONFLICT_LIMIT_REACHED": "Đã đạt giới hạn tối đa {max}",
-  "CONFLICT_EMAIL_TAKEN": "Email đã được dùng cho tài khoản khác",
-  "CONFLICT_NAME_TAKEN": "Tên đã được dùng",
   "BAD_REQUEST": "Yêu cầu không hợp lệ",
+  "UNAUTHENTICATED": "Bạn cần đăng nhập để tiếp tục",
+  "FORBIDDEN": "Thao tác này không được phép",
+  "ACCOUNT_BLOCKED": "Tài khoản đã bị khoá",
+  "NOT_FOUND": "Không tìm thấy dữ liệu",
+  "CONFLICT": "Thao tác xung đột với dữ liệu hiện có",
   "PAYLOAD_TOO_LARGE": "Dữ liệu gửi lên quá lớn",
-  "SERVICE_UNAVAILABLE": "Hệ thống đang bận, vui lòng thử lại sau",
+  "VALIDATION_FAILED": "Dữ liệu gửi lên không hợp lệ",
+  "RATE_LIMITED": "Bạn thao tác quá nhanh, thử lại sau {retryAfter} giây",
   "INTERNAL": "Có lỗi xảy ra, vui lòng thử lại sau",
-  "resource": {
-    "default": "dữ liệu",
-    "profile": "hồ sơ",
-    "location": "địa điểm",
-    "pin": "pin",
-    "user": "người dùng",
-    "config": "config"
-  }
+  "SERVICE_UNAVAILABLE": "Hệ thống đang bận, vui lòng thử lại sau"
 }

@@ -18,7 +18,7 @@ export interface SupabaseClaims {
 
 /** Cổng tới Supabase Admin API (test thay bằng in-memory). */
 export interface SupabaseAdminPort {
-  /** Admin tạo tài khoản email + mật khẩu (đã xác nhận email). Email trùng → CONFLICT EMAIL_TAKEN; yếu → VALIDATION_FAILED. */
+  /** Admin tạo tài khoản email + mật khẩu (đã xác nhận email). Email trùng → CONFLICT (field email); yếu → VALIDATION_FAILED. */
   createUser(input: { email: string; password: string; displayName: string }): Promise<{ id: string }>;
   deleteUser(userId: string): Promise<void>;
   getUserById(userId: string): Promise<{ id: string; email?: string; phoneConfirmedAt?: string | null } | null>;
@@ -88,9 +88,9 @@ export class SupabaseAdminAdapter implements SupabaseAdminPort {
       app_metadata: { must_change_password: true },
     });
     if (error) {
-      if (error.code === 'email_exists') throw new AppException('CONFLICT', { reason: 'EMAIL_TAKEN', field: 'email' });
+      if (error.code === 'email_exists') throw new AppException('CONFLICT', { field: 'email' });
       if (error.code === 'weak_password') {
-        throw new AppException('VALIDATION_FAILED', { issues: [{ path: 'password', message: error.message }] });
+        throw new AppException('VALIDATION_FAILED', { issues: [{ path: 'password', message: 'validation.weak_password', args: { detail: error.message } }] });
       }
       throw error;
     }

@@ -2,7 +2,7 @@ import { type Provider, StandardSchemaValidationPipe } from '@nestjs/common';
 import { APP_PIPE } from '@nestjs/core';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import { z } from 'zod';
-import { AppException } from './exceptions.js';
+import { AppException, type ValidationIssue } from './exceptions.js';
 
 /** Pipe zod toàn cục (có sẵn Nest 12): `@Body({ schema })`, `@Param('id', { schema })`. Sai → 422 với issues[{ path, message }]. */
 export const ValidationPipeProvider: Provider = {
@@ -12,12 +12,15 @@ export const ValidationPipeProvider: Provider = {
       transform: true,
       exceptionFactory: (issues: readonly StandardSchemaV1.Issue[]) =>
         new AppException('VALIDATION_FAILED', {
-          issues: issues.map((issue) => ({
-            path: (issue.path ?? [])
-              .map((p) => (typeof p === 'object' && p !== null && 'key' in p ? String(p.key) : String(p)))
-              .join('.'),
-            message: issue.message,
-          })),
+          issues: issues.map(
+            (issue): ValidationIssue => ({
+              path: (issue.path ?? [])
+                .map((p) => (typeof p === 'object' && p !== null && 'key' in p ? String(p.key) : String(p)))
+                .join('.'),
+              message: issue.message,
+              zod: issue,
+            }),
+          ),
         }),
     }),
 };

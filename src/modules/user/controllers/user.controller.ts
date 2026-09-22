@@ -29,21 +29,14 @@ export class UserController {
   constructor(private readonly users: UserService) {}
 
   @Get()
-  @ApiOperation({
-    summary: 'Hồ sơ của tôi',
-    description: 'Profile được tạo tự động ở request đầu tiên sau khi đăng nhập Google (Supabase). Kèm role và permission hiệu lực.',
-  })
+  @ApiOperation({ summary: 'Hồ sơ của tôi' })
   @ApiOkResponse({ standardSchema: envelope(MeResponseSchema) })
   me(@CurrentUser() user: AuthUser) {
     return this.users.getMe(user.id);
   }
 
   @Patch()
-  @ApiOperation({
-    summary: 'Sửa hồ sơ của tôi',
-    description:
-      'Gửi field nào sửa field đó (`displayName`, `avatarUrl`, `locale`, `homeCityCode`); `null` để xoá. `username` là định danh đăng nhập, không sửa qua đây.',
-  })
+  @ApiOperation({ summary: 'Sửa hồ sơ của tôi' })
   @ApiOkResponse({ standardSchema: envelope(MeResponseSchema) })
   updateMe(@CurrentUser() user: AuthUser, @Body({ schema: UpdateMeSchema }) body: UpdateMe) {
     return this.users.updateMe(user.id, body);
@@ -51,10 +44,7 @@ export class UserController {
 
   @Delete()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({
-    summary: 'Xoá tài khoản',
-    description: 'Xoá dữ liệu local (cascade) rồi xoá user trên Supabase. Token còn hạn sau đó vẫn bị từ chối (tombstone 1 giờ).',
-  })
+  @ApiOperation({ summary: 'Xoá tài khoản' })
   async deleteMe(@CurrentUser() user: AuthUser): Promise<void> {
     await this.users.deleteMe(user.id);
   }
@@ -71,13 +61,7 @@ export class UserAdminController {
 
   @Post()
   @RequirePermission('user:create')
-  @ApiOperation({
-    summary: 'Tạo tài khoản email + mật khẩu',
-    description:
-      'Cho nhân sự (admin, moderator, venue...); user app vẫn đăng nhập Google. Supabase giữ mật khẩu, email đã xác nhận sẵn, '
-      + '`app_metadata.must_change_password = true` để admin web ép đổi mật khẩu lần đầu. `roles` khác `user` cần thêm quyền `role:assign`. '
-      + 'Email đã có → 409 `CONFLICT` (`EMAIL_TAKEN`); mật khẩu không đạt policy Supabase → 422.',
-  })
+  @ApiOperation({ summary: 'Tạo tài khoản email + mật khẩu' })
   @ApiCreatedResponse({ standardSchema: envelope(AdminUserSchema) })
   createUser(@CurrentUser() actor: AuthUser, @Body({ schema: CreateUserSchema }) body: CreateUser) {
     return this.users.createUser(actor.id, body);
@@ -85,7 +69,7 @@ export class UserAdminController {
 
   @Get()
   @RequirePermission('user:read')
-  @ApiOperation({ summary: 'Danh sách user', description: 'Mới nhất trước, cursor. `q` tìm theo email hoặc tên.' })
+  @ApiOperation({ summary: 'Danh sách user' })
   @ApiOkResponse({ standardSchema: envelope(z.array(AdminUserSchema)) })
   listUsers(@Query({ schema: ListUsersQuerySchema }) query: ListUsersQuery) {
     return this.users.listUsers(query);
@@ -101,12 +85,7 @@ export class UserAdminController {
 
   @Patch(':id/status')
   @RequirePermission('user:ban')
-  @ApiOperation({
-    summary: 'Khoá / mở khoá user',
-    description:
-      '`blocked`: mọi request của user đó bị 403 `FORBIDDEN` (`ACCOUNT_BLOCKED`) ngay trên mọi instance. '
-      + 'Không tự khoá mình; khoá người có role `admin` cần thêm `role:assign`.',
-  })
+  @ApiOperation({ summary: 'Khoá / mở khoá user' })
   @ApiOkResponse({ standardSchema: envelope(AdminUserSchema) })
   setUserStatus(
     @CurrentUser() actor: AuthUser,

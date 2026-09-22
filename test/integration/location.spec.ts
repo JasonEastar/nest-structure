@@ -103,7 +103,7 @@ describe('Locations (e2e)', () => {
     expect(bad.body).toMatchObject({ success: false, code: 'BAD_REQUEST', data: null, meta: { field: 'cursor' } });
   });
 
-  it('giới hạn 20 / user → 409 CONFLICT LIMIT_REACHED; xoá → 204 rồi 404', async () => {
+  it('giới hạn 20 / user → 409 CONFLICT (max); xoá → 204 rồi 404', async () => {
     const tokenD = await supabase.signToken({ sub: sub(4) });
     const ids: string[] = [];
     for (let i = 0; i < LOCATION_LIMITS.maxPerUser; i++) {
@@ -111,7 +111,7 @@ describe('Locations (e2e)', () => {
       ids.push(r.body.data.id);
     }
     const over = await create(tokenD, { name: 'thừa', lat: 10.7, lng: 106.7 }).expect(409);
-    expect(over.body).toMatchObject({ success: false, code: 'CONFLICT', meta: { reason: 'LIMIT_REACHED', max: 20 } });
+    expect(over.body).toMatchObject({ success: false, code: 'CONFLICT', meta: { max: 20 } });
 
     await api().delete(`/api/v1/locations/${ids[0]}`).set('authorization', `Bearer ${tokenD}`).expect(204);
     await api().get(`/api/v1/locations/${ids[0]}`).set('authorization', `Bearer ${tokenD}`).expect(404);

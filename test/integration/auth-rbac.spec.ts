@@ -26,10 +26,10 @@ class InMemorySupabaseAdmin implements SupabaseAdminPort {
   seed(id: string, email?: string): void {
     this.users.set(id, { id, email });
   }
-  /** Như adapter thật: email trùng → CONFLICT EMAIL_TAKEN. */
+  /** Như adapter thật: email trùng → CONFLICT (field email). */
   async createUser(input: { email: string; password: string; displayName: string }) {
     for (const u of this.users.values()) {
-      if (u.email === input.email) throw new AppException('CONFLICT', { reason: 'EMAIL_TAKEN', field: 'email' });
+      if (u.email === input.email) throw new AppException('CONFLICT', { field: 'email' });
     }
     const id = randomUUID();
     this.users.set(id, { id, email: input.email });
@@ -229,7 +229,8 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
       .get('/api/v1/admin/roles')
       .set('authorization', `Bearer ${adminToken}`)
       .expect(200);
-    expect(roles.body.data.map((r: { code: string }) => r.code).sort()).toEqual(['admin', 'moderator', 'user', 'venue']);
+    expect(roles.body.data.map((r: { code: string }) => r.code)).toEqual(expect.arrayContaining(['admin', 'moderator', 'user', 'venue']));
+    expect(roles.body.data.find((r: { code: string }) => r.code === 'admin')).toMatchObject({ isSystem: true });
 
     const updated = await request(app.getHttpServer())
       .put(`/api/v1/admin/users/${userSub}/roles`)
@@ -244,6 +245,142 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
       .set('authorization', `Bearer ${userToken}`)
       .expect(200);
     expect(meAfter.body.data.roles.sort()).toEqual(['moderator', 'venue']);
+  });
+
+  it('CRUD role: tạo (409 trùng) → gán cho user → đổi permission có hiệu lực ngay → xoá đang gán 409 → gỡ → xoá; role hệ thống 403', async () => {
+    const adminSub = newUser();
+    const targetSub = newUser();
+    const adminToken = await signToken({ sub: adminSub });
+    const targetToken = await signToken({ sub: targetSub });
+    admin.seed(adminSub);
+    admin.seed(targetSub);
+    await request(app.getHttpServer()).get('/api/v1/me').set('authorization', `Bearer ${adminToken}`).expect(200);
+    await request(app.getHttpServer()).get('/api/v1/me').set('authorization', `Bearer ${targetToken}`).expect(200);
+    await roleService.setUserRoles(adminSub, ['admin']);
+    const auth = (token: string) => ({ authorization: `Bearer ${token}` });
+
+    // permission theo nhóm (tab): report:review nằm trong nhóm pin từ seed
+    const perms = await request(app.getHttpServer()).get('/api/v1/admin/permissions').set(auth(adminToken)).expect(200);
+    const pinTab = perms.body.data.find((g: { code: string }) => g.code === 'pin');
+    expect(pinTab.permissions.map((p: { code: string }) => p.code)).toContain('report:review');
+    const sorts = perms.body.data.map((g: { sort: number }) => g.sort);
+    expect(sorts).toEqual(sorts.slice().sort((a: number, b: number) => a - b)); // tab sắp theo sort
+
+    const code = `editor_${adminSub.slice(4, 8)}`;
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/admin/roles')
+      .set(auth(adminToken))
+      .send({ code, name: 'Biên tập', permissions: ['pin:create'] })
+      .expect(201);
+    expect(created.body.data).toMatchObject({ code, name: 'Biên tập', isSystem: false, permissions: ['pin:create'] });
+    const roleId = created.body.data.id as string;
+    await request(app.getHttpServer()).post('/api/v1/admin/roles').set(auth(adminToken)).send({ code, name: 'Trùng' }).expect(409);
+    await request(app.getHttpServer()).post('/api/v1/admin/roles').set(auth(adminToken)).send({ code: 'Có Dấu', name: 'x' }).expect(422);
+    const unknownPerm = await request(app.getHttpServer()).post('/api/v1/admin/roles').set(auth(adminToken)).send({ code: 'x_perm', name: 'x', permissions: ['nope:x'] }).expect(422); // mã không có trong DB
+    expect(unknownPerm.body.meta.issues).toEqual([{ path: 'permissions', message: 'Permission không tồn tại: nope:x' }]);
+
+    // gán role mới cho target: chưa có report:review → probe 403
+    await request(app.getHttpServer()).put(`/api/v1/admin/users/${targetSub}/roles`).set(auth(adminToken)).send({ roles: [code] }).expect(200);
+    await request(app.getHttpServer()).get('/api/v1/probe/needs-perm').set(auth(targetToken)).expect(403);
+
+    // sửa permission của role → target có quyền NGAY (cache quyền bị xoá)
+    const updated = await request(app.getHttpServer())
+      .put(`/api/v1/admin/roles/${roleId}`)
+      .set(auth(adminToken))
+      .send({ name: 'Biên tập viên', permissions: ['pin:create', 'report:review'] })
+      .expect(200);
+    expect(updated.body.data.permissions.sort()).toEqual(['pin:create', 'report:review']);
+    await request(app.getHttpServer()).get('/api/v1/probe/needs-perm').set(auth(targetToken)).expect(200);
+
+    // xoá khi đang gán → 409; gỡ khỏi user → xoá được → 404 lần sau
+    const inUse = await request(app.getHttpServer()).delete(`/api/v1/admin/roles/${roleId}`).set(auth(adminToken)).expect(409);
+    expect(inUse.body).toMatchObject({ code: 'CONFLICT', meta: { count: 1 } });
+    await request(app.getHttpServer()).put(`/api/v1/admin/users/${targetSub}/roles`).set(auth(adminToken)).send({ roles: ['user'] }).expect(200);
+    await request(app.getHttpServer()).delete(`/api/v1/admin/roles/${roleId}`).set(auth(adminToken)).expect(204);
+    await request(app.getHttpServer()).delete(`/api/v1/admin/roles/${roleId}`).set(auth(adminToken)).expect(404);
+
+    // role hệ thống không xoá được
+    const list = await request(app.getHttpServer()).get('/api/v1/admin/roles').set(auth(adminToken)).expect(200);
+    const userRole = list.body.data.find((r: { code: string }) => r.code === 'user');
+    const sys = await request(app.getHttpServer()).delete(`/api/v1/admin/roles/${userRole.id}`).set(auth(adminToken)).expect(403);
+    expect(sys.body).toMatchObject({ code: 'FORBIDDEN', meta: { code: 'user' } });
+  });
+
+  it('nhóm permission: tạo (409 trùng) → chuyển permission vào → xoá nhóm còn permission 409 → chuyển đi → xoá; user thường 403', async () => {
+    const adminSub = newUser();
+    const adminToken = await signToken({ sub: adminSub });
+    admin.seed(adminSub);
+    await request(app.getHttpServer()).get('/api/v1/me').set('authorization', `Bearer ${adminToken}`).expect(200);
+    await roleService.setUserRoles(adminSub, ['admin']);
+    const auth = (token: string) => ({ authorization: `Bearer ${token}` });
+    const code = `tab_${adminSub.slice(4, 8)}`;
+
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/admin/permission-groups')
+      .set(auth(adminToken))
+      .send({ code, name: 'Kiểm duyệt', sort: 50 })
+      .expect(201);
+    expect(created.body.data).toMatchObject({ code, name: 'Kiểm duyệt', sort: 50 });
+    const groupId = created.body.data.id as string;
+    await request(app.getHttpServer()).post('/api/v1/admin/permission-groups').set(auth(adminToken)).send({ code, name: 'Trùng' }).expect(409);
+
+    const before = await request(app.getHttpServer()).get('/api/v1/admin/permissions').set(auth(adminToken)).expect(200);
+    const review = before.body.data.flatMap((g: { permissions: { id: string; code: string }[] }) => g.permissions).find((p: { code: string }) => p.code === 'report:review');
+    const moved = await request(app.getHttpServer())
+      .put(`/api/v1/admin/permissions/${review.id}`)
+      .set(auth(adminToken))
+      .send({ code: 'report:review', groupId, description: 'Duyệt báo cáo pin' })
+      .expect(200);
+    expect(moved.body.data).toEqual({ id: review.id, code: 'report:review', description: 'Duyệt báo cáo pin', groupId });
+    // nhóm lạ → 404; id lạ → 404
+    await request(app.getHttpServer()).put(`/api/v1/admin/permissions/${review.id}`).set(auth(adminToken)).send({ code: 'report:review', groupId: newUser() }).expect(404);
+    await request(app.getHttpServer()).put(`/api/v1/admin/permissions/${newUser()}`).set(auth(adminToken)).send({ code: 'nope:x', groupId }).expect(404);
+
+    const tabs = await request(app.getHttpServer()).get('/api/v1/admin/permissions').set(auth(adminToken)).expect(200);
+    const tab = tabs.body.data.find((g: { id: string }) => g.id === groupId);
+    expect(tab.permissions.map((p: { code: string }) => p.code)).toEqual(['report:review']);
+
+    // nhóm còn permission → 409 (dịch); chuyển permission về nhóm pin → xoá được → 404 lần sau
+    const inUseGroup = await request(app.getHttpServer()).delete(`/api/v1/admin/permission-groups/${groupId}`).set(auth(adminToken)).set('accept-language', 'en').expect(409);
+    expect(inUseGroup.body).toMatchObject({ code: 'CONFLICT', msg: 'This action conflicts with existing data', meta: { count: 1 } });
+    const pin = tabs.body.data.find((g: { code: string }) => g.code === 'pin');
+    await request(app.getHttpServer()).put(`/api/v1/admin/permissions/${review.id}`).set(auth(adminToken)).send({ code: 'report:review', groupId: pin.id }).expect(200);
+    await request(app.getHttpServer()).delete(`/api/v1/admin/permission-groups/${groupId}`).set(auth(adminToken)).expect(204);
+    await request(app.getHttpServer()).delete(`/api/v1/admin/permission-groups/${groupId}`).set(auth(adminToken)).expect(404);
+    expect((await request(app.getHttpServer()).get('/api/v1/admin/permissions').set(auth(adminToken)).expect(200)).body.data.every((g: { id: string }) => g.id)).toBe(true);
+
+    // admin tạo permission cho route sắp có: xếp vào tab pin, gán cho role → xoá bị 409 → gỡ → xoá 204; mã trong code không xoá được
+    const suffix = Date.now().toString(36).replace(/\d/g, (d) => 'abcdefghij'[Number(d)]!); // mã permission chỉ chữ thường
+    const newCode = `event_${suffix}:create`;
+    const createdPerm = await request(app.getHttpServer())
+      .post('/api/v1/admin/permissions')
+      .set(auth(adminToken))
+      .send({ code: newCode, description: 'Tạo sự kiện', groupId: pin.id })
+      .expect(201);
+    expect(createdPerm.body.data).toEqual({ id: expect.any(String), code: newCode, description: 'Tạo sự kiện', groupId: pin.id });
+    const permId = createdPerm.body.data.id as string;
+    // permission admin tạo: đổi được cả code
+    const renamed = await request(app.getHttpServer()).put(`/api/v1/admin/permissions/${permId}`).set(auth(adminToken)).send({ code: `event_${suffix}:update`, groupId: pin.id }).expect(200);
+    expect(renamed.body.data).toMatchObject({ id: permId, code: `event_${suffix}:update`, description: null });
+    await request(app.getHttpServer()).put(`/api/v1/admin/permissions/${permId}`).set(auth(adminToken)).send({ code: newCode, groupId: pin.id }).expect(200); // đổi lại
+    await request(app.getHttpServer()).post('/api/v1/admin/permissions').set(auth(adminToken)).send({ code: newCode, groupId: pin.id }).expect(409);
+    const noGroup = await request(app.getHttpServer()).post('/api/v1/admin/permissions').set(auth(adminToken)).send({ code: 'evt:read' }).expect(422);
+    expect(noGroup.body.meta.issues.map((i: { path: string }) => i.path)).toEqual(['groupId']); // nhóm bắt buộc
+    const badCode = await request(app.getHttpServer()).post('/api/v1/admin/permissions').set(auth(adminToken)).send({ code: 'BadCode', groupId: pin.id }).set('accept-language', 'en').expect(422);
+    expect(badCode.body.meta.issues[0]).toEqual({ path: 'code', message: 'Must be resource:action in lowercase' }); // key validation.* dịch theo ngôn ngữ
+    await request(app.getHttpServer()).post('/api/v1/admin/permissions').set(auth(adminToken)).send({ code: 'x:y', groupId: newUser() }).expect(404);
+
+    const roleCode = `evt_${adminSub.slice(4, 8)}`;
+    const role = await request(app.getHttpServer()).post('/api/v1/admin/roles').set(auth(adminToken)).send({ code: roleCode, name: 'Sự kiện', permissions: [newCode] }).expect(201);
+    expect(role.body.data.permissions).toEqual([newCode]);
+    const inUse = await request(app.getHttpServer()).delete(`/api/v1/admin/permissions/${permId}`).set(auth(adminToken)).expect(409);
+    expect(inUse.body).toMatchObject({ code: 'CONFLICT', meta: { count: 1 } });
+    await request(app.getHttpServer()).delete(`/api/v1/admin/roles/${role.body.data.id}`).set(auth(adminToken)).expect(204);
+    await request(app.getHttpServer()).delete(`/api/v1/admin/permissions/${permId}`).set(auth(adminToken)).expect(204);
+    await request(app.getHttpServer()).delete(`/api/v1/admin/permissions/${permId}`).set(auth(adminToken)).expect(404);
+
+    const userToken = await signToken({ sub: newUser() });
+    await request(app.getHttpServer()).get('/api/v1/admin/permissions').set(auth(userToken)).expect(403);
   });
 
   it('role không hợp lệ → 422 VALIDATION_FAILED; user không tồn tại → 404', async () => {
@@ -335,7 +472,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
       .set('authorization', `Bearer ${adminToken}`)
       .send({ email, password: 'Str0ng-Passw0rd!' })
       .expect(409);
-    expect(dup.body).toMatchObject({ code: 'CONFLICT', meta: { reason: 'EMAIL_TAKEN', field: 'email' } });
+    expect(dup.body).toMatchObject({ code: 'CONFLICT', meta: { field: 'email' } });
 
     await request(app.getHttpServer())
       .post('/api/v1/admin/users')
@@ -384,7 +521,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
       .set('authorization', `Bearer ${targetToken}`)
       .set('accept-language', 'en')
       .expect(403);
-    expect(denied.body).toMatchObject({ code: 'FORBIDDEN', msg: 'This account has been blocked', meta: { reason: 'ACCOUNT_BLOCKED' } });
+    expect(denied.body).toMatchObject({ code: 'ACCOUNT_BLOCKED', msg: 'This account has been blocked' });
 
     await request(app.getHttpServer())
       .patch(`/api/v1/admin/users/${targetSub}/status`)
@@ -399,7 +536,7 @@ describe('Auth (JWKS) · RBAC · profile upsert (e2e)', () => {
       .set('authorization', `Bearer ${adminToken}`)
       .send({ status: 'blocked' })
       .expect(403);
-    expect(self.body.meta).toMatchObject({ reason: 'CANNOT_BLOCK_SELF' });
+    expect(self.body.code).toBe('FORBIDDEN');
   });
 
   it('DELETE /me: xoá local + gọi Supabase admin, gọi lại vẫn an toàn', async () => {

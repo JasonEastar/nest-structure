@@ -1,7 +1,12 @@
 import { cacheEntry } from '../../common/redis/cache.js';
 
-/** Hằng số nghiệp vụ của user (zod enum và /public/configs dùng chung các mảng này). */
-export const ROLE_CODES = ['user', 'moderator', 'venue', 'admin'] as const;
+/** Hằng số nghiệp vụ của user. Role nằm trong DB (admin quản lý); chỉ 2 role hệ thống được code biết tên. */
+export const SYSTEM_ROLE = {
+  user: 'user', // gán mặc định khi tạo profile lần đầu
+  admin: 'admin', // luôn có MỌI permission (kể cả permission mới thêm), không cần role_permissions
+} as const;
+export const ROLE_CODE = { min: 2, max: 30, pattern: /^[a-z][a-z0-9_]*$/ } as const;
+export const ROLE_NAME_MAX = 50;
 export const USER_STATUSES = ['active', 'blocked'] as const;
 
 export const USER_LIMITS = {

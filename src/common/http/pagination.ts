@@ -16,7 +16,7 @@ export function encodeCursor(cursor: Cursor): string {
   return Buffer.from(JSON.stringify(cursor)).toString('base64url');
 }
 
-/** Cursor hỏng/giả → 400 BAD_REQUEST (không im lặng trả từ đầu, không 500). */
+/** Cursor hỏng/giả → 400 BAD_REQUEST (field cursor) (không im lặng trả từ đầu, không 500). */
 export function decodeCursor(raw: string | undefined): Cursor | undefined {
   if (!raw) return undefined;
   try {

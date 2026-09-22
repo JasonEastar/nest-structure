@@ -3,7 +3,6 @@
   "paths": {
     "/api/v1/me": {
       "get": {
-        "description": "Profile được tạo tự động ở request đầu tiên sau khi đăng nhập Google (Supabase). Kèm role và permission hiệu lực.",
         "operationId": "User.me",
         "parameters": [],
         "responses": {
@@ -47,7 +46,7 @@
                         "requestId"
                       ],
                       "additionalProperties": {},
-                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
                     }
                   },
                   "required": [
@@ -124,7 +123,6 @@
         ]
       },
       "patch": {
-        "description": "Gửi field nào sửa field đó (`displayName`, `avatarUrl`, `locale`, `homeCityCode`); `null` để xoá. `username` là định danh đăng nhập, không sửa qua đây.",
         "operationId": "User.updateMe",
         "parameters": [],
         "requestBody": {
@@ -178,7 +176,7 @@
                         "requestId"
                       ],
                       "additionalProperties": {},
-                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
                     }
                   },
                   "required": [
@@ -255,7 +253,6 @@
         ]
       },
       "delete": {
-        "description": "Xoá dữ liệu local (cascade) rồi xoá user trên Supabase. Token còn hạn sau đó vẫn bị từ chối (tombstone 1 giờ).",
         "operationId": "User.deleteMe",
         "parameters": [],
         "responses": {
@@ -326,7 +323,6 @@
     },
     "/api/v1/admin/users": {
       "post": {
-        "description": "Cho nhân sự (admin, moderator, venue...); user app vẫn đăng nhập Google. Supabase giữ mật khẩu, email đã xác nhận sẵn, `app_metadata.must_change_password = true` để admin web ép đổi mật khẩu lần đầu. `roles` khác `user` cần thêm quyền `role:assign`. Email đã có → 409 `CONFLICT` (`EMAIL_TAKEN`); mật khẩu không đạt policy Supabase → 422.\n\n**Quyền cần có:** `user:create`",
         "operationId": "UserAdmin.createUser",
         "parameters": [],
         "requestBody": {
@@ -380,7 +376,7 @@
                         "requestId"
                       ],
                       "additionalProperties": {},
-                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
                     }
                   },
                   "required": [
@@ -454,10 +450,10 @@
         "summary": "Tạo tài khoản email + mật khẩu",
         "tags": [
           "Users"
-        ]
+        ],
+        "description": "**Quyền cần có:** `user:create`"
       },
       "get": {
-        "description": "Mới nhất trước, cursor. `q` tìm theo email hoặc tên.\n\n**Quyền cần có:** `user:read`",
         "operationId": "UserAdmin.listUsers",
         "parameters": [
           {
@@ -534,7 +530,7 @@
                         "requestId"
                       ],
                       "additionalProperties": {},
-                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
                     }
                   },
                   "required": [
@@ -608,7 +604,8 @@
         "summary": "Danh sách user",
         "tags": [
           "Users"
-        ]
+        ],
+        "description": "**Quyền cần có:** `user:read`"
       }
     },
     "/api/v1/admin/users/{id}": {
@@ -667,7 +664,7 @@
                         "requestId"
                       ],
                       "additionalProperties": {},
-                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
                     }
                   },
                   "required": [
@@ -747,7 +744,6 @@
     },
     "/api/v1/admin/users/{id}/status": {
       "patch": {
-        "description": "`blocked`: mọi request của user đó bị 403 `FORBIDDEN` (`ACCOUNT_BLOCKED`) ngay trên mọi instance. Không tự khoá mình; khoá người có role `admin` cần thêm `role:assign`.\n\n**Quyền cần có:** `user:ban`",
         "operationId": "UserAdmin.setUserStatus",
         "parameters": [
           {
@@ -812,7 +808,7 @@
                         "requestId"
                       ],
                       "additionalProperties": {},
-                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
                     }
                   },
                   "required": [
@@ -886,12 +882,12 @@
         "summary": "Khoá / mở khoá user",
         "tags": [
           "Users"
-        ]
+        ],
+        "description": "**Quyền cần có:** `user:ban`"
       }
     },
     "/api/v1/admin/roles": {
       "get": {
-        "description": "Mỗi role kèm danh sách permission (resource:action) được gán.\n\n**Quyền cần có:** `role:read`",
         "operationId": "Role.listRoles",
         "parameters": [],
         "responses": {
@@ -938,7 +934,7 @@
                         "requestId"
                       ],
                       "additionalProperties": {},
-                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
                     }
                   },
                   "required": [
@@ -1012,7 +1008,363 @@
         "summary": "Danh sách role",
         "tags": [
           "Roles"
-        ]
+        ],
+        "description": "**Quyền cần có:** `role:read`"
+      },
+      "post": {
+        "operationId": "Role.createRole",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRole"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "OK"
+                      ]
+                    },
+                    "msg": {
+                      "type": "string",
+                      "enum": [
+                        ""
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Role"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string",
+                          "description": "Gửi kèm khi báo lỗi để tra log"
+                        }
+                      },
+                      "required": [
+                        "requestId"
+                      ],
+                      "additionalProperties": {},
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "code",
+                    "msg",
+                    "data",
+                    "meta"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "supabase": []
+          }
+        ],
+        "summary": "Tạo role",
+        "tags": [
+          "Roles"
+        ],
+        "description": "**Quyền cần có:** `role:create`"
+      }
+    },
+    "/api/v1/admin/roles/{id}": {
+      "put": {
+        "operationId": "Role.updateRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRole"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "OK"
+                      ]
+                    },
+                    "msg": {
+                      "type": "string",
+                      "enum": [
+                        ""
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Role"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string",
+                          "description": "Gửi kèm khi báo lỗi để tra log"
+                        }
+                      },
+                      "required": [
+                        "requestId"
+                      ],
+                      "additionalProperties": {},
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "code",
+                    "msg",
+                    "data",
+                    "meta"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "supabase": []
+          }
+        ],
+        "summary": "Sửa role",
+        "tags": [
+          "Roles"
+        ],
+        "description": "**Quyền cần có:** `role:update`"
+      },
+      "delete": {
+        "operationId": "Role.removeRole",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "supabase": []
+          }
+        ],
+        "summary": "Xoá role",
+        "tags": [
+          "Roles"
+        ],
+        "description": "**Quyền cần có:** `role:delete`"
       }
     },
     "/api/v1/admin/users/{id}/roles": {
@@ -1071,7 +1423,7 @@
                         "requestId"
                       ],
                       "additionalProperties": {},
-                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
                     }
                   },
                   "required": [
@@ -1149,7 +1501,6 @@
         "description": "**Quyền cần có:** `role:read`"
       },
       "put": {
-        "description": "Thay toàn bộ role bằng mảng gửi lên (một user có thể nhiều role). Hiệu lực ngay trên mọi instance vì cache permission của user bị xoá.\n\n**Quyền cần có:** `role:assign`",
         "operationId": "Role.setUserRoles",
         "parameters": [
           {
@@ -1214,7 +1565,7 @@
                         "requestId"
                       ],
                       "additionalProperties": {},
-                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
                     }
                   },
                   "required": [
@@ -1288,7 +1639,846 @@
         "summary": "Gán lại role cho user",
         "tags": [
           "Roles"
-        ]
+        ],
+        "description": "**Quyền cần có:** `role:assign`"
+      }
+    },
+    "/api/v1/admin/permissions": {
+      "get": {
+        "operationId": "Permission.list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "OK"
+                      ]
+                    },
+                    "msg": {
+                      "type": "string",
+                      "enum": [
+                        ""
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PermissionGroup"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string",
+                          "description": "Gửi kèm khi báo lỗi để tra log"
+                        }
+                      },
+                      "required": [
+                        "requestId"
+                      ],
+                      "additionalProperties": {},
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "code",
+                    "msg",
+                    "data",
+                    "meta"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "supabase": []
+          }
+        ],
+        "summary": "Permission theo nhóm (tab)",
+        "tags": [
+          "Permissions"
+        ],
+        "description": "**Quyền cần có:** `permission:read`"
+      },
+      "post": {
+        "operationId": "Permission.createPermission",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertPermission"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "OK"
+                      ]
+                    },
+                    "msg": {
+                      "type": "string",
+                      "enum": [
+                        ""
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Permission"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string",
+                          "description": "Gửi kèm khi báo lỗi để tra log"
+                        }
+                      },
+                      "required": [
+                        "requestId"
+                      ],
+                      "additionalProperties": {},
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "code",
+                    "msg",
+                    "data",
+                    "meta"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "supabase": []
+          }
+        ],
+        "summary": "Tạo permission",
+        "tags": [
+          "Permissions"
+        ],
+        "description": "**Quyền cần có:** `permission:create`"
+      }
+    },
+    "/api/v1/admin/permissions/{id}": {
+      "put": {
+        "operationId": "Permission.updatePermission",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertPermission"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "OK"
+                      ]
+                    },
+                    "msg": {
+                      "type": "string",
+                      "enum": [
+                        ""
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Permission"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string",
+                          "description": "Gửi kèm khi báo lỗi để tra log"
+                        }
+                      },
+                      "required": [
+                        "requestId"
+                      ],
+                      "additionalProperties": {},
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "code",
+                    "msg",
+                    "data",
+                    "meta"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "supabase": []
+          }
+        ],
+        "summary": "Sửa permission (code, mô tả, nhóm)",
+        "tags": [
+          "Permissions"
+        ],
+        "description": "**Quyền cần có:** `permission:update`"
+      },
+      "delete": {
+        "operationId": "Permission.removePermission",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "supabase": []
+          }
+        ],
+        "summary": "Xoá permission",
+        "tags": [
+          "Permissions"
+        ],
+        "description": "**Quyền cần có:** `permission:delete`"
+      }
+    },
+    "/api/v1/admin/permission-groups": {
+      "post": {
+        "operationId": "Permission.createGroup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertPermissionGroup"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "OK"
+                      ]
+                    },
+                    "msg": {
+                      "type": "string",
+                      "enum": [
+                        ""
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PermissionGroupSummary"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string",
+                          "description": "Gửi kèm khi báo lỗi để tra log"
+                        }
+                      },
+                      "required": [
+                        "requestId"
+                      ],
+                      "additionalProperties": {},
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "code",
+                    "msg",
+                    "data",
+                    "meta"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "supabase": []
+          }
+        ],
+        "summary": "Tạo nhóm permission",
+        "tags": [
+          "Permissions"
+        ],
+        "description": "**Quyền cần có:** `permission_group:create`"
+      }
+    },
+    "/api/v1/admin/permission-groups/{id}": {
+      "put": {
+        "operationId": "Permission.updateGroup",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertPermissionGroup"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "OK"
+                      ]
+                    },
+                    "msg": {
+                      "type": "string",
+                      "enum": [
+                        ""
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PermissionGroupSummary"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "requestId": {
+                          "type": "string",
+                          "description": "Gửi kèm khi báo lỗi để tra log"
+                        }
+                      },
+                      "required": [
+                        "requestId"
+                      ],
+                      "additionalProperties": {},
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "code",
+                    "msg",
+                    "data",
+                    "meta"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "supabase": []
+          }
+        ],
+        "summary": "Sửa nhóm permission",
+        "tags": [
+          "Permissions"
+        ],
+        "description": "**Quyền cần có:** `permission_group:update`"
+      },
+      "delete": {
+        "operationId": "Permission.removeGroup",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "401": {
+            "description": "UNAUTHENTICATED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "supabase": []
+          }
+        ],
+        "summary": "Xoá nhóm permission",
+        "tags": [
+          "Permissions"
+        ],
+        "description": "**Quyền cần có:** `permission_group:delete`"
       }
     }
   },
@@ -1309,7 +2499,11 @@
     },
     {
       "name": "Roles",
-      "description": "Quản trị role/permission (cần quyền)"
+      "description": "Quản trị role, gán role cho user (cần quyền)"
+    },
+    {
+      "name": "Permissions",
+      "description": "Permission theo nhóm (tab) và CRUD nhóm (cần quyền)"
     }
   ],
   "servers": [
@@ -1366,7 +2560,7 @@
               "requestId"
             ],
             "additionalProperties": {},
-            "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
+            "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
           }
         },
         "required": [
@@ -1425,12 +2619,9 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
-                "user",
-                "moderator",
-                "venue",
-                "admin"
-              ]
+              "minLength": 2,
+              "maxLength": 30,
+              "pattern": "^[a-z][a-z0-9_]*$"
             }
           },
           "permissions": {
@@ -1505,12 +2696,9 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
-                "user",
-                "moderator",
-                "venue",
-                "admin"
-              ]
+              "minLength": 2,
+              "maxLength": 30,
+              "pattern": "^[a-z][a-z0-9_]*$"
             }
           }
         },
@@ -1560,12 +2748,9 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
-                "user",
-                "moderator",
-                "venue",
-                "admin"
-              ]
+              "minLength": 2,
+              "maxLength": 30,
+              "pattern": "^[a-z][a-z0-9_]*$"
             }
           },
           "createdAt": {
@@ -1608,17 +2793,26 @@
       "Role": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
           "code": {
             "type": "string",
-            "enum": [
-              "user",
-              "moderator",
-              "venue",
-              "admin"
-            ]
+            "minLength": 2,
+            "maxLength": 30,
+            "pattern": "^[a-z][a-z0-9_]*$"
           },
           "name": {
             "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "isSystem": {
+            "type": "boolean"
           },
           "permissions": {
             "type": "array",
@@ -1628,11 +2822,69 @@
           }
         },
         "required": [
+          "id",
           "code",
           "name",
+          "description",
+          "isSystem",
           "permissions"
         ],
         "additionalProperties": false
+      },
+      "CreateRole": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 30,
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "permissions": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 60,
+              "pattern": "^[a-z][a-z_]*:[a-z_]+$"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ]
+      },
+      "UpdateRole": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "permissions": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 60,
+              "pattern": "^[a-z][a-z_]*:[a-z_]+$"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
       },
       "UserRoles": {
         "type": "object",
@@ -1646,12 +2898,9 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
-                "user",
-                "moderator",
-                "venue",
-                "admin"
-              ]
+              "minLength": 2,
+              "maxLength": 30,
+              "pattern": "^[a-z][a-z0-9_]*$"
             }
           }
         },
@@ -1666,22 +2915,174 @@
         "properties": {
           "roles": {
             "minItems": 1,
-            "maxItems": 4,
+            "maxItems": 20,
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
-                "user",
-                "moderator",
-                "venue",
-                "admin"
-              ]
+              "minLength": 2,
+              "maxLength": 30,
+              "pattern": "^[a-z][a-z0-9_]*$"
             }
           }
         },
         "required": [
           "roles"
         ]
+      },
+      "PermissionGroup": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "sort": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "description",
+          "sort",
+          "permissions"
+        ],
+        "additionalProperties": false
+      },
+      "Permission": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 60,
+            "pattern": "^[a-z][a-z_]*:[a-z_]+$"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "description",
+          "groupId"
+        ],
+        "additionalProperties": false
+      },
+      "UpsertPermission": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 60,
+            "pattern": "^[a-z][a-z_]*:[a-z_]+$"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "code",
+          "groupId"
+        ]
+      },
+      "UpsertPermissionGroup": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 30,
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "sort": {
+            "default": 0,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ]
+      },
+      "PermissionGroupSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "sort": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name",
+          "description",
+          "sort"
+        ],
+        "additionalProperties": false
       }
     }
   }

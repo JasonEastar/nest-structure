@@ -42,7 +42,8 @@ export const OPENAPI_DOCS: OpenApiDefinition[] = [
     tags: [
       { name: 'Me', description: 'Hồ sơ của user đang đăng nhập' },
       { name: 'Users', description: 'Admin tạo tài khoản, xem danh sách, khoá user (cần quyền)' },
-      { name: 'Roles', description: 'Quản trị role/permission (cần quyền)' },
+      { name: 'Roles', description: 'Quản trị role, gán role cho user (cần quyền)' },
+      { name: 'Permissions', description: 'Permission theo nhóm (tab) và CRUD nhóm (cần quyền)' },
     ],
     modules: [UserModule],
   },

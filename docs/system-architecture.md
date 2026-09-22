@@ -76,7 +76,7 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 | Xác thực ở NestJS | `jose.createRemoteJWKSet` (`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`), kiểm `iss`, `aud = authenticated`, `exp`. NEVER HS256/JWT secret → **project phải bật JWT Signing Keys (ES256) VÀ Rotate** để khoá ES256 là current (chỉ bật = standby, token vẫn HS256 → 401) |
 | Claims dùng | `sub` (user id), `email`, `is_anonymous`, `user_metadata` (tên, avatar). NEVER đưa role/permission vào JWT |
 | Guard | `AuthGuard` (global, `@Public()` mở) → `PermissionGuard` (`@RequirePermission`) → `@RequirePhoneVerified()` theo hành động |
-| Admin API | `@supabase/supabase-js` với `SUPABASE_SECRET_KEY` (khoá mới `sb_secret_…`), chỉ server, sau port `SUPABASE_ADMIN`: `deleteUser`, `getUserById` |
+| Admin API | `@supabase/supabase-js` với `SUPABASE_SECRET_KEY` (khoá mới `sb_secret_…`), chỉ server, sau port `SUPABASE_ADMIN`: `createUser`, `deleteUser`, `getUserById` |
 | Đăng xuất thiết bị | Xoá session qua Admin API; bảng `devices` (push token) thêm ở bước 11 |
 | SMTP / SMS | Không cần ở MVP (không email OTP). SMS provider qua Send SMS hook chỉ khi làm liên kết SĐT gđ 2 |
 | Rate limit auth | Supabase tự giới hạn per-IP; NestJS không proxy auth endpoints |
@@ -86,18 +86,18 @@ Mobile (Flutter | React Native)  ──HTTPS──▶  nginx (least_conn)  ─�
 | Khía cạnh | Thiết kế |
 |---|---|
 | Bảng | `roles(key, name)`, `permissions(key, description)`, `role_permissions(role_id, permission_id)`, `user_roles(user_id, role_id, city_code?)` — schema `public`, seed bằng migration |
-| Role seed | `user` (gán khi app upsert profile lần đầu), `moderator`, `venue`, `admin` |
-| Permission | Chuỗi `resource:action`, khai trong `common/auth/permissions.ts` (nguồn duy nhất, type `Permission`): `user:read`, `user:create`, `user:ban`, `role:read`, `role:assign`, `config:read`, `config:create`, `config:update`, `config:delete`, `pin:create`, `pin:delete_any`, `report:review`, `landmark:manage`, `promoted:manage` |
+| Role | **Dữ liệu trong DB**, admin CRUD qua `/admin/roles` (permission `role:create/update/delete`). Seed: `user`, `moderator`, `venue`, `admin`. Hai role hệ thống (`is_system`, không xoá): `user` — gán khi tạo profile lần đầu; `admin` — luôn có MỌI permission theo code (kể cả mã mới), không phụ thuộc `role_permissions` |
+| Permission | **Dữ liệu trong DB** (bảng `permissions`, admin CRUD theo id qua `/admin/permissions`, luôn thuộc một **nhóm = tab** qua `group_id` NOT NULL; nhóm còn permission không xoá được). Code chỉ ghi chuỗi ở `@RequirePermission('user:read')` — phải trùng dòng DB; đổi/xoá mã đang dùng là trách nhiệm admin. Role `admin` = mọi mã trong bảng. Mã hiện có: `user:read/create/ban`, `role:read/create/update/delete/assign`, `permission:read/create/update/delete`, `permission_group:create/update/delete`, `config:read/create/update/delete`, `pin:create`, `pin:delete_any`, `report:review`, `landmark:manage`, `promoted:manage` |
 | Kiểm tra | `@RequirePermission('report:review')` → `PermissionGuard` đọc `c9:v1:user:perms:{userId}` (Set, TTL 300 s), miss → query `user_roles ⋈ role_permissions ⋈ permissions` |
 | Quyền sở hữu | Không mã hoá trong permission. Service kiểm `author_id === user.id` hoặc permission `*_any` |
-| Thu hồi | Admin đổi role/permission → `DEL c9:v1:user:perms:{userId}` ngay; JWT không chứa role nên không cần đợi token hết hạn |
-| Admin API | `/api/v1/admin/users` (POST tạo tài khoản email + mật khẩu qua Supabase Admin, GET danh sách/chi tiết — `user:read`, `user:create`; PATCH `/status` khoá/mở — `user:ban`), `/admin/roles`, `/admin/users/:id/roles` (`role:assign`) — cùng định nghĩa Swagger "User & Auth", permission tự ghi vào mô tả. Admin web đăng nhập bằng email + mật khẩu Supabase (`signInWithPassword`), không Google |
+| Thu hồi | Gán lại role của user → `DEL c9:v1:user:perms:{userId}`; sửa permission của một role → xoá cache quyền của mọi user mang role đó; JWT không chứa role nên không cần đợi token hết hạn |
+| Admin API | `/api/v1/admin/users` (POST tạo tài khoản email + mật khẩu qua Supabase Admin, GET danh sách/chi tiết — `user:read`, `user:create`; PATCH `/status` khoá/mở — `user:ban`), `/admin/roles` CRUD (`role:read/create/update/delete`), `/admin/users/:id/roles` (`role:assign`), `/admin/permissions` CRUD theo id, sửa được cả code (`permission:read/create/update/delete`) + `/admin/permission-groups` CRUD (`permission_group:create/update/delete`) — cùng định nghĩa Swagger "User & Auth", permission tự ghi vào mô tả. Admin web đăng nhập bằng email + mật khẩu Supabase (`signInWithPassword`), không Google |
 | Không dùng | CASL / Supabase Custom Access Token Hook (role trong JWT) — đơn giản hơn và thu hồi tức thì |
 
 ### 5.2 Postgres + PostGIS (riêng — ADR-0005)
 | Khía cạnh | Cấu hình |
 |---|---|
-| Extension (migration 0000) | `postgis`, `unaccent`, `pg_trgm`; UUID v7 sinh app-side (`uuidv7` npm) |
+| Extension (migration 0000) | `postgis` (kéo theo 3 bảng hệ thống `spatial_ref_sys`, `geometry_columns`, `geography_columns` — không xoá, drizzle bỏ qua); `unaccent`, `pg_trgm` thêm khi làm tìm kiếm; UUID v7 sinh app-side (`uuidv7` npm) |
 | Kết nối | Direct `:5432`, driver `postgres` (postgres.js) `prepare: true`; **không** pooler ở gđ 1; PgBouncer khi tổng kết nối > 50 |
 | Pool | `max: 10` mỗi instance (drizzle.ts); tổng instance × 10 < `max_connections` |
 | Role DB | local: `c9` (owner, tạo extension). prod: `c9_migrate` (DDL) và `c9_app` (DML, không DDL) |

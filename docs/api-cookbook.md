@@ -91,7 +91,7 @@ export class LocationController {
 | User đang đăng nhập | `@CurrentUser() user: AuthUser` | `user.id` = `sub` của Supabase. Route không có `@Public()` là bắt buộc token |
 | Header | `@Headers('x-foo') foo?: string` | Chỉ khi thật cần; ưu tiên body/query có schema |
 | Route công khai | `@Public()` ở class `<X>PublicController` (cùng file `<x>.controller.ts`), path `public/<resource>` | Không có `req.user`; dữ liệu trả về phải là thứ ai cũng được xem; rate limit vẫn áp theo thiết bị/IP |
-| Cần quyền | `@RequirePermission('pin:create')` — nhiều quyền: `@RequirePermission('a', 'b')` | Mã phải có trong `common/auth/permissions.ts` + migration INSERT (test `permissions.spec` kiểm khớp). Luật phụ thuộc dữ liệu → `hasPermission(perms, 'role:assign')` trong service |
+| Cần quyền | `@RequirePermission('pin:create')` — nhiều quyền: `@RequirePermission('a', 'b')` | Mã là chuỗi trùng với bảng `permissions` (admin tạo qua `POST /admin/permissions`, hoặc thêm vào `drizzle/0002_seed.sql` kèm nhóm). Không cần gán cho `admin` (admin có mọi mã trong bảng); role khác tick qua `PUT /admin/roles/:id`. Gõ sai mã = route đó không ai vào được — tự kiểm |
 
 ## 5. Validate bằng zod (file dto)
 
@@ -143,7 +143,7 @@ Controller `return` dữ liệu thuần, interceptor bọc thành response chu�
 | `code` | `"OK"` | mã lỗi: `VALIDATION_FAILED`, `NOT_FOUND`… client rẽ nhánh theo đây |
 | `msg` | `""` | câu đã dịch theo `Accept-Language`, hiện thẳng cho người dùng |
 | `data` | dữ liệu | `null` |
-| `meta` | luôn có `requestId`; list thêm `nextCursor` | `requestId` + chi tiết lỗi (`issues`, `reason`, `max`, `retryAfter`…) |
+| `meta` | luôn có `requestId`; list thêm `nextCursor` | `requestId` + tham số của lỗi (`issues`, `count`, `max`, `retryAfter`…) |
 
 | Tình huống | Viết | Kết quả |
 |---|---|---|
@@ -151,13 +151,14 @@ Controller `return` dữ liệu thuần, interceptor bọc thành response chu�
 | Đọc | `@Get()` return object | 200 |
 | Xoá / không có gì trả | `@HttpCode(HttpStatus.NO_CONTENT)` + `Promise<void>` | 204 |
 | Danh sách phân trang | service: `return pageOf(rows, query.limit, (r) => ({ createdAt: r.createdAt, id: r.id }))` sau khi repository lấy `limit + 1` dòng | `meta.nextCursor`; client gửi lại `?cursor=` |
-| Lỗi nghiệp vụ | `throw new AppException('NOT_FOUND', { resource: 'location', id })` | `success=false`, `code`, `msg` dịch từ `i18n/<lang>/errors.json`, params vào `meta`, đúng HTTP status |
+| Lỗi nghiệp vụ | `throw new AppException('NOT_FOUND', { id })` · `('CONFLICT', { field: 'code' })` (đã tồn tại) · `('CONFLICT', { count })` (đang được dùng) · `('CONFLICT', { max })` (đạt giới hạn) · `('FORBIDDEN', { code })` (role/permission hệ thống) — 11 mã dùng chung trong `ErrorCodes`, tham số nói rõ tình huống | `success=false`, `code`, `msg` = `errors.<code>` dịch theo `Accept-Language`, tham số vào `meta`, HTTP status lấy từ `ErrorCodes` (không tự đặt) |
 | Sửa một phần (PATCH) | zod `.partial()` + `.refine(body => Object.keys(body).length > 0)`; field nullable → `null` nghĩa là xoá (xem `user/dto/update-me.dto.ts`) | 200 + object sau khi sửa |
 | Khoá user (chặn mọi request) | `PATCH /admin/users/:id/status { status: 'blocked' }` → `profiles.status` + ghi đè cache `c9:v1:user:profile:{id}`; guard đọc cache nên chặn ngay trên mọi instance, không đợi TTL | 403 `FORBIDDEN` reason `ACCOUNT_BLOCKED` |
 | Enum mới cho client | code: mảng `as const` ở `<x>.constants.ts` (zod `z.enum`); nhãn/màu: sửa `data.enums.<resource>.<field>` của config `system_enums` qua `PUT /admin/configs/:id` (hoặc migration seed nếu là mặc định) | `GET /public/configs?names=system_enums` trả `{ sort, color, label: { vi, en } }`; code và config có thể lệch — code là nguồn validate, config chỉ để hiển thị |
-| Lỗi mới chưa có mã | thêm vào `ErrorCodes` trong `common/http/exceptions.ts` kèm status, thêm câu cùng tên vào `i18n/vi/errors.json` và `i18n/en/errors.json` | Cần câu riêng theo tình huống: `params.reason` + key `CODE_REASON` (vd `CONFLICT_LIMIT_REACHED`) |
+| Lỗi theo field (422) từ service | `throw validationError([...])` (cùng file `exceptions.ts` với `AppException`) — key `validation.*` trong `i18n/<lang>/validation.json`; custom message của zod (`.regex(p, 'validation.code_format')`, `.refine(fn, 'validation.at_least_one_field')`) cũng là key | Filter dịch theo `Accept-Language`; lỗi zod mặc định dịch bằng zod locale (vi/en). Client chỉ nhận `{ path, message }`. NEVER viết câu tiếng Việt/Anh trực tiếp trong code |
+| Lỗi mới chưa có mã | Hầu như không cần: dùng mã chung + tham số trong `meta`. Chỉ thêm mã khi client phải xử lý KHÁC nhau (vd `ACCOUNT_BLOCKED` → app đăng xuất): 1 dòng `ErrorCodes` + câu vi/en cùng tên | test `exceptions.spec` bắt thiếu câu dịch |
 
-Ngôn ngữ: chỉ header `Accept-Language: vi | en` (mặc định vi), client tự gắn header khi gọi; không nhận qua query hay body. Mã lỗi hiện có: `VALIDATION_FAILED` 422 · `NOT_FOUND` 404 · `UNAUTHENTICATED` 401 · `FORBIDDEN` 403 · `RATE_LIMITED` 429 · `CONFLICT` 409 · `BAD_REQUEST` 400 · `PAYLOAD_TOO_LARGE` 413 · `SERVICE_UNAVAILABLE` 503 · `INTERNAL` 500. Lỗi 5xx bất ngờ (throw Error thường) tự thành `INTERNAL`, stack chỉ ghi log.
+Ngôn ngữ: chỉ header `Accept-Language: vi | en` (mặc định vi), client tự gắn header khi gọi; không nhận qua query hay body. Mã lỗi (11, dùng chung): `BAD_REQUEST` 400 · `UNAUTHENTICATED` 401 · `FORBIDDEN` 403 · `ACCOUNT_BLOCKED` 403 · `NOT_FOUND` 404 · `CONFLICT` 409 · `PAYLOAD_TOO_LARGE` 413 · `VALIDATION_FAILED` 422 · `RATE_LIMITED` 429 · `INTERNAL` 500 · `SERVICE_UNAVAILABLE` 503. Tình huống cụ thể nằm ở `meta` (`field`, `count`, `max`, `missing`, `id`, `issues`). Lỗi 5xx bất ngờ (throw Error thường) tự thành `INTERNAL`, stack chỉ ghi log.
 
 Map row DB sang response bằng hàm `toXxxResponse(row)` đặt **ngay dưới response schema trong file dto** (ví dụ `toLocationResponse` trong `dto/location.dto.ts`). Service gọi hàm đó, controller không tự ghép object. Đổi shape thì sửa schema và mapper cùng một chỗ. Dữ liệu của người khác trả `NOT_FOUND`, không trả `FORBIDDEN` (không lộ tồn tại).
 
@@ -181,7 +182,7 @@ list(...) {}
 - 401/403/422/429/500 đã khai toàn cục trong `config/openapi.ts` với schema `ErrorResponse`, không lặp lại.
 - **Servers**: `/` (máy đang mở trang) và `http://localhost:PORT`; deploy đặt `PUBLIC_URL` trong env để có thêm server public. **Select a definition** ở góc trên chuyển giữa các module.
 - Tài liệu chia theo module nghiệp vụ (`OPENAPI_DOCS` trong `app.module.ts`): mỗi mục một định nghĩa trong dropdown, JSON `/docs/<key>-json`, file `openapi/<key>.json`. Không chia app/admin.
-- **Quyền và public tự ghi vào mô tả** từ `@RequirePermission` / `@Public()`: "Quyền cần có: `role:assign`" hoặc "Không cần đăng nhập" (bỏ ổ khoá). Không viết tay các câu này.
+- **Quyền và public tự ghi vào mô tả** từ `@RequirePermission` / `@Public()`: "Quyền cần có: `role:assign`" hoặc "Không cần đăng nhập" (bỏ ổ khoá). `@ApiOperation` chỉ có `summary` một dòng — không viết `description` (luật, mô tả dài để trong docs).
 - `@ApiOperation({ summary, description })`: `summary` một câu ngắn, `description` giải thích hành vi (trả gì khi rỗng, side effect, giới hạn) như ví dụ "Trả null nếu user chưa tham gia".
 - `npm run openapi:export` → `openapi/system.json`, `openapi/users.json`, `openapi/locations.json` cho mobile codegen. CI tự xuất.
 - Kiểm nhanh: mở `/docs`, chọn định nghĩa, tìm tag, xem "Example Value" của request và response có đúng ý không.
@@ -208,7 +209,7 @@ npm test                            # unit + integration (testcontainers tự d�
 
 - [ ] Path danh từ số nhiều, path tĩnh trước `:id`, tên hàm = `list|get|create|update|remove|<hành động>`
 - [ ] Schema zod trên `@Param/@Query/@Body`, số giới hạn ở constants, query dùng `coerce`
-- [ ] Service ném `AppException` với mã trong `ErrorCodes`; của người khác → `NOT_FOUND`
+- [ ] Service ném `AppException` với mã chung trong `ErrorCodes` + tham số; của người khác → `NOT_FOUND` (không lộ)
 - [ ] Response map ở một hàm; list dùng `pageOf`; 204 cho xoá (204 không có body)
 - [ ] `@ApiTags` · `@ApiOperation({ summary })` · `@ApiOkResponse/@ApiCreatedResponse({ standardSchema: envelope(...) })` · schema body/response có `.meta({ id })``
 - [ ] Module trong `app.module.ts` imports và một mục `OPENAPI_DOCS`

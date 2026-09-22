@@ -26,7 +26,7 @@ type DocEnv = ConfigService<Env, true>;
 const MetaSchema = z
   .object({ requestId: z.string().describe('Gửi kèm khi báo lỗi để tra log') })
   .loose()
-  .describe('Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)');
+  .describe('Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)');
 
 /** Response lỗi: cùng 5 field với response thành công, data = null. id → mục Schemas: ErrorResponse. */
 const ErrorResponseSchema = z

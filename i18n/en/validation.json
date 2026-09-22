@@ -1,0 +1,10 @@
+{
+  "at_least_one_field": "At least one field is required",
+  "code_format": "Lowercase letters, digits and underscore only; must start with a letter",
+  "permission_code_format": "Must be resource:action in lowercase",
+  "name_format": "Only a-z, 0-9 and _ are allowed",
+  "data_too_large": "data must be at most {max} bytes",
+  "role_not_found": "Role does not exist: {code}",
+  "permission_not_found": "Permission does not exist: {code}",
+  "weak_password": "Password does not meet the policy: {detail}"
+}

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { PaginationQuerySchema } from '../../../common/http/pagination.js';
 import { zText } from '../../../common/http/validation.js';
-import { PASSWORD_LENGTH, USER_LIMITS, USER_STATUSES } from '../user.constants.js';
+import { PASSWORD_LENGTH, SYSTEM_ROLE, USER_LIMITS, USER_STATUSES } from '../user.constants.js';
 import { type RoleCode, RoleCodeSchema } from './role.dto.js';
 
 /** DTO quản trị user: /admin/users (tạo tài khoản email + mật khẩu, danh sách, chi tiết, khoá). */
@@ -14,7 +14,7 @@ export const CreateUserSchema = z.object({
   email: z.email().max(254),
   password: z.string().min(PASSWORD_LENGTH.min).max(PASSWORD_LENGTH.max),
   displayName: zText(USER_LIMITS.displayName.max, USER_LIMITS.displayName.min).optional(), // mặc định phần trước @
-  roles: z.array(RoleCodeSchema).min(1).default(['user']), // role ≠ user cần thêm quyền role:assign
+  roles: z.array(RoleCodeSchema).min(1).default([SYSTEM_ROLE.user]), // role ≠ user cần thêm quyền role:assign
 }).meta({ id: 'CreateUser' });
 export type CreateUser = z.infer<typeof CreateUserSchema>;
 

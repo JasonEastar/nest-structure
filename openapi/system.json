@@ -425,7 +425,7 @@
                         "requestId"
                       ],
                       "additionalProperties": {},
-                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
                     }
                   },
                   "required": [
@@ -562,7 +562,7 @@
                         "requestId"
                       ],
                       "additionalProperties": {},
-                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
                     }
                   },
                   "required": [
@@ -692,7 +692,7 @@
                         "requestId"
                       ],
                       "additionalProperties": {},
-                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
                     }
                   },
                   "required": [
@@ -835,7 +835,7 @@
                         "requestId"
                       ],
                       "additionalProperties": {},
-                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
+                      "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
                     }
                   },
                   "required": [
@@ -1062,7 +1062,7 @@
               "requestId"
             ],
             "additionalProperties": {},
-            "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm chi tiết (issues, reason…)"
+            "description": "Luôn có requestId; endpoint list thêm nextCursor; khi lỗi thêm tham số của lỗi (issues, count, max…)"
           }
         },
         "required": [

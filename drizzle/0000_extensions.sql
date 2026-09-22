@@ -1,5 +1,3 @@
--- Extensions cần trước mọi schema có cột geography / tìm kiếm không dấu.
--- Drizzle không tự tạo extension (guide PostGIS) → migration viết tay.
+-- PostGIS cho cột geography (Drizzle không tự tạo extension). Kéo theo 3 bảng hệ thống của PostGIS:
+-- spatial_ref_sys, geometry_columns, geography_columns — KHÔNG xoá, drizzle.config.ts đã bỏ qua chúng (extensionsFilters).
 CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE EXTENSION IF NOT EXISTS unaccent;
-CREATE EXTENSION IF NOT EXISTS pg_trgm;

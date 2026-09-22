@@ -13,6 +13,6 @@ export const UpdateMeSchema = z
     homeCityCode: zText(USER_LIMITS.homeCityCode.max).nullable(),
   })
   .partial()
-  .refine((body) => Object.keys(body).length > 0, 'Cần ít nhất một field')
+  .refine((body) => Object.keys(body).length > 0, 'validation.at_least_one_field')
   .meta({ id: 'UpdateMe' });
 export type UpdateMe = z.infer<typeof UpdateMeSchema>;

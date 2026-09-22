@@ -3,6 +3,7 @@ import type { CacheService } from '../../src/common/redis/cache.js';
 import type { AdminUserRow } from '../../src/modules/user/dto/admin-user.dto.js';
 import type { RoleCode } from '../../src/modules/user/dto/role.dto.js';
 import type { RoleRepository } from '../../src/modules/user/repositories/role.repository.js';
+import type { RoleService } from '../../src/modules/user/services/role.service.js';
 import { PASSWORD_LENGTH } from '../../src/modules/user/user.constants.js';
 import type { UserRepository } from '../../src/modules/user/repositories/user.repository.js';
 import { UserService } from '../../src/modules/user/services/user.service.js';
@@ -65,6 +66,8 @@ function build(opts: Options) {
     },
   } as unknown as RoleRepository;
 
+  const roleService = { resolveRoleIds: async (codes: RoleCode[]) => codes.map((c) => `id-${c}`) } as unknown as RoleService;
+
   const cache = {
     getJson: async () => null,
     setJson: async (key: string, value: unknown) => {
@@ -86,7 +89,7 @@ function build(opts: Options) {
     getUserById: async () => null,
   };
 
-  return { service: new UserService(users, roles, cache, supabase), calls };
+  return { service: new UserService(users, roles, roleService, cache, supabase), calls };
 }
 
 describe('UserService.createUser', () => {
@@ -139,16 +142,13 @@ describe('UserService.setUserStatus', () => {
     expect([...calls.cache.values()]).toContainEqual({ status: 'blocked' });
   });
 
-  it('mở khoá xoá reason; tự khoá mình → FORBIDDEN CANNOT_BLOCK_SELF', async () => {
+  it('mở khoá xoá reason; tự khoá mình → FORBIDDEN', async () => {
     const { service } = build({ actorPerms: ['user:ban'] });
 
     const result = await service.setUserStatus(ADMIN, TARGET, { status: 'active', reason: 'bỏ qua' });
     expect(result).toMatchObject({ status: 'active', statusReason: null });
 
-    await expect(service.setUserStatus(ADMIN, ADMIN, { status: 'blocked' })).rejects.toMatchObject({
-      code: 'FORBIDDEN',
-      params: { reason: 'CANNOT_BLOCK_SELF' },
-    });
+    await expect(service.setUserStatus(ADMIN, ADMIN, { status: 'blocked' })).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 });
 

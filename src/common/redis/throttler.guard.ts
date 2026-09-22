@@ -85,6 +85,6 @@ export class AppThrottlerGuard extends ThrottlerGuard {
     const res = context.switchToHttp().getResponse<Response>();
     const retryAfter = Math.max(1, Math.ceil(detail.timeToBlockExpire || detail.timeToExpire));
     res.setHeader('Retry-After', String(retryAfter));
-    throw new AppException('RATE_LIMITED', { retryAfter, limit: detail.limit, ttl: detail.ttl });
+    throw new AppException('RATE_LIMITED', { retryAfter });
   }
 }

@@ -60,7 +60,6 @@ c9_map/
 │   │   │   ├── auth.guard.ts         # Bearer → JWKS → ensureProfile → req.user · bỏ qua @Public() · AUTH_USER port
 │   │   │   ├── permission.guard.ts   # @RequirePermission ↔ cache c9:v1:user:perms:{id}
 │   │   │   ├── supabase.ts           # SupabaseJwtService (jose + JWKS, ES256/RS256) · SUPABASE_ADMIN port + adapter
-│   │   │   ├── permissions.ts        # PERMISSIONS (nguồn duy nhất, type Permission) · hasPermission
 │   │   │   └── decorators.ts         # Public · RequirePermission · CurrentUser
 │   │   ├── database/
 │   │   │   ├── drizzle.ts            # provider DRIZZLE (postgres.js + drizzle client)
@@ -72,7 +71,7 @@ c9_map/
 │   │   │   ├── queue.ts              # BullModule.forRoot (db1, prefix c9) · QUEUES
 │   │   │   └── throttler.guard.ts    # RedisThrottlerStorage (Lua) · AppThrottlerGuard khoá theo IP (req.ip)
 │   │   └── http/
-│   │       ├── exceptions.ts         # ErrorCodes · AppException · AllExceptionsFilter → { success:false, code, msg, data:null, meta }
+│   │       ├── exceptions.ts         # ErrorCodes (11 mã dùng chung theo HTTP status) · AppException · validationError · AllExceptionsFilter → { success:false, code, msg, data:null, meta }
 │   │       ├── response.ts           # ResponseInterceptor → { success, code, msg, data, meta }
 │   │       ├── pagination.ts         # cursor (created_at, id) · PaginationQuerySchema · pageOf()
 │   │       ├── validation.ts         # APP_PIPE StandardSchemaValidationPipe (zod) → 422 · zText · zLatLng
@@ -83,18 +82,21 @@ c9_map/
 │       │   ├── health.module.ts · health.controller.ts (GET /health/live · /health/ready) · health.indicators.ts
 │       ├── user/                     # 2 nghiệp vụ (user · role) → xếp theo tầng; dto/ schema/ constants dùng chung ở gốc
 │       │   ├── user.module.ts
-│       │   ├── user.constants.ts         # ROLE_CODES · USER_STATUSES · USER_LIMITS · PASSWORD_LENGTH · USER_CACHE
-│       │   ├── schema/user.schema.ts     # profiles (status active|blocked) · roles · permissions · role_permissions · user_roles
-│       │   ├── dto/                      # me · update-me · admin-user · role
+│       │   ├── user.constants.ts         # SYSTEM_ROLE (user · admin) · ROLE_CODE · USER_STATUSES · USER_LIMITS · PASSWORD_LENGTH · USER_CACHE
+│       │   ├── schema/user.schema.ts     # profiles (status active|blocked) · roles · permission_groups · permissions (group_id) · role_permissions · user_roles
+│       │   ├── dto/                      # me · update-me · admin-user · role · permission
 │       │   ├── controllers/
 │       │   │   ├── user.controller.ts     # UserController /me · UserAdminController /admin/users (cùng dữ liệu, khác quyền)
-│       │   │   └── role.controller.ts        # /admin/roles · /admin/users/:id/roles
+│       │   │   ├── role.controller.ts        # /admin/roles CRUD · /admin/users/:id/roles (tag Roles)
+│       │   │   └── permission.controller.ts  # /admin/permissions CRUD theo id, sửa được cả code · /admin/permission-groups CRUD (tag Permissions)
 │       │   ├── services/
 │       │   │   ├── user.service.ts        # AUTH_USER cho guard (ensureProfile, getPermissions) · /me · /admin/users
-│       │   │   └── role.service.ts           # listRoles · listUserRoles · setUserRoles (xoá cache quyền)
+│       │   │   ├── role.service.ts           # CRUD role (hệ thống không xoá, đang gán 409) · setUserRoles · resolveRoleIds (mã lạ 422) · xoá cache quyền user mang role
+│       │   │   └── permission.service.ts     # permission theo nhóm (luôn thuộc 1 nhóm) · CRUD permission (đang gán 409) · CRUD nhóm (còn permission 409)
 │       │   └── repositories/
 │       │       ├── user.repository.ts     # SQL profiles
-│       │       └── role.repository.ts        # SQL roles · role_permissions · user_roles
+│       │       ├── role.repository.ts        # SQL roles · role_permissions · user_roles
+│       │       └── permission.repository.ts  # SQL permission_groups · permissions (description, group_id)
 │       ├── app-config/               # config động trong DB (bảng app_configs): /public/configs cho client · /admin/configs CRUD (config:*)
 │       │   ├── app-config.module.ts · app-config.controller.ts (Public + Admin) · app-config.service.ts · app-config.repository.ts · app-config.constants.ts
 │       │   ├── dto/config.dto.ts         # ConfigsQuerySchema (names không bắt buộc) · UpsertConfigSchema · AppConfigSchema
@@ -103,14 +105,14 @@ c9_map/
 │       │   ├── location.module.ts · location.controller.ts · location.service.ts · location.repository.ts · location.constants.ts
 │       │   ├── dto/create-location.dto.ts · dto/location.dto.ts     # 1 file / use case, chứa cả request + response
 │       │   └── schema/location.schema.ts                          # saved_locations (geography + GIST)
-├── drizzle/                          # 0000_extensions · 0001_identity · 0002_seed_rbac · 0003_location · 0004_location-public · 0005_user-status · 0006_permissions-split · 0007_drop-devices · 0008_app-configs (bảng + permission config:* + seed system_enums)
+├── drizzle/                          # 0000_extensions (postgis) · 0001_init (mọi bảng, từ schema) · 0002_seed (role, nhóm, permission, system_enums) — gộp lại 2026-09-22, DB dev reset
 ├── drizzle.config.ts                 # schema: 'src/**/*.schema.ts'
 ├── test/
 │   ├── unit/*.spec.ts                # logic thuần, không hạ tầng (env · exceptions · columns · permission.guard · permissions · pagination · validation · location.service · user.service · role.service)
 │   ├── integration/*.spec.ts         # AppModule thật trên testcontainers (app · cross-cutting · geography · redis-queue · auth-rbac · location · app-config · supabase-real)
 │   └── setup/{containers,env,jwks}.ts # globalSetup testcontainers + migrate · setupFiles inject URL · Supabase JWKS giả (ES256)
 ├── scripts/                          # dev-token.mjs (token Supabase thật) · grant-role.mjs (admin đầu tiên)
-├── i18n/{vi,en}/*.json · openapi/{system,users,locations}.json
+├── i18n/{vi,en}/{errors,validation}.json · openapi/{system,users,locations}.json
 ├── docker-compose.yml (postgres · redis · redis-insight cho dev) · vitest.config.ts · .env.example
 └── package.json · tsconfig.json · nest-cli.json
 ```

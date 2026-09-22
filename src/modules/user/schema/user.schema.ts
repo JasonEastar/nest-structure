@@ -1,4 +1,4 @@
-import { pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, integer, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 import { timestamps, uuidV7Pk } from '../../../common/database/columns.js';
 
 /** Bảng của module user. *.schema.ts chỉ import drizzle-orm, columns.ts và *.schema.ts khác. */
@@ -23,17 +23,34 @@ export const profiles = pgTable(
   (t) => [uniqueIndex('profiles_username_uq').on(t.username)],
 );
 
+/** Role là DỮ LIỆU (admin tạo/sửa/xoá qua /admin/roles); permission là CODE (common/auth/permissions.ts). */
 export const roles = pgTable('roles', {
   id: uuidV7Pk(),
-  code: text('code').notNull().unique(), // user | moderator | venue | admin
+  code: text('code').notNull().unique(), // định danh, đặt một lần; seed: user · moderator · venue · admin
   name: text('name').notNull(),
+  description: text('description'),
+  isSystem: boolean('is_system').notNull().default(false), // user (mặc định khi đăng ký) và admin (mọi quyền): không xoá được
   ...timestamps,
 });
 
+/** Nhóm permission = tab trên admin UI; admin CRUD. Nhóm còn permission thì không xoá được (FK RESTRICT → service báo 409). */
+export const permissionGroups = pgTable('permission_groups', {
+  id: uuidV7Pk(),
+  code: text('code').notNull().unique(), // snake_case, vd user_management
+  name: text('name').notNull(),
+  description: text('description'),
+  sort: integer('sort').notNull().default(0),
+  ...timestamps,
+});
+
+/** Permission là CODE (common/auth/permissions.ts); dòng DB chỉ để gán role và hiển thị (description, nhóm) — admin không tạo/xoá. */
 export const permissions = pgTable('permissions', {
   id: uuidV7Pk(),
   code: text('code').notNull().unique(), // resource:action, vd pin:create
   description: text('description'),
+  groupId: uuid('group_id')
+    .notNull()
+    .references(() => permissionGroups.id, { onDelete: 'restrict' }),
   ...timestamps,
 });
 

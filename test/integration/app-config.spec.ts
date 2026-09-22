@@ -76,7 +76,7 @@ describe('App configs (e2e)', () => {
     expect(publicList.body.data).toEqual([]);
 
     const dup = await api().post('/api/v1/admin/configs').set('authorization', `Bearer ${adminToken}`).send(body).expect(409);
-    expect(dup.body).toMatchObject({ code: 'CONFLICT', meta: { reason: 'NAME_TAKEN', field: 'name' } });
+    expect(dup.body).toMatchObject({ code: 'CONFLICT', meta: { field: 'name' } });
 
     await api().post('/api/v1/admin/configs').set('authorization', `Bearer ${adminToken}`).send({ name: 'Có Dấu', data: {} }).expect(422);
 

@@ -17,11 +17,11 @@ export type ConfigsQuery = z.infer<typeof ConfigsQuerySchema>;
 
 const ConfigDataSchema = z
   .record(z.string(), z.unknown())
-  .refine((data) => JSON.stringify(data).length <= APP_CONFIG_LIMITS.dataMaxBytes, `data tối đa ${APP_CONFIG_LIMITS.dataMaxBytes} byte`);
+  .refine((data) => JSON.stringify(data).length <= APP_CONFIG_LIMITS.dataMaxBytes, { message: 'validation.data_too_large', params: { max: APP_CONFIG_LIMITS.dataMaxBytes } });
 
 /** Body POST/PUT — thay toàn bộ `data` (client giữ nguyên phần không đổi rồi gửi lại). */
 export const UpsertConfigSchema = z.object({
-  name: z.string().trim().min(1).max(APP_CONFIG_LIMITS.name.max).regex(APP_CONFIG_LIMITS.name.pattern, 'Chỉ gồm a-z, 0-9 và _'),
+  name: z.string().trim().min(1).max(APP_CONFIG_LIMITS.name.max).regex(APP_CONFIG_LIMITS.name.pattern, 'validation.name_format'),
   data: ConfigDataSchema,
   isPublic: z.boolean().default(false),
 }).meta({ id: 'UpsertConfig' });

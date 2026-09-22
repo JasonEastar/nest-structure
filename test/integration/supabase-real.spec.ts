@@ -80,7 +80,7 @@ describe.skipIf(!enabled)('Supabase thật: JWKS + Admin API', () => {
 
     await expect(adminPort.createUser({ email, password, displayName: 'Dup' })).rejects.toMatchObject({
       code: 'CONFLICT',
-      params: { reason: 'EMAIL_TAKEN' },
+      params: { field: 'email' },
     });
   });
 

@@ -18,21 +18,21 @@ export class AppConfigService {
     return (await this.repo.findMany(names, false)).map(toAppConfig);
   }
 
-  /** Tạo mới; trùng tên → CONFLICT NAME_TAKEN. */
+  /** Tạo mới; trùng tên → CONFLICT (field name). */
   async create(input: UpsertConfig): Promise<AppConfig> {
-    if (await this.repo.nameExists(input.name)) throw new AppException('CONFLICT', { reason: 'NAME_TAKEN', field: 'name' });
+    if (await this.repo.nameExists(input.name)) throw new AppException('CONFLICT', { field: 'name' });
     return toAppConfig(await this.repo.insert(input));
   }
 
   /** Thay toàn bộ (name, data, isPublic); không có → NOT_FOUND. */
   async update(id: string, input: UpsertConfig): Promise<AppConfig> {
-    if (await this.repo.nameExists(input.name, id)) throw new AppException('CONFLICT', { reason: 'NAME_TAKEN', field: 'name' });
+    if (await this.repo.nameExists(input.name, id)) throw new AppException('CONFLICT', { field: 'name' });
     const row = await this.repo.update(id, input);
-    if (!row) throw new AppException('NOT_FOUND', { resource: 'config', id });
+    if (!row) throw new AppException('NOT_FOUND', { id });
     return toAppConfig(row);
   }
 
   async remove(id: string): Promise<void> {
-    if (!(await this.repo.deleteById(id))) throw new AppException('NOT_FOUND', { resource: 'config', id });
+    if (!(await this.repo.deleteById(id))) throw new AppException('NOT_FOUND', { id });
   }
 }

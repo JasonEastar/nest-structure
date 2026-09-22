@@ -85,7 +85,7 @@ NEVER  dùng SUPABASE_SECRET_KEY ở client hoặc trong log/response
 MUST   MỌI response cùng 5 field { success, code, msg, data, meta }; lỗi: success=false, data=null, code là mã chữ (NEVER số HTTP), msg đã dịch theo Accept-Language, chi tiết trong meta từ i18n/<lang>/errors.json — NEVER hard-code câu chữ trong service
 MUST   response shape DUY NHẤT cho cả thành công lẫn lỗi: { success, code, msg, data, meta }
 MUST   AuthGuard global; route mở dùng @Public()
-MUST   route cần quyền có @RequirePermission('<resource>:<action>') — mã lấy từ `common/auth/permissions.ts` (gõ sai = lỗi compile), seed trong drizzle/*.sql; quyền nằm trong DB + Redis, NEVER trong JWT
+MUST   route cần quyền có @RequirePermission('<resource>:<action>') — chuỗi trùng với bảng `permissions` (admin quản lý; seed đầu trong drizzle/*.sql); quyền nằm trong DB + Redis, NEVER trong JWT
 MUST   SOS (gđ 2) có @RequirePhoneVerified() — không global; MVP đăng nhập chỉ Google, không cần SĐT
 MUST   rate limit khoá theo IP (req.ip sau `trust proxy`), đếm chung mọi instance qua Redis
 MUST   POST tạo tài nguyên nhạy cảm (SOS, thanh toán, pin, reply) nhận Idempotency-Key
@@ -156,7 +156,7 @@ c9_map/
 │   │   │   ├── queue.ts              # BullModule.forRoot (db1, prefix c9) · QUEUES
 │   │   │   └── throttler.guard.ts    # RedisThrottlerStorage (Lua) · AppThrottlerGuard khoá theo IP (req.ip)
 │   │   └── http/
-│   │       ├── exceptions.ts         # ErrorCodes · AppException · AllExceptionsFilter → { success:false, code, msg, data:null, meta }
+│   │       ├── exceptions.ts         # ErrorCodes (11 mã dùng chung theo HTTP status) · AppException · validationError · AllExceptionsFilter → { success:false, code, msg, data:null, meta }
 │   │       ├── response.ts           # ResponseInterceptor → { success, code, msg, data, meta }
 │   │       ├── pagination.ts         # cursor (created_at, id) · PaginationQuerySchema · pageOf()
 │   │       ├── validation.ts         # APP_PIPE StandardSchemaValidationPipe (zod) → 422 · zText · zLatLng
@@ -167,18 +167,21 @@ c9_map/
 │       │   ├── health.module.ts · health.controller.ts (GET /health/live · /health/ready) · health.indicators.ts
 │       ├── user/                     # 2 nghiệp vụ (user · role) → xếp theo tầng; dto/ schema/ constants dùng chung ở gốc
 │       │   ├── user.module.ts
-│       │   ├── user.constants.ts         # ROLE_CODES · USER_STATUSES · USER_LIMITS · PASSWORD_LENGTH · USER_CACHE
-│       │   ├── schema/user.schema.ts     # profiles (status active|blocked) · roles · permissions · role_permissions · user_roles
-│       │   ├── dto/                      # me · update-me · admin-user · role
+│       │   ├── user.constants.ts         # SYSTEM_ROLE (user · admin) · ROLE_CODE · USER_STATUSES · USER_LIMITS · PASSWORD_LENGTH · USER_CACHE
+│       │   ├── schema/user.schema.ts     # profiles (status active|blocked) · roles · permission_groups · permissions (group_id) · role_permissions · user_roles
+│       │   ├── dto/                      # me · update-me · admin-user · role · permission
 │       │   ├── controllers/
 │       │   │   ├── user.controller.ts     # UserController /me · UserAdminController /admin/users (cùng dữ liệu, khác quyền)
-│       │   │   └── role.controller.ts        # /admin/roles · /admin/users/:id/roles
+│       │   │   ├── role.controller.ts        # /admin/roles · /admin/users/:id/roles
+│       │   │   └── permission.controller.ts  # /admin/permissions CRUD · /admin/permission-groups CRUD
 │       │   ├── services/
 │       │   │   ├── user.service.ts        # AUTH_USER cho guard (ensureProfile, getPermissions) · /me · /admin/users
-│       │   │   └── role.service.ts           # listRoles · listUserRoles · setUserRoles (xoá cache quyền)
+│       │   │   ├── role.service.ts           # CRUD role · setUserRoles (xoá cache quyền)
+│       │   │   └── permission.service.ts     # permission theo nhóm · CRUD nhóm
 │       │   └── repositories/
 │       │       ├── user.repository.ts     # SQL profiles
-│       │       └── role.repository.ts        # SQL roles · role_permissions · user_roles
+│       │       ├── role.repository.ts        # SQL roles · role_permissions · user_roles
+│       │       └── permission.repository.ts  # SQL permission_groups · permissions
 │       ├── location/                 # MODULE MẪU — copy cấu trúc này cho module mới
 │       │   ├── location.module.ts · location.controller.ts · location.service.ts · location.repository.ts · location.constants.ts
 │       │   ├── dto/create-location.dto.ts · dto/location.dto.ts     # 1 file / use case, chứa cả request + response
@@ -231,7 +234,7 @@ Nguồn: [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md) (sửa đổi 20
 | Env Supabase | `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (backend); `SUPABASE_PUBLISHABLE_KEY` chỉ client/script | |
 | Decorator auth | `@Public()`, `@RequirePermission('pin:delete_any')`, `@RequirePhoneVerified()` | không còn `@AllowUnverified()` |
 | Guard | `AppThrottlerGuard` → `AuthGuard` → `PermissionGuard` (thứ tự trong app.module.ts) | |
-| Permission | `resource:action`, action chuẩn `read · create · update · delete` + động từ nghiệp vụ (`ban`, `assign`, `review`); khai trong `common/auth/permissions.ts` | `pin:create`, `user:read`, `role:assign` |
+| Permission | `resource:action`, action chuẩn `read · create · update · delete` + động từ nghiệp vụ (`ban`, `assign`, `review`); là dữ liệu trong bảng `permissions`, code chỉ ghi chuỗi ở `@RequirePermission` | `pin:create`, `user:read`, `role:assign` |
 | Header | `X-Request-Id`, `Idempotency-Key` (sau) | |
 | Commit | Conventional Commits | `feat(pin): viewport clustering` |
 | Branch | trunk-based, feature branch ngắn | `feat/pin-viewport` |
@@ -249,7 +252,7 @@ Nguồn: [ADR-0006](./adr/0006-all-in-one-cau-truc-don-gian.md) (sửa đổi 20
 | `<x>.repository.ts` | Sở hữu mọi SQL của module, kể cả PostGIS (`ST_DWithin`). SQL không gian phải có test biên |
 | `*.dto.ts` | Mọi zod schema request/response của module. Controller dùng `@Body({ schema })`; kiểu = `z.infer`. dto đặt trong `dto/<use-case>.dto.ts` |
 | `*.schema.ts` | Bảng Drizzle của module; `drizzle.config.ts` gom bằng glob `src/**/*.schema.ts` |
-| `*.constants.ts` | Hằng số nghiệp vụ **của module** (giới hạn, enum: `ROLE_CODES`, `USER_STATUSES`) và mục cache của module (`USER_CACHE = { perms: cacheEntry('user', 'perms', 300) }`; chỉ chạm key của mình, vô hiệu cache module khác qua service của nó) — một chỗ duy nhất. Hằng số **toàn app** (rate limit, `LOCALES`) ở `src/config/` |
+| `*.constants.ts` | Hằng số nghiệp vụ **của module** (giới hạn, enum: `USER_STATUSES`; role KHÔNG phải enum — là dữ liệu DB, chỉ `SYSTEM_ROLE.user/admin` được code biết tên) và mục cache của module (`USER_CACHE = { perms: cacheEntry('user', 'perms', 300) }`; chỉ chạm key của mình, vô hiệu cache module khác qua service của nó) — một chỗ duy nhất. Hằng số **toàn app** (rate limit, `LOCALES`) ở `src/config/` |
 | `*.jobs.ts` | `@Processor` + `upsertJobScheduler` (id cố định); chạy trên mọi instance |
 | `*.types.ts` | Kiểu nội bộ module (chỉ khi cần) |
 | Cross-module | Gọi service đã export, hoặc phát event qua outbox. Không join bảng module khác trong SQL |

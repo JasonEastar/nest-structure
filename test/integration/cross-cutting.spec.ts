@@ -35,7 +35,7 @@ class ProbeController {
 
   @Get(':id')
   byId(@Param('id', { schema: z.uuid() }) id: string) {
-    if (id.startsWith('00000000')) throw new AppException('NOT_FOUND', { resource: 'probe', id });
+    if (id.startsWith('00000000')) throw new AppException('NOT_FOUND', { id });
     return { id };
   }
 }
@@ -71,12 +71,18 @@ describe('Cross-cutting (e2e): validation · envelope · errors · i18n · prefi
     expect(res.headers['x-request-id']).toBe(res.body.meta.requestId);
   });
 
-  it('body sai → 422 VALIDATION_FAILED với issues[path,message]', async () => {
+  it('body sai → 422 VALIDATION_FAILED với issues[path,message]; message dịch theo Accept-Language (zod locale), không lộ issue gốc', async () => {
     const res = await request(app.getHttpServer()).post('/api/v1/probe').send({ age: -1 }).expect(422);
     expect(res.body.code).toBe('VALIDATION_FAILED');
     const paths = res.body.meta.issues.map((i: { path: string }) => i.path);
     expect(paths).toEqual(expect.arrayContaining(['name', 'age']));
     expect(res.body.meta.requestId).toBeTruthy();
+    const age = res.body.meta.issues.find((i: { path: string }) => i.path === 'age');
+    expect(Object.keys(age)).toEqual(['path', 'message']);
+    expect(age.message).toMatch(/^Quá nhỏ/); // mặc định vi
+
+    const en = await request(app.getHttpServer()).post('/api/v1/probe').send({ age: -1 }).set('Accept-Language', 'en').expect(422);
+    expect(en.body.meta.issues.find((i: { path: string }) => i.path === 'age').message).toMatch(/^Too small/);
   });
 
   it('query coerce + envelope: mảng trả về nằm trong data, meta chỉ có requestId', async () => {
@@ -85,7 +91,7 @@ describe('Cross-cutting (e2e): validation · envelope · errors · i18n · prefi
     expect(res.body.meta).toEqual({ requestId: expect.any(String) });
   });
 
-  it('param không phải uuid → 422; AppException → 404 NOT_FOUND kèm params', async () => {
+  it('param không phải uuid → 422; AppException → 404 với mã cụ thể kèm params', async () => {
     await request(app.getHttpServer()).get('/api/v1/probe/not-a-uuid').expect(422);
     const res = await request(app.getHttpServer())
       .get('/api/v1/probe/00000000-0000-7000-8000-000000000000')
@@ -93,9 +99,9 @@ describe('Cross-cutting (e2e): validation · envelope · errors · i18n · prefi
     expect(res.body).toEqual({
       success: false,
       code: 'NOT_FOUND',
-      msg: 'Không tìm thấy probe',
+      msg: 'Không tìm thấy dữ liệu',
       data: null,
-      meta: { resource: 'probe', id: '00000000-0000-7000-8000-000000000000', requestId: expect.any(String) },
+      meta: { id: '00000000-0000-7000-8000-000000000000', requestId: expect.any(String) },
     });
   });
 
@@ -120,16 +126,16 @@ describe('Cross-cutting (e2e): validation · envelope · errors · i18n · prefi
     expect(q.body.data.text).toBe('Bạn cần đăng nhập để tiếp tục'); // query KHÔNG được nhận: một cách duy nhất là header
   });
 
-  it('lỗi có message đã dịch: NOT_FOUND vi/en với resource, VALIDATION_FAILED, 404 route lạ', async () => {
+  it('lỗi có message đã dịch theo Accept-Language: mã nghiệp vụ vi/en, VALIDATION_FAILED, 404 route lạ', async () => {
     const id = '00000000-0000-7000-8000-000000000000';
     const vi = await request(app.getHttpServer()).get(`/api/v1/probe/${id}`).expect(404);
-    expect(vi.body.msg).toBe('Không tìm thấy probe'); // resource 'probe' không có câu dịch → giữ nguyên
+    expect(vi.body.msg).toBe('Không tìm thấy dữ liệu');
     const en = await request(app.getHttpServer()).get(`/api/v1/probe/${id}`).set('Accept-Language', 'en').expect(404);
-    expect(en.body.msg).toBe('probe not found');
+    expect(en.body.msg).toBe('Resource not found');
     const bad = await request(app.getHttpServer()).post('/api/v1/probe').send({}).set('Accept-Language', 'en').expect(422);
     expect(bad.body.msg).toBe('The submitted data is invalid');
     const nf = await request(app.getHttpServer()).get('/api/v1/__nope').expect(404);
-    expect(nf.body).toMatchObject({ success: false, code: 'NOT_FOUND', msg: 'Không tìm thấy dữ liệu', data: null }); // Nest 404: không có resource
+    expect(nf.body).toMatchObject({ success: false, code: 'NOT_FOUND', msg: 'Không tìm thấy dữ liệu', data: null }); // Nest 404 route lạ → mã chung NOT_FOUND
   });
 
   it('/health/ready giữ shape Terminus, không bị bọc envelope', async () => {

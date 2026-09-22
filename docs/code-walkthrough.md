@@ -108,7 +108,7 @@ Các bước khi làm module `pin`:
 1. Tạo `modules/pin/` với đúng bộ file trên, đổi tên `location` → `pin`.
 2. Schema → `npm run db:generate` → sửa SQL → `npm run db:migrate`. Thêm `export *` vào `common/database/schema.ts`.
 3. Đăng ký `PinModule` trong `app.module.ts` và thêm một mục `OPENAPI_DOCS` (key `pins`, title `Pins`) để Swagger hiện.
-4. Cần quyền → `@RequirePermission('pin:create')` trên route; mã khai trong `common/auth/permissions.ts` và seed `drizzle/*.sql`.
+4. Cần quyền → `@RequirePermission('pin:create')` trên route; mã là chuỗi trùng với dòng trong bảng `permissions` (admin quản lý, seed đầu trong `drizzle/*.sql`). Gõ sai mã = route không ai vào được — tự kiểm khi viết route.
 5. Viết test unit cho luật, integration cho SQL và HTTP. Chạy `npm test`.
 
 ## 7. Những thứ cố ý chưa có

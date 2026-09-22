@@ -61,7 +61,7 @@ describe('Redis · throttler (e2e, 2 instance)', () => {
     const res = await request(b.getHttpServer()).get('/api/v1/probe').expect(429);
     expect(res.headers['retry-after']).toMatch(/^\d+$/);
     expect(res.body.code).toBe('RATE_LIMITED');
-    expect(res.body.meta.limit).toBe(10);
+    expect(res.body.meta).toEqual({ retryAfter: expect.any(Number), requestId: expect.any(String) });
   });
 
   it('health/docs không bị rate limit', async () => {

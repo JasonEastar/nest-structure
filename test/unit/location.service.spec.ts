@@ -32,11 +32,11 @@ function makeRepo(overrides: Partial<LocationRepository> = {}): LocationReposito
 }
 
 describe('LocationService', () => {
-  it('create: đủ 20 địa điểm → CONFLICT LIMIT_REACHED; chưa đủ → tạo và map lat/lng, ISO date', async () => {
+  it('create: đủ 20 địa điểm → CONFLICT (max); chưa đủ → tạo và map lat/lng, ISO date', async () => {
     const full = new LocationService(makeRepo({ countByUser: async () => LOCATION_LIMITS.maxPerUser }));
     await expect(full.create('u1', { name: 'Nhà', lat: 10.7, lng: 106.7, radiusMeters: 500, isPublic: false })).rejects.toMatchObject({
       code: 'CONFLICT',
-      params: { reason: 'LIMIT_REACHED', max: LOCATION_LIMITS.maxPerUser },
+      params: { max: LOCATION_LIMITS.maxPerUser },
     });
 
     const ok = new LocationService(makeRepo());

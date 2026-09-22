@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { type ArgumentsHost, HttpStatus, NotFoundException } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 
@@ -16,15 +17,12 @@ function host(req: Record<string, unknown>, res: Record<string, unknown>): Argum
 
 /**
  * Bộ dịch giả cùng interface I18nService.t: chỉ biết vài key, key lạ trả lại chính key (đúng hành vi nestjs-i18n)
- * → kiểm được thứ tự tìm CODE_<reason> → CODE → mã lỗi và dịch resource. Bản dịch thật kiểm ở integration.
+ * → kiểm được errors.<code> + args, và fallback về mã khi thiếu câu. Bản dịch thật: test 'đủ câu vi + en' bên dưới.
  */
 const dictionary: Record<string, string> = {
   'vi:errors.FORBIDDEN': 'Không có quyền',
-  'vi:errors.NOT_FOUND': 'Không tìm thấy {resource}',
-  'vi:errors.resource.location': 'địa điểm',
-  'vi:errors.CONFLICT': 'Xung đột',
-  'vi:errors.CONFLICT_LIMIT_REACHED': 'Đã đạt giới hạn {max}',
-  'en:errors.NOT_FOUND': '{resource} not found',
+  'vi:errors.CONFLICT': 'Xung đột ({count})',
+  'en:errors.CONFLICT': 'Conflict ({count})',
 };
 const i18n = {
   t: (key: string, opts?: { lang?: string; args?: Record<string, unknown> }) => {
@@ -53,11 +51,18 @@ function fakeRes(headersSent = false) {
 }
 
 describe('AppException', () => {
-  it('status mặc định theo ErrorCodes, override được', () => {
-    expect(new AppException('NOT_FOUND').getStatus()).toBe(404);
+  it('status lấy từ ErrorCodes theo mã', () => {
+    expect(new AppException('NOT_FOUND', { id: 'x' }).getStatus()).toBe(404);
+    expect(new AppException('CONFLICT', { count: 2 }).getStatus()).toBe(409);
     expect(new AppException('RATE_LIMITED', { retryAfter: 3 }).getStatus()).toBe(429);
-    expect(new AppException('BAD_REQUEST', {}, HttpStatus.I_AM_A_TEAPOT).getStatus()).toBe(418);
-    expect(ErrorCodes.VALIDATION_FAILED).toBe(422);
+    expect(ErrorCodes.VALIDATION_FAILED).toBe(HttpStatus.UNPROCESSABLE_ENTITY);
+  });
+
+  it('mọi mã lỗi đều có câu dịch vi và en', () => {
+    for (const lang of ['vi', 'en']) {
+      const messages = JSON.parse(readFileSync(`i18n/${lang}/errors.json`, 'utf8')) as Record<string, string>;
+      for (const code of Object.keys(ErrorCodes)) expect(messages[code], `${lang}: ${code}`).toBeTruthy();
+    }
   });
 });
 
@@ -78,11 +83,9 @@ describe('AllExceptionsFilter', () => {
     });
   });
 
-  it('translate: CODE_<reason> ưu tiên hơn CODE; resource được dịch; thiếu câu dịch → trả mã', () => {
-    expect(filter.translate('vi', 'CONFLICT', { reason: 'LIMIT_REACHED', max: 20 })).toBe('Đã đạt giới hạn 20');
-    expect(filter.translate('vi', 'CONFLICT', { reason: 'UNKNOWN' })).toBe('Xung đột');
-    expect(filter.translate('vi', 'NOT_FOUND', { resource: 'location' })).toBe('Không tìm thấy địa điểm');
-    expect(filter.translate('en', 'NOT_FOUND', { resource: 'probe' })).toBe('probe not found');
+  it('translate: errors.<code> với args theo ngôn ngữ; thiếu câu dịch → trả mã', () => {
+    expect(filter.translate('vi', 'CONFLICT', { count: 3 })).toBe('Xung đột (3)');
+    expect(filter.translate('en', 'CONFLICT', { count: 3 })).toBe('Conflict (3)');
     expect(filter.translate('vi', 'RATE_LIMITED', { retryAfter: 3 })).toBe('RATE_LIMITED');
   });
 

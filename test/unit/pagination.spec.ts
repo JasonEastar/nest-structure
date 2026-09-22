@@ -10,7 +10,7 @@ describe('cursor phân trang', () => {
     expect(decodeCursor(raw)).toEqual(cursor);
   });
 
-  it('rỗng → undefined; hỏng (không base64, không JSON, sai shape) → 400 BAD_REQUEST', () => {
+  it('rỗng → undefined; hỏng (không base64, không JSON, sai shape) → 400 BAD_REQUEST (field cursor)', () => {
     expect(decodeCursor(undefined)).toBeUndefined();
     expect(decodeCursor('')).toBeUndefined();
     for (const bad of ['!!!', Buffer.from('not json').toString('base64url'), Buffer.from('{"a":1}').toString('base64url')]) {

@@ -1,40 +1,61 @@
 import { ArgumentsHost, Catch, type ExceptionFilter, HttpException, HttpStatus, Inject, Logger } from '@nestjs/common';
+import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type { Request, Response } from 'express';
 import * as Sentry from '@sentry/nestjs';
 import { I18nContext, I18nService } from 'nestjs-i18n';
+import { z } from 'zod';
 import { DEFAULT_LOCALE } from '../../config/i18n.js';
 import { requestIdOf } from './request-context.middleware.js';
 import type { ApiResponse } from './response.js';
 
-/** Mã lỗi + HTTP status mặc định. Thêm mã mới → thêm câu dịch cùng tên trong i18n/{vi,en}/errors.json. */
+/**
+ * Mã lỗi dùng chung cho mọi module (theo HTTP status), câu dịch cùng tên trong i18n/{vi,en}/errors.json.
+ * Ném: `throw new AppException('NOT_FOUND', { id })` — object thứ 2 là tham số, trả nguyên cho client trong `meta`
+ * (id, field, count, max, missing…) để client hiển thị/xử lý; không cần mã riêng cho từng bảng.
+ */
 export const ErrorCodes = {
-  VALIDATION_FAILED: HttpStatus.UNPROCESSABLE_ENTITY,
-  NOT_FOUND: HttpStatus.NOT_FOUND,
+  BAD_REQUEST: HttpStatus.BAD_REQUEST, // meta.field
   UNAUTHENTICATED: HttpStatus.UNAUTHORIZED,
-  FORBIDDEN: HttpStatus.FORBIDDEN,
-  RATE_LIMITED: HttpStatus.TOO_MANY_REQUESTS,
-  CONFLICT: HttpStatus.CONFLICT,
-  BAD_REQUEST: HttpStatus.BAD_REQUEST,
+  FORBIDDEN: HttpStatus.FORBIDDEN, // meta.missing (thiếu permission) · meta.code (role/permission hệ thống)
+  ACCOUNT_BLOCKED: HttpStatus.FORBIDDEN, // riêng vì app phải đăng xuất, không phải "thiếu quyền"
+  NOT_FOUND: HttpStatus.NOT_FOUND, // meta.id | meta.code
+  CONFLICT: HttpStatus.CONFLICT, // meta.field (đã tồn tại) · meta.count (đang được dùng) · meta.max (đạt giới hạn)
   PAYLOAD_TOO_LARGE: HttpStatus.PAYLOAD_TOO_LARGE,
-  SERVICE_UNAVAILABLE: HttpStatus.SERVICE_UNAVAILABLE,
+  VALIDATION_FAILED: HttpStatus.UNPROCESSABLE_ENTITY, // meta.issues[{ path, message }]
+  RATE_LIMITED: HttpStatus.TOO_MANY_REQUESTS, // meta.retryAfter
   INTERNAL: HttpStatus.INTERNAL_SERVER_ERROR,
+  SERVICE_UNAVAILABLE: HttpStatus.SERVICE_UNAVAILABLE,
 } as const;
 
 export type ErrorCode = keyof typeof ErrorCodes;
 export type ErrorParams = Record<string, unknown>;
 
-/** Lỗi nghiệp vụ: service ném `new AppException('NOT_FOUND', { resource: 'pin' })`. */
+/**
+ * Một lỗi validate trong VALIDATION_FAILED. Filter dịch `message` theo Accept-Language: key `validation.<x>` (custom refine/regex
+ * trong DTO, hoặc service ném) → i18n/<lang>/validation.json với `args`; còn lại là lỗi zod gốc → zod locale (vi/en).
+ * Client chỉ nhận { path, message }.
+ */
+export interface ValidationIssue {
+  path: string;
+  message: string;
+  args?: Record<string, unknown>;
+  zod?: StandardSchemaV1.Issue;
+}
+
+/** Lỗi nghiệp vụ: `throw new AppException('NOT_FOUND', { id })`. Status lấy từ ErrorCodes, không tự đặt. */
 export class AppException extends HttpException {
   constructor(
     readonly code: ErrorCode,
     readonly params: ErrorParams = {},
-    status: HttpStatus = ErrorCodes[code],
   ) {
-    super({ code, params }, status);
+    super({ code, params }, ErrorCodes[code]);
   }
 }
 
-/** Map HttpException có sẵn của Nest (NotFoundException, ...) sang mã của dự án. */
+/** Lỗi theo field từ service (vd mã role không tồn tại): `throw validationError([{ path: 'roles', message: 'validation.role_not_found', args: { code } }])`. */
+export const validationError = (issues: ValidationIssue[]) => new AppException('VALIDATION_FAILED', { issues });
+
+/** HttpException có sẵn của Nest (route không có, body quá lớn…) → mã chung theo status. */
 const STATUS_TO_CODE: Partial<Record<number, ErrorCode>> = {
   400: 'BAD_REQUEST',
   401: 'UNAUTHENTICATED',
@@ -50,7 +71,7 @@ const STATUS_TO_CODE: Partial<Record<number, ErrorCode>> = {
 /**
  * Filter toàn cục: mọi lỗi → ApiResponse (response.ts) với success=false, data=null, chi tiết trong meta.
  * AppException giữ code/status; HttpException Nest map status → code; lỗi lạ → 500.
- * message dịch theo Accept-Language: `CODE_<reason>` → `CODE` → mã lỗi. 5xx log stack, không lộ ra client.
+ * msg = errors.<code> dịch theo Accept-Language (thiếu câu → trả mã). 5xx log stack + Sentry, không lộ ra client.
  */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -58,13 +79,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   constructor(@Inject(I18nService) private readonly i18n: Pick<I18nService, 't'>) {}
 
-  /** Câu lỗi theo ngôn ngữ; `params.resource` dịch qua `errors.resource.<tên>`, không có thì dùng `resource.default`. */
+  /** issues[] của VALIDATION_FAILED: key `validation.*` → i18n; lỗi zod gốc → zod locale theo ngôn ngữ; còn lại giữ nguyên. */
+  translateIssues(lang: string, issues: ValidationIssue[]): { path: string; message: string }[] {
+    const locale = lang === 'vi' ? z.locales.vi().localeError : undefined;
+    const fromZod = (issue: unknown): string | undefined => {
+      const out = locale?.(issue as Parameters<NonNullable<typeof locale>>[0]);
+      return typeof out === 'string' ? out : out?.message;
+    };
+    return issues.map(({ path, message, args, zod }) => ({
+      path,
+      message: message.startsWith('validation.') ? (this.lookup(lang, message, args) ?? message) : ((zod && fromZod(zod)) || message),
+    }));
+  }
+
+  /** Câu lỗi theo ngôn ngữ: errors.<code> với params làm {args}; thiếu câu dịch → trả mã. */
   translate(lang: string, code: ErrorCode, params: ErrorParams): string {
-    const args = { ...params };
-    const resource = typeof params.resource === 'string' ? params.resource : 'default';
-    args.resource = this.lookup(lang, `errors.resource.${resource}`) ?? resource;
-    const byReason = typeof params.reason === 'string' ? this.lookup(lang, `errors.${code}_${params.reason}`, args) : undefined;
-    return byReason ?? this.lookup(lang, `errors.${code}`, args) ?? code;
+    return this.lookup(lang, `errors.${code}`, params) ?? code;
   }
 
   /** nestjs-i18n trả lại key khi thiếu câu dịch → undefined để fallback. */
@@ -107,7 +137,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return;
     }
     const lang = I18nContext.current(host)?.lang ?? DEFAULT_LOCALE;
-    // params trải vào meta (issues, reason, retryAfter…); requestId đặt sau cùng để không bị params ghi đè
+    if (Array.isArray(params.issues)) params = { ...params, issues: this.translateIssues(lang, params.issues as ValidationIssue[]) };
+    // params trải vào meta (issues, count, retryAfter…); requestId đặt sau cùng để không bị params ghi đè
     const body: ApiResponse<never> = {
       success: false,
       code,

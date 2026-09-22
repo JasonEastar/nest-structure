@@ -18,10 +18,10 @@ import { LocationRepository } from './location.repository.js';
 export class LocationService {
   constructor(private readonly repo: LocationRepository) {}
 
-  /** Tạo địa điểm; vượt 20 → CONFLICT LIMIT_REACHED. */
+  /** Tạo địa điểm; vượt 20 → CONFLICT (max). */
   async create(userId: string, input: CreateLocation): Promise<LocationResponse> {
     if ((await this.repo.countByUser(userId)) >= LOCATION_LIMITS.maxPerUser) {
-      throw new AppException('CONFLICT', { reason: 'LIMIT_REACHED', max: LOCATION_LIMITS.maxPerUser });
+      throw new AppException('CONFLICT', { max: LOCATION_LIMITS.maxPerUser });
     }
     const row = await this.repo.insert(userId, {
       name: input.name,
@@ -41,13 +41,13 @@ export class LocationService {
   /** Chi tiết; không có hoặc của người khác → NOT_FOUND. */
   async get(userId: string, id: string): Promise<LocationResponse> {
     const row = await this.repo.findById(userId, id);
-    if (!row) throw new AppException('NOT_FOUND', { resource: 'location', id }); // của người khác cũng là NOT_FOUND (không lộ)
+    if (!row) throw new AppException('NOT_FOUND', { id }); // của người khác cũng là NOT_FOUND (không lộ)
     return toLocationResponse(row);
   }
 
   /** Xoá; không có hoặc của người khác → NOT_FOUND. */
   async remove(userId: string, id: string): Promise<void> {
-    if (!(await this.repo.deleteById(userId, id))) throw new AppException('NOT_FOUND', { resource: 'location', id });
+    if (!(await this.repo.deleteById(userId, id))) throw new AppException('NOT_FOUND', { id });
   }
 
   /** API public: chỉ địa điểm chủ nhân đã bật isPublic, trả trường an toàn. Không có userId vì không đăng nhập. */

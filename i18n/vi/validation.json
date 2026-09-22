@@ -1,0 +1,10 @@
+{
+  "at_least_one_field": "Cần ít nhất một field",
+  "code_format": "Chỉ gồm chữ thường, số và gạch dưới; bắt đầu bằng chữ",
+  "permission_code_format": "Dạng resource:action, chữ thường",
+  "name_format": "Chỉ gồm a-z, 0-9 và _",
+  "data_too_large": "data tối đa {max} byte",
+  "role_not_found": "Role không tồn tại: {code}",
+  "permission_not_found": "Permission không tồn tại: {code}",
+  "weak_password": "Mật khẩu không đạt yêu cầu: {detail}"
+}

@@ -5,6 +5,7 @@ import type { SupabaseClaims } from '../../../common/auth/supabase.js';
 import { profiles, roles, userRoles } from '../schema/user.schema.js';
 import type { UpdateMe } from '../dto/update-me.dto.js';
 import type { AdminUserRow, UserStatus } from '../dto/admin-user.dto.js';
+import { SYSTEM_ROLE } from '../user.constants.js';
 import type { Cursor } from '../../../common/http/pagination.js';
 
 const adminUserColumns = {
@@ -41,7 +42,7 @@ export class UserRepository {
         .returning({ id: profiles.id });
 
       const [defaultRole] = inserted.length
-        ? await tx.select({ id: roles.id }).from(roles).where(eq(roles.code, 'user')).limit(1)
+        ? await tx.select({ id: roles.id }).from(roles).where(eq(roles.code, SYSTEM_ROLE.user)).limit(1)
         : [];
       if (defaultRole) {
         await tx
