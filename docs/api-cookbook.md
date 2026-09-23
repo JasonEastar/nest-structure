@@ -15,11 +15,11 @@ npm run dev:tools               # (tuỳ chọn) RedisInsight http://localhost:5
 npm run db:migrate              # tạo bảng + seed role/permission
 npm run dev                     # http://localhost:3000, sửa file là tự reload
 open http://localhost:3000/docs              # Swagger UI, dropdown 'Select a definition' chọn module
-TOKEN=$(node scripts/dev-token.mjs)          # token Supabase thật, không cần bấm Google
+TOKEN=$(node scripts/dev-token.mjs)          # token Supabase thật (role admin), không cần bấm Google
 curl -H "authorization: Bearer $TOKEN" localhost:3000/api/v1/me
 ```
 
-Trong Swagger bấm **Authorize**, dán token → gọi thử mọi API. Tài khoản dev-token có role `user`; muốn gọi API admin: `node scripts/grant-role.mjs dev@c9map.test admin` (lần đầu, chưa ai có `role:assign`), sau đó gán qua `PUT /api/v1/admin/users/:id/roles`.
+Trong Swagger bấm **Authorize**, dán token → gọi thử mọi API, kể cả `/admin/*` (script gán sẵn role `admin` = mọi permission). Muốn thử bị chặn 403: `node scripts/dev-token.mjs khach@c9map.test --roles user`. Gán role cho người khác thì dùng API `PUT /api/v1/admin/users/:id/roles`.
 
 ## 2. Đặt tên API
 

@@ -192,7 +192,7 @@ c9_map/
 │   ├── unit/*.spec.ts                # logic thuần, không hạ tầng (env · exceptions · columns · permission.guard · pagination · validation · location.service)
 │   ├── integration/*.spec.ts         # AppModule thật trên testcontainers (app · cross-cutting · geography · redis-queue · auth-rbac · location · supabase-real)
 │   └── setup/{containers,env,jwks}.ts # globalSetup testcontainers + migrate · setupFiles inject URL · Supabase JWKS giả (ES256)
-├── scripts/                          # dev-token.mjs (token Supabase thật) · grant-role.mjs (admin đầu tiên)
+├── scripts/                          # dev-token.mjs — tạo user Supabase + gán role (mặc định admin) + in access_token
 ├── i18n/{vi,en}/*.json · openapi/{system,users,locations}.json
 ├── docker-compose.yml (postgres · redis · redis-insight cho dev) · vitest.config.ts · .env.example
 └── package.json · tsconfig.json · nest-cli.json

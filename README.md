@@ -29,7 +29,7 @@ npm run dev              # http://localhost:3000, sửa file tự reload
 ```
 
 - Swagger: http://localhost:3000/docs (dropdown chọn System, User & Auth, Locations)
-- Lấy token thật để gọi API: `TOKEN=$(node scripts/dev-token.mjs)` rồi `curl -H "authorization: Bearer $TOKEN" localhost:3000/api/v1/me`
+- Lấy token thật để gọi API: `TOKEN=$(node scripts/dev-token.mjs)` (tạo sẵn user role `admin`) rồi `curl -H "authorization: Bearer $TOKEN" localhost:3000/api/v1/me`
 - Xem Redis: `npm run dev:tools` → http://localhost:5540 · Xem Postgres: `npm run db:studio`
 
 ## Cấu trúc
